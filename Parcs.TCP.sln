@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.33424.131
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Parcs.TCP.Host", "Parcs.TCP.Host\Parcs.TCP.Host.csproj", "{959AE818-5090-4CA5-A08C-68C0D28D07C7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Parcs.TCP.Daemon", "Parcs.TCP.Daemon\Parcs.TCP.Daemon.csproj", "{513F878B-13C7-4BEA-BFC1-676561E42E69}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{959AE818-5090-4CA5-A08C-68C0D28D07C7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{959AE818-5090-4CA5-A08C-68C0D28D07C7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{959AE818-5090-4CA5-A08C-68C0D28D07C7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{959AE818-5090-4CA5-A08C-68C0D28D07C7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{513F878B-13C7-4BEA-BFC1-676561E42E69}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{513F878B-13C7-4BEA-BFC1-676561E42E69}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{513F878B-13C7-4BEA-BFC1-676561E42E69}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{513F878B-13C7-4BEA-BFC1-676561E42E69}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {A7E44F1B-D2FC-4A94-B95F-0558B70A9B92}
+	EndGlobalSection
+EndGlobal
