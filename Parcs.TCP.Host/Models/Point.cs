@@ -1,20 +1,19 @@
-﻿using NetCoreServer;
-using Parcs.Core;
+﻿using Parcs.Core;
+using Parcs.TCP.Host.EntryPoint;
 
 namespace Parcs.TCP.Host.Models
 {
     internal class Point : IPoint
     {
-        private readonly TcpSession _tcpSession;
+        private readonly DaemonClient _daemonClient;
 
-        public Point(TcpSession tcpSession)
+        public Point(string ipAddress, int port)
         {
-            _tcpSession = tcpSession;
+            _daemonClient = new DaemonClient(ipAddress, port);
         }
 
-        public IChannel CreateChannel()
-        {
-            return new Channel(_tcpSession);
-        }
+        public IChannel CreateChannel() => new Channel(_daemonClient);
+
+        public void Delete() => _daemonClient.DisconnectAndStop();
     }
 }

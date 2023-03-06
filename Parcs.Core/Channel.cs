@@ -1,120 +1,130 @@
-﻿using NetCoreServer;
-using Parcs.Core;
+﻿using Parcs.Core.Extensions;
+using System.Text;
 using System.Text.Json;
 
-namespace Parcs.TCP.Host.Models
+namespace Parcs.Core
 {
-    internal class Channel : IChannel
+    public class Channel : IChannel
     {
-        private readonly TcpSession _hostSession;
+        private readonly IChannelTransmissonManager _transmissonManager;
 
-        public Channel(TcpSession hostSession)
+        public Channel(IChannelTransmissonManager transmissonManager)
         {
-            _hostSession = hostSession;
+            _transmissonManager = transmissonManager;
         }
 
         public bool ReadBoolean()
         {
             var size = sizeof(bool);
-            var buffer = TryReceive(size);
+            var buffer = TryReceiveData(size);
             return BitConverter.ToBoolean(buffer);
         }
 
         public byte ReadByte()
         {
             var size = sizeof(byte);
-            var buffer = TryReceive(size);
+            var buffer = TryReceiveData(size);
             return buffer[0];
         }
 
         public double ReadDouble()
         {
             var size = sizeof(double);
-            var buffer = TryReceive(size);
+            var buffer = TryReceiveData(size);
             return BitConverter.ToDouble(buffer);
         }
 
         public int ReadInt()
         {
             var size = sizeof(int);
-            var buffer = TryReceive(size);
+            var buffer = TryReceiveData(size);
             return BitConverter.ToInt32(buffer);
         }
 
         public long ReadLong()
         {
             var size = sizeof(long);
-            var buffer = TryReceive(size);
+            var buffer = TryReceiveData(size);
             return BitConverter.ToInt64(buffer);
         }
 
         public T ReadObject<T>()
         {
             var size = ReadInt();
-            var buffer = TryReceive(size);
-            using MemoryStream ms = new(buffer);
+            var buffer = TryReceiveData(size);
+            using MemoryStream ms = new(buffer.ToArray());
             return JsonSerializer.Deserialize<T>(ms);
         }
 
         public string ReadString()
         {
             var size = ReadInt();
-            return _hostSession.Receive(size);
+            var buffer = TryReceiveData(size);
+            return Encoding.UTF8.GetString(buffer);
         }
 
         public void WriteData(bool data)
         {
             var bytes = BitConverter.GetBytes(data);
-            _hostSession.SendAsync(bytes);
+            var bytesWithSignal = bytes.Prepend((byte)Signal.TransmitData);
+            _transmissonManager.Send(bytesWithSignal);
         }
 
         public void WriteData(byte data)
         {
             var bytes = BitConverter.GetBytes(data);
-            _hostSession.SendAsync(bytes);
+            var bytesWithSignal = bytes.Prepend((byte)Signal.TransmitData);
+            _transmissonManager.Send(bytesWithSignal);
         }
 
         public void WriteData(int data)
         {
             var bytes = BitConverter.GetBytes(data);
-            _hostSession.SendAsync(bytes);
+            var bytesWithSignal = bytes.Prepend((byte)Signal.TransmitData);
+            _transmissonManager.Send(bytesWithSignal);
         }
 
         public void WriteData(long data)
         {
             var bytes = BitConverter.GetBytes(data);
-            _hostSession.SendAsync(bytes);
+            var bytesWithSignal = bytes.Prepend((byte)Signal.TransmitData);
+            _transmissonManager.Send(bytesWithSignal);
         }
 
         public void WriteData(double data)
         {
             var bytes = BitConverter.GetBytes(data);
-            _hostSession.SendAsync(bytes);
+            var bytesWithSignal = bytes.Prepend((byte)Signal.TransmitData);
+            _transmissonManager.Send(bytesWithSignal);
         }
 
         public void WriteData(string data)
         {
-            _hostSession.SendAsync(data);
+            var bytes = Encoding.UTF8.GetBytes(data);
+            WriteData(bytes.Length);
+            var bytesWithSignal = bytes.Prepend((byte)Signal.TransmitData);
+            _transmissonManager.Send(bytesWithSignal);
         }
 
         public void WriteObject<T>(T @object)
         {
             var bytes = JsonSerializer.SerializeToUtf8Bytes(@object);
             WriteData(bytes.Length);
-            _hostSession.SendAsync(bytes);
+            var bytesWithSignal = bytes.Prepend((byte)Signal.TransmitData);
+            _transmissonManager.Send(bytesWithSignal);
         }
 
-        private byte[] TryReceive(int size)
+        private Span<byte> TryReceiveData(int size)
         {
-            var buffer = new byte[size];
-            var length = _hostSession.Receive(buffer);
+            var buffer = new byte[sizeof(Signal) + size];
+            var length = _transmissonManager.Receive(buffer);
 
             if (size != length)
             {
                 throw new ArgumentException($"Expected to receive {size} bytes, but got {length}.");
             }
 
-            return buffer;
+            return buffer.AsSpan()[1..];
         }
     }
 }

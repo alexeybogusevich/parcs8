@@ -2,6 +2,7 @@
 {
     public interface IHostInfo
     {
-        IPoint[] GetConnectedPoints();
+        int MaximumPoints { get; }
+        IPoint CreatePoint();
     }
 }

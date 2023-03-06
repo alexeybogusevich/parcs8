@@ -1,10 +1,11 @@
-﻿using System.Net.Sockets;
-using System.Text;
+﻿using Parcs.Core;
+using System.Net;
+using System.Net.Sockets;
 using TcpClient = NetCoreServer.TcpClient;
 
-namespace Parcs.TCP.Daemon.EntryPoint
+namespace Parcs.TCP.Host.EntryPoint
 {
-    internal class DaemonClient : TcpClient
+    internal class DaemonClient : TcpClient, IChannelTransmissonManager
     {
         private bool _stop;
 
@@ -12,6 +13,8 @@ namespace Parcs.TCP.Daemon.EntryPoint
             : base(address, port)
         {
         }
+
+        protected IPAddress RemoteAddress => (Socket.RemoteEndPoint as IPEndPoint)?.Address;
 
         public void DisconnectAndStop()
         {
@@ -26,12 +29,12 @@ namespace Parcs.TCP.Daemon.EntryPoint
 
         protected override void OnConnected()
         {
-            Console.WriteLine($"Daemon connected. Session Id: {Id}");
+            Console.WriteLine($"Connected to a daemon ({RemoteAddress}).");
         }
 
         protected override void OnDisconnected()
         {
-            Console.WriteLine($"Daemon disconnected. Session Id: {Id}");
+            Console.WriteLine($"Daemon disconnected.");
 
             Thread.Sleep(1000);
 
@@ -43,12 +46,12 @@ namespace Parcs.TCP.Daemon.EntryPoint
 
         protected override void OnReceived(byte[] buffer, long offset, long size)
         {
-            Console.WriteLine(Encoding.UTF8.GetString(buffer, (int)offset, (int)size));
+            Console.WriteLine($"Received data from a daemon ({RemoteAddress}). Size: {size}.");
         }
 
         protected override void OnError(SocketError error)
         {
-            Console.WriteLine($"Daemon caught an error with code {error}");
+            Console.WriteLine($"Daemon ({RemoteAddress}) caught an error with code {error}.");
         }
     }
 }

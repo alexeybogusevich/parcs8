@@ -1,17 +1,25 @@
 ﻿using Parcs.Core;
-using Parcs.TCP.Host.EntryPoint;
+using Parcs.TCP.Host.Configuration;
 
 namespace Parcs.TCP.Host.Models
 {
     internal class HostInfo : IHostInfo
     {
-        private readonly HostServer _server;
+        private readonly Queue<DaemonConfiguration> _unusedConfigurations;
+        private readonly int _initialConfigurationsNumber;
 
-        public HostInfo(HostServer server)
+        public HostInfo(IEnumerable<DaemonConfiguration> daemonConfigurations)
         {
-            _server = server;
+            _unusedConfigurations = new Queue<DaemonConfiguration>(daemonConfigurations);
+            _initialConfigurationsNumber = daemonConfigurations.Count();
         }
 
-        public IPoint[] GetConnectedPoints() => _server.ActiveSessions.Select(s => new Point(s.Value)).ToArray();
+        public int MaximumPoints => _initialConfigurationsNumber;
+
+        public IPoint CreatePoint()
+        {
+            var configurationToUse = _unusedConfigurations.Dequeue();
+            return new Point(configurationToUse.IpAddress, configurationToUse.Port);
+        }
     }
 }

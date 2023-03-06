@@ -1,8 +1,8 @@
 ﻿namespace Parcs.TCP.Daemon.Configuration
 {
-    public class HostConfiguration
+    public class NodeConfiguration
     {
-        public const string SectionName = "Host";
+        public const string SectionName = "Node";
 
         public string IpAddress { get; set; }
 
