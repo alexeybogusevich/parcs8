@@ -1,6 +1,6 @@
 ﻿namespace Parcs.Core
 {
-    public enum Signal
+    public enum Signal : byte
     {
 
     }

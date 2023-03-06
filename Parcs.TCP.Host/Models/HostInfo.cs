@@ -12,6 +12,6 @@ namespace Parcs.TCP.Host.Models
             _server = server;
         }
 
-        public IPoint[] GetConnectedDaemons() => _server.ActiveSessions.Select(s => new Point(s.Value)).ToArray();
+        public IPoint[] GetConnectedPoints() => _server.ActiveSessions.Select(s => new Point(s.Value)).ToArray();
     }
 }

@@ -15,25 +15,19 @@ namespace Parcs.TCP.Host.EntryPoint
         protected override void OnConnected()
         {
             var endpoint = Socket.RemoteEndPoint as IPEndPoint;
-
-            Console.WriteLine($"New daemon connected! SessionId: {Id}, IP address: {endpoint?.Address}, Port: {endpoint?.Port}.");
-
-            // Send invite message
-            string message = "Hello from TCP chat! Please send a message or '!' to disconnect the client!";
-            SendAsync(message);
+            Console.WriteLine($"Connection to daemon ({endpoint?.Address}) is established.");
         }
 
         protected override void OnDisconnected()
         {
-            Console.WriteLine($"Chat TCP session with Id {Id} disconnected!");
+            var endpoint = Socket.RemoteEndPoint as IPEndPoint;
+            Console.WriteLine($"Connection to daemon ({endpoint?.Address}) is lost.");
         }
 
         protected override void OnReceived(byte[] buffer, long offset, long size)
         {
             string message = Encoding.UTF8.GetString(buffer, (int)offset, (int)size);
             Console.WriteLine("Incoming: " + message);
-
-            ReceiveAsync
 
             // Multicast message to all connected sessions
             Server.Multicast(message);
