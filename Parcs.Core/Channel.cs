@@ -72,7 +72,6 @@ namespace Parcs.Core
         public void WriteSignal(Signal signal)
         {
             var bytes = new byte[] { (byte)signal };
-            Console.WriteLine($"Sending signal, bytes sent: {1}");
             _transmissonManager.Send(bytes);
         }
 
@@ -80,7 +79,6 @@ namespace Parcs.Core
         {
             var bytes = BitConverter.GetBytes(data);
             var bytesWithSignal = bytes.Prepend((byte)Signal.TransmitData);
-            Console.WriteLine($"Sending {nameof(Boolean)}, bytes sent: {bytesWithSignal.Length}");
             _transmissonManager.Send(bytesWithSignal);
         }
 
@@ -88,7 +86,6 @@ namespace Parcs.Core
         {
             var bytes = new byte[] { data };
             var bytesWithSignal = bytes.Prepend((byte)Signal.TransmitData);
-            Console.WriteLine($"Sending {nameof(Byte)}, bytes sent: {bytesWithSignal.Length}");
             _transmissonManager.Send(bytesWithSignal);
         }
 
@@ -96,7 +93,6 @@ namespace Parcs.Core
         {
             var bytes = BitConverter.GetBytes(data);
             var bytesWithSignal = bytes.Prepend((byte)Signal.TransmitData);
-            Console.WriteLine($"Sending {nameof(Int32)}, bytes sent: {bytesWithSignal.Length}");
             _transmissonManager.Send(bytesWithSignal);
         }
 
@@ -104,7 +100,6 @@ namespace Parcs.Core
         {
             var bytes = BitConverter.GetBytes(data);
             var bytesWithSignal = bytes.Prepend((byte)Signal.TransmitData);
-            Console.WriteLine($"Sending {nameof(Int64)}, bytes sent: {bytesWithSignal.Length}");
             _transmissonManager.Send(bytesWithSignal);
         }
 
@@ -112,7 +107,6 @@ namespace Parcs.Core
         {
             var bytes = BitConverter.GetBytes(data);
             var bytesWithSignal = bytes.Prepend((byte)Signal.TransmitData);
-            Console.WriteLine($"Sending {nameof(Double)}, bytes sent: {bytesWithSignal.Length}");
             _transmissonManager.Send(bytesWithSignal);
         }
 
@@ -121,7 +115,6 @@ namespace Parcs.Core
             var bytes = Encoding.UTF8.GetBytes(data);
             WriteData(bytes.Length);
             var bytesWithSignal = bytes.Prepend((byte)Signal.TransmitData);
-            Console.WriteLine($"Sending {nameof(String)}, bytes sent: {bytesWithSignal.Length}");
             _transmissonManager.Send(bytesWithSignal);
         }
 
@@ -130,7 +123,6 @@ namespace Parcs.Core
             var bytes = JsonSerializer.SerializeToUtf8Bytes(@object);
             WriteData(bytes.Length);
             var bytesWithSignal = bytes.Prepend((byte)Signal.TransmitData);
-            Console.WriteLine($"Sending {nameof(T)}, bytes sent: {bytesWithSignal.Length}");
             _transmissonManager.Send(bytesWithSignal);
         }
 

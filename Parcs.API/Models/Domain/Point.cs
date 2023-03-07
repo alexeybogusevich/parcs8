@@ -1,5 +1,5 @@
 ﻿using Parcs.Core;
-using Parcs.TCP.Host.EntryPoint;
+using Parcs.HostAPI.Clients.TCP;
 
 namespace Parcs.TCP.Host.Models
 {

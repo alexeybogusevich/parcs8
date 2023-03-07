@@ -3,7 +3,7 @@ using System.Net;
 using System.Net.Sockets;
 using TcpClient = NetCoreServer.TcpClient;
 
-namespace Parcs.TCP.Host.EntryPoint
+namespace Parcs.HostAPI.Clients.TCP
 {
     internal sealed class DaemonClient : TcpClient, ITransmissonManager
     {
