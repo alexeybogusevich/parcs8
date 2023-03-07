@@ -6,9 +6,9 @@ namespace Parcs.Core
 {
     public class Channel : IChannel
     {
-        private readonly IChannelTransmissonManager _transmissonManager;
+        private readonly ITransmissonManager _transmissonManager;
 
-        public Channel(IChannelTransmissonManager transmissonManager)
+        public Channel(ITransmissonManager transmissonManager)
         {
             _transmissonManager = transmissonManager;
         }

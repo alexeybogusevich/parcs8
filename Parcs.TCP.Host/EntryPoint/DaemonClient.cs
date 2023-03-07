@@ -5,7 +5,7 @@ using TcpClient = NetCoreServer.TcpClient;
 
 namespace Parcs.TCP.Host.EntryPoint
 {
-    internal class DaemonClient : TcpClient, IChannelTransmissonManager
+    internal class DaemonClient : TcpClient, ITransmissonManager
     {
         private bool _stop;
 

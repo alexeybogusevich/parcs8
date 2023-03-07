@@ -6,7 +6,7 @@ using Parcs.TCP.Daemon.Services.Interfaces;
 
 namespace Parcs.TCP.Daemon.EntryPoint
 {
-    internal class DaemonSession : TcpSession, IChannelTransmissonManager
+    internal class DaemonSession : TcpSession, ITransmissonManager
     {
         private readonly ISignalHandlerFactory _signalHandlerFactory;
         private readonly IChannel _channel;
