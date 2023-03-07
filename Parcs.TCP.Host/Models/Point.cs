@@ -12,7 +12,11 @@ namespace Parcs.TCP.Host.Models
             _daemonClient = new DaemonClient(ipAddress, port);
         }
 
-        public IChannel CreateChannel() => new Channel(_daemonClient);
+        public IChannel CreateChannel()
+        {
+            _daemonClient.Connect();
+            return new Channel(_daemonClient);
+        }
 
         public void Delete() => _daemonClient.DisconnectAndStop();
     }

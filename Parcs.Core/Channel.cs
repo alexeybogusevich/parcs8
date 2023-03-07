@@ -1,4 +1,4 @@
-﻿using Parcs.Core.Extensions;
+﻿using Parcs.Core.Internal;
 using System.Text;
 using System.Text.Json;
 
@@ -11,6 +11,12 @@ namespace Parcs.Core
         public Channel(IChannelTransmissonManager transmissonManager)
         {
             _transmissonManager = transmissonManager;
+        }
+
+        public Signal ReadSignal()
+        {
+            var @byte = TryReceiveSignal();
+            return (Signal)@byte;
         }
 
         public bool ReadBoolean()
@@ -61,6 +67,12 @@ namespace Parcs.Core
             var size = ReadInt();
             var buffer = TryReceiveData(size);
             return Encoding.UTF8.GetString(buffer);
+        }
+
+        public void WriteSignal(Signal signal)
+        {
+            var bytes = new byte[] { (byte)signal };
+            _transmissonManager.Send(bytes);
         }
 
         public void WriteData(bool data)
@@ -116,15 +128,30 @@ namespace Parcs.Core
 
         private Span<byte> TryReceiveData(int size)
         {
-            var buffer = new byte[sizeof(Signal) + size];
+            var sizeAfterSignal = sizeof(Signal) + size;
+
+            var buffer = new byte[sizeAfterSignal];
             var length = _transmissonManager.Receive(buffer);
 
-            if (size != length)
+            if (length != sizeAfterSignal)
             {
                 throw new ArgumentException($"Expected to receive {size} bytes, but got {length}.");
             }
 
             return buffer.AsSpan()[1..];
+        }
+
+        private byte TryReceiveSignal()
+        {
+            var buffer = new byte[sizeof(Signal)];
+            var length = _transmissonManager.Receive(buffer);
+
+            if (length != sizeof(Signal))
+            {
+                throw new ArgumentException($"Expected to receive {sizeof(Signal)} bytes, but got {length}.");
+            }
+
+            return buffer[0];
         }
     }
 }

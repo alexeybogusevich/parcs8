@@ -8,7 +8,6 @@ class Program
     static void Main(string[] args)
     {
         IConfiguration configuration = new ConfigurationBuilder()
-            .SetBasePath(Path.Combine(AppContext.BaseDirectory))
             .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
             .AddEnvironmentVariables()
             .AddCommandLine(args)
@@ -18,9 +17,10 @@ class Program
             .GetSection("Daemons")
             .Get<IEnumerable<DaemonConfiguration>>();
 
+        Console.WriteLine("Configured daemons:");
         foreach (var daemon in daemonConfigurations)
         {
-            Console.WriteLine($"Daemon IP address: {daemon.IpAddress}, port: {daemon.Port}.");
+            Console.WriteLine($"IP address: {daemon.IpAddress}, Port: {daemon.Port}.");
         }
         Console.WriteLine();
 
@@ -30,7 +30,7 @@ class Program
         double b = Math.PI / 2;
         double h = 0.00000001;
 
-        var pointsNumber = hostInfo.MaximumPoints;
+        var pointsNumber = hostInfo.MaximumPointsNumber;
         var channels = new IChannel[pointsNumber];
         var points = new IPoint[pointsNumber];
 
@@ -38,7 +38,7 @@ class Program
         {
             points[i] = hostInfo.CreatePoint();
             channels[i] = points[i].CreateChannel();
-            // points[i].ExecuteClass("FirstModule.IntegralModule");
+            channels[i].ExecuteClass("FirstModule.IntegralModule");
         }
 
         double y = a;

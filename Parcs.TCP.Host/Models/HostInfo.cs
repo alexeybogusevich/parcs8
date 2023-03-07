@@ -14,7 +14,7 @@ namespace Parcs.TCP.Host.Models
             _initialConfigurationsNumber = daemonConfigurations.Count();
         }
 
-        public int MaximumPoints => _initialConfigurationsNumber;
+        public int MaximumPointsNumber => _initialConfigurationsNumber;
 
         public IPoint CreatePoint()
         {

@@ -1,4 +1,4 @@
-﻿namespace Parcs.Core.Extensions
+﻿namespace Parcs.Core.Internal
 {
     internal static class ByteArrayExtensions
     {

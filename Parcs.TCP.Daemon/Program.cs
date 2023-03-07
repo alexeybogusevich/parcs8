@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.Configuration;
-using Parcs.Core;
 using Parcs.TCP.Daemon.Configuration;
 using Parcs.TCP.Daemon.EntryPoint;
+using Parcs.TCP.Daemon.Services;
 
 class Program
 {
@@ -22,42 +22,18 @@ class Program
         Console.WriteLine($"Server port: {nodeConfiguration.Port}");
         Console.WriteLine();
 
-        var server = new DaemonServer(nodeConfiguration.IpAddress, nodeConfiguration.Port);
-        server.Start();
+        var factory = new SignalHandlerFactory();
+        var server = new DaemonServer(nodeConfiguration.IpAddress, nodeConfiguration.Port, factory);
 
         Console.Write("Server starting...");
         server.Start();
         Console.WriteLine("Done!");
 
-        var channel = new Channel(server);
-
-        double a = channel.ReadDouble();
-        double b = channel.ReadDouble();
-        double h = channel.ReadDouble();
-        var func = new Func<double, double>(x => Math.Cos(x));
-
-        double res = Integral(a, b, h, func);
-        channel.WriteData(res);
-
-        // Disconnect the client
+        Console.WriteLine("Press Enter to stop the server.");
         Console.ReadLine();
 
-        Console.Write("Client disconnecting...");
-        client.DisconnectAndStop();
+        Console.WriteLine("Stopping the server...");
+        server.Stop();
         Console.WriteLine("Done!");
-    }
-
-    private static double Integral(double a, double b, double h, Func<double, double> func)
-    {
-        int N = (int)((b - a) / h);
-        double res = 0;
-
-        for (int j = 1; j <= N; ++j)
-        {
-            double x = a + (2 * j - 1) * h / 2;
-            res += func(x);
-        }
-
-        return res * h;
     }
 }

@@ -2,14 +2,20 @@
 using System.Net.Sockets;
 using System.Net;
 using Parcs.Core;
+using Parcs.TCP.Daemon.Services.Interfaces;
 
 namespace Parcs.TCP.Daemon.EntryPoint
 {
     internal class DaemonSession : TcpSession, IChannelTransmissonManager
     {
-        public DaemonSession(TcpServer server)
+        private readonly ISignalHandlerFactory _signalHandlerFactory;
+        private readonly IChannel _channel;
+
+        public DaemonSession(TcpServer server, ISignalHandlerFactory signalHandlerFactory)
             : base(server)
         {
+            _signalHandlerFactory = signalHandlerFactory;
+            _channel = new Channel(this);
         }
 
         protected override void OnConnected()
@@ -25,7 +31,18 @@ namespace Parcs.TCP.Daemon.EntryPoint
 
         protected override void OnReceived(byte[] buffer, long offset, long size)
         {
-            Console.WriteLine($"Received data from the host. Size: {size}.");
+            if (size < 1)
+            {
+                return;
+            }
+
+            var signal = (Signal)buffer[offset];
+            var signalHandler = _signalHandlerFactory.Create(signal);
+
+            var offsetAfterSignal = offset + 1;
+            var sizeAfterSignal = size - 1;
+
+            signalHandler.Handle(buffer, offsetAfterSignal, sizeAfterSignal, _channel);
         }
 
         protected override void OnError(SocketError error)
