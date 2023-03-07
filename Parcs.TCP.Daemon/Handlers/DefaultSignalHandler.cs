@@ -5,7 +5,7 @@ namespace Parcs.TCP.Daemon.Handlers
 {
     internal sealed class DefaultSignalHandler : ISignalHandler
     {
-        public void Handle(byte[] buffer, long offset, long size, IChannel channel)
+        public void Handle(IChannel channel)
         {
             return;
         }

@@ -40,10 +40,7 @@ namespace Parcs.TCP.Daemon.EntryPoint
             var signal = (Signal)buffer[offset];
             var signalHandler = _signalHandlerFactory.Create(signal);
 
-            var offsetAfterSignal = offset + 1;
-            var sizeAfterSignal = size - 1;
-
-            signalHandler.Handle(buffer, offsetAfterSignal, sizeAfterSignal, _channel);
+            signalHandler.Handle(_channel);
         }
 
         protected override void OnError(SocketError error)
