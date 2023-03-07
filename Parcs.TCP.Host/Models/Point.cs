@@ -1,9 +1,10 @@
 ﻿using Parcs.Core;
 using Parcs.TCP.Host.EntryPoint;
+using System.Net.Sockets;
 
 namespace Parcs.TCP.Host.Models
 {
-    internal class Point : IPoint
+    internal sealed class Point : IPoint
     {
         private readonly DaemonClient _daemonClient;
 
@@ -14,8 +15,19 @@ namespace Parcs.TCP.Host.Models
 
         public IChannel CreateChannel()
         {
-            _daemonClient.Connect();
-            return new Channel(_daemonClient);
+            if (!_daemonClient.Connect())
+            {
+                throw new ArgumentException($"Can't connect to the daemon ({_daemonClient.Endpoint})");
+            }
+
+            var channel = new Channel(_daemonClient);
+
+            if (channel.ReadSignal() != Signal.AcknowledgeConnection)
+            {
+                throw new IOException("The connection was not acknowledged by the daemon.");
+            }
+
+            return channel;
         }
 
         public void Delete() => _daemonClient.DisconnectAndStop();

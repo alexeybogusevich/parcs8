@@ -1,6 +1,6 @@
 ﻿namespace Parcs.TCP.Host.Configuration
 {
-    internal class DaemonConfiguration
+    internal sealed class DaemonConfiguration
     {
         public string IpAddress { get; set; }
 

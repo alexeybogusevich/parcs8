@@ -1,6 +1,6 @@
 ﻿namespace Parcs.Core
 {
-    public class Job
+    public sealed class Job
     {
         public Guid Id { get; set; }
 

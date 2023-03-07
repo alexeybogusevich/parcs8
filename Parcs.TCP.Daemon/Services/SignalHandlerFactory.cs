@@ -5,7 +5,7 @@ using Parcs.TCP.Daemon.Services.Interfaces;
 
 namespace Parcs.TCP.Daemon.Services
 {
-    internal class SignalHandlerFactory : ISignalHandlerFactory
+    internal sealed class SignalHandlerFactory : ISignalHandlerFactory
     {
         public ISignalHandler Create(Signal signal)
         {

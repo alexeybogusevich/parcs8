@@ -1,6 +1,6 @@
 ﻿namespace Parcs.TCP.Daemon.Configuration
 {
-    public class NodeConfiguration
+    public sealed class NodeConfiguration
     {
         public const string SectionName = "Node";
 

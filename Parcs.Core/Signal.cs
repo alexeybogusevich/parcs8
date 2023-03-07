@@ -5,5 +5,6 @@
         TransmitData = 0,
         InitializeJob = 1,
         ExecuteClass = 2,
+        AcknowledgeConnection = 3,
     }
 }

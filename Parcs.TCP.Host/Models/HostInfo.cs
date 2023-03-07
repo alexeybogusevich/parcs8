@@ -3,7 +3,7 @@ using Parcs.TCP.Host.Configuration;
 
 namespace Parcs.TCP.Host.Models
 {
-    internal class HostInfo : IHostInfo
+    internal sealed class HostInfo : IHostInfo
     {
         private readonly Queue<DaemonConfiguration> _unusedConfigurations;
         private readonly int _initialConfigurationsNumber;

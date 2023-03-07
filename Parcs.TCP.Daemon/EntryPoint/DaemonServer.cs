@@ -4,7 +4,7 @@ using System.Net.Sockets;
 
 namespace Parcs.TCP.Daemon.EntryPoint
 {
-    internal class DaemonServer : TcpServer
+    internal sealed class DaemonServer : TcpServer
     {
         private readonly ISignalHandlerFactory _signalHandlerFactory;
 

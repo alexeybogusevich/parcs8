@@ -6,7 +6,7 @@ using Parcs.TCP.Daemon.Services.Interfaces;
 
 namespace Parcs.TCP.Daemon.EntryPoint
 {
-    internal class DaemonSession : TcpSession, ITransmissonManager
+    internal sealed class DaemonSession : TcpSession, ITransmissonManager
     {
         private readonly ISignalHandlerFactory _signalHandlerFactory;
         private readonly IChannel _channel;
@@ -22,6 +22,7 @@ namespace Parcs.TCP.Daemon.EntryPoint
         {
             var endpoint = Socket.RemoteEndPoint as IPEndPoint;
             Console.WriteLine($"Connection to the host ({endpoint?.Address}) was established.");
+            Send(new byte[] { (byte)Signal.AcknowledgeConnection });
         }
 
         protected override void OnDisconnected()

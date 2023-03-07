@@ -5,7 +5,7 @@ using TcpClient = NetCoreServer.TcpClient;
 
 namespace Parcs.TCP.Host.EntryPoint
 {
-    internal class DaemonClient : TcpClient, ITransmissonManager
+    internal sealed class DaemonClient : TcpClient, ITransmissonManager
     {
         private bool _stop;
 
@@ -14,7 +14,7 @@ namespace Parcs.TCP.Host.EntryPoint
         {
         }
 
-        protected IPAddress RemoteAddress => (Socket.RemoteEndPoint as IPEndPoint)?.Address;
+        private IPAddress RemoteAddress => (Socket.RemoteEndPoint as IPEndPoint)?.Address;
 
         public void DisconnectAndStop()
         {
@@ -29,7 +29,7 @@ namespace Parcs.TCP.Host.EntryPoint
 
         protected override void OnConnected()
         {
-            Console.WriteLine($"Connected to a daemon ({RemoteAddress}).");
+            Console.WriteLine($"Connected to daemon ({RemoteAddress}).");
         }
 
         protected override void OnDisconnected()
@@ -46,12 +46,12 @@ namespace Parcs.TCP.Host.EntryPoint
 
         protected override void OnReceived(byte[] buffer, long offset, long size)
         {
-            Console.WriteLine($"Received data from a daemon ({RemoteAddress}). Size: {size}.");
+            Console.WriteLine($"Received data from daemon ({RemoteAddress}). Size: {size}.");
         }
 
         protected override void OnError(SocketError error)
         {
-            Console.WriteLine($"Daemon ({RemoteAddress}) caught an error with code {error}.");
+            Console.WriteLine($"An error with code {error} occurred during communication with daemon ({RemoteAddress}).");
         }
     }
 }

@@ -38,16 +38,28 @@ class Program
         {
             points[i] = hostInfo.CreatePoint();
             channels[i] = points[i].CreateChannel();
-            channels[i].ExecuteClass("FirstModule.IntegralModule");
+            channels[i].ExecuteClass("Some funny class :)");
         }
 
-        double y = a;
         for (int i = 0; i < pointsNumber; ++i)
         {
-            channels[i].WriteData(y);
-            channels[i].WriteData(y + (b - a) / pointsNumber);
-            channels[i].WriteData(h);
-            y += (b - a) / pointsNumber;
+            channels[i].WriteData(10.1D);
+            channels[i].WriteData(true);
+            channels[i].WriteData("Hello world");
+            channels[i].WriteData((byte)1);
+            channels[i].WriteData(123L);
+            channels[i].WriteData(22);
+
+            var job = new Job
+            {
+                StartDateUtc = DateTime.UtcNow,
+                Status = JobStatus.InProgress,
+                CreateDateUtc = DateTime.UtcNow.AddDays(-1),
+                EndDateUtc = DateTime.UtcNow.AddDays(1),
+                Id = Guid.NewGuid(),
+            };
+
+            channels[i].WriteObject(job);
         }
         DateTime time = DateTime.Now;
         Console.WriteLine("Waiting for result...");
