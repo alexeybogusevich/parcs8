@@ -26,10 +26,6 @@ class Program
 
         var hostInfo = new HostInfo(daemonConfigurations);
 
-        double a = 0;
-        double b = Math.PI / 2;
-        double h = 0.00000001;
-
         var pointsNumber = hostInfo.MaximumPointsNumber;
         var channels = new IChannel[pointsNumber];
         var points = new IPoint[pointsNumber];
