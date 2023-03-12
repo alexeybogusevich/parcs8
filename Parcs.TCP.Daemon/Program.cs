@@ -1,7 +1,8 @@
 ﻿using Microsoft.Extensions.Configuration;
+using Parcs.Daemon.Server;
 using Parcs.TCP.Daemon.Configuration;
-using Parcs.TCP.Daemon.EntryPoint;
 using Parcs.TCP.Daemon.Services;
+using System.Net;
 
 class Program
 {
@@ -23,7 +24,7 @@ class Program
         Console.WriteLine();
 
         var factory = new SignalHandlerFactory();
-        var server = new DaemonServer(nodeConfiguration.IpAddress, nodeConfiguration.Port, factory);
+        var server = new DaemonServer(IPAddress.Any, nodeConfiguration.Port, factory);
 
         Console.Write("Server starting...");
         server.Start();

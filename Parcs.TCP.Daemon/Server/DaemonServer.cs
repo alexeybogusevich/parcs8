@@ -1,14 +1,15 @@
 ﻿using NetCoreServer;
 using Parcs.TCP.Daemon.Services.Interfaces;
+using System.Net;
 using System.Net.Sockets;
 
-namespace Parcs.TCP.Daemon.EntryPoint
+namespace Parcs.Daemon.Server
 {
     internal sealed class DaemonServer : TcpServer
     {
         private readonly ISignalHandlerFactory _signalHandlerFactory;
 
-        public DaemonServer(string address, int port, ISignalHandlerFactory signalHandlerFactory)
+        public DaemonServer(IPAddress address, int port, ISignalHandlerFactory signalHandlerFactory)
             : base(address, port)
         {
             _signalHandlerFactory = signalHandlerFactory;

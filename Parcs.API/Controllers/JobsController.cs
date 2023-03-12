@@ -23,7 +23,7 @@ namespace Parcs.HostAPI.Controllers
             {
                 new Daemon
                 {
-                    IpAddress = "127.0.0.1",
+                    IpAddress = "172.17.0.3",
                     Port = 1111,
                 },
             };

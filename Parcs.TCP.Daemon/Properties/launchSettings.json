@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "Parcs.Daemon": {
+      "commandName": "Project"
+    },
+    "Docker": {
+      "commandName": "Docker"
+    }
+  }
+}

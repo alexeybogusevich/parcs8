@@ -14,27 +14,22 @@ namespace Parcs.HostAPI.Clients.TCP
         {
         }
 
-        private IPAddress RemoteAddress => (Socket.RemoteEndPoint as IPEndPoint)?.Address;
+        private IPAddress RemoteAddress => (Socket?.RemoteEndPoint as IPEndPoint)?.Address;
 
         public void DisconnectAndStop()
         {
             _stop = true;
-            DisconnectAsync();
-
-            while (IsConnected)
-            {
-                Thread.Yield();
-            }
+            Disconnect();
         }
 
         protected override void OnConnected()
         {
-            Console.WriteLine($"Connected to daemon ({RemoteAddress}).");
+            Console.WriteLine($"Host: Connection to the daemon ({RemoteAddress}) was established.");
         }
 
         protected override void OnDisconnected()
         {
-            Console.WriteLine($"Daemon disconnected.");
+            Console.WriteLine($"Host: Daemon disconnected.");
 
             Thread.Sleep(1000);
 
@@ -44,9 +39,15 @@ namespace Parcs.HostAPI.Clients.TCP
             }
         }
 
+        public override long Send(byte[] buffer)
+        {
+            Console.WriteLine($"Host: Sending {buffer.Length} bytes to the daemon.");
+            return base.Send(buffer);
+        }
+
         protected override void OnReceived(byte[] buffer, long offset, long size)
         {
-            Console.WriteLine($"Received data from daemon ({RemoteAddress}). Size: {size}.");
+            Console.WriteLine($"Host: Received {size} bytes from the daemon.");
         }
 
         protected override void OnError(SocketError error)
