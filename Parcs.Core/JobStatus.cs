@@ -2,9 +2,9 @@
 {
     public enum JobStatus
     {
-        Pending = 0,
+        New = 0,
         InProgress = 1,
-        Failed = 2,
+        Error = 2,
         Finished = 3,
         Aborted = 4,
     }

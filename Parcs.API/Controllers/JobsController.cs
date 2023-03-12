@@ -1,7 +1,7 @@
 ﻿using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using Parcs.Core;
 using Parcs.HostAPI.Models.Commands;
-using Parcs.HostAPI.Models.Domain;
 
 namespace Parcs.HostAPI.Controllers
 {

@@ -1,4 +1,4 @@
-﻿namespace Parcs.HostAPI.Models.Domain
+﻿namespace Parcs.Core
 {
     public class Daemon
     {

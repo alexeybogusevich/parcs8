@@ -9,81 +9,45 @@ namespace Parcs.HostAPI.Handlers
     public class CreateJobCommandHandler : IRequestHandler<CreateJobCommand, CreateJobCommandResponse>
     {
         private readonly IHostInfoFactory _hostInfoFactory;
-        private readonly ILogger<CreateJobCommandHandler> _logger;
+        private readonly IMainModule _mainModule;
+        private readonly IJobManager _jobManager;
+        private readonly IDaemonSelector _daemonPicker;
 
-        public CreateJobCommandHandler(IHostInfoFactory hostInfoFactory, ILogger<CreateJobCommandHandler> logger)
+        public CreateJobCommandHandler(
+            IHostInfoFactory hostInfoFactory, IMainModule mainModule, IJobManager jobManager, IDaemonSelector daemonPicker)
         {
             _hostInfoFactory = hostInfoFactory;
-            _logger = logger;
+            _mainModule = mainModule;
+            _jobManager = jobManager;
+            _daemonPicker = daemonPicker;
         }
 
         public async Task<CreateJobCommandResponse> Handle(CreateJobCommand request, CancellationToken cancellationToken)
         {
-            var hostInfo = _hostInfoFactory.Create(request.Daemons);
+            var job = _jobManager.Create();
 
-            _logger.LogInformation("Daemons for the request (Module = {ModuleId}):", request.ModuleId);
-            foreach (var daemon in request.Daemons)
+            var selectedDaemons = _daemonPicker.Select(request.Daemons);
+            job.SetDaemons(selectedDaemons);
+
+            var hostInfo = _hostInfoFactory.Create(selectedDaemons);
+
+            try
             {
-                _logger.LogInformation("IP address: {IpAddress}, Port: {Port}.", daemon.IpAddress, daemon.Port);
+                job.Start();
+                var moduleOutput = await _mainModule.RunAsync(hostInfo, job.CancellationToken);
+                job.Finish(moduleOutput.Result);
             }
-
-            var pointsNumber = hostInfo.MaximumPointsNumber;
-            var channels = new IChannel[pointsNumber];
-            var points = new IPoint[pointsNumber];
-
-            for (int i = 0; i < pointsNumber; ++i)
+            catch (Exception ex)
             {
-                points[i] = await hostInfo.CreatePointAsync();
-                channels[i] = points[i].CreateChannel();
-                await channels[i].ExecuteClassAsync("Some funny class :)");
+                job.Fail(ex.Message);
             }
-
-            for (int i = 0; i < pointsNumber; ++i)
-            {
-                await channels[i].WriteDataAsync(10.1D, cancellationToken);
-                await channels[i].WriteDataAsync(true, cancellationToken);
-                await channels[i].WriteDataAsync("Hello world", cancellationToken);
-                await channels[i].WriteDataAsync((byte)1, cancellationToken);
-                await channels[i].WriteDataAsync(123L, cancellationToken);
-                await channels[i].WriteDataAsync(22, cancellationToken);
-
-                var job = new Job
-                {
-                    StartDateUtc = DateTime.UtcNow,
-                    Status = JobStatus.InProgress,
-                    CreateDateUtc = DateTime.UtcNow.AddDays(-1),
-                    EndDateUtc = DateTime.UtcNow.AddDays(1),
-                    Id = Guid.NewGuid(),
-                };
-
-                await channels[i].WriteObjectAsync(job, cancellationToken);
-            }
-            DateTime time = DateTime.Now;
-            _logger.LogInformation("Waiting for result...");
-
-            double result = 0;
-            for (int i = pointsNumber - 1; i >= 0; --i)
-            {
-                result += await channels[i].ReadDoubleAsync(cancellationToken);
-            }
-            var elapsedSeconds = Math.Round((DateTime.Now - time).TotalSeconds, 3);
-
-            _logger.LogInformation("Result found: res = {result}, time = {elapsedTime}", result, elapsedSeconds);
-
-            _logger.LogInformation("Disconnecting the client...");
-
-            for (int i = 0; i < pointsNumber; ++i)
-            {
-                points[i].Delete();
-            }
-
-            _logger.LogInformation("Done!");
 
             return new CreateJobCommandResponse
             {
-                ElapsedSeconds = elapsedSeconds,
-                JobStatus = JobStatus.Finished,
-                Result = result,
+                ElapsedSeconds = job.ExecutionTime?.TotalSeconds,
+                JobStatus = job.Status,
+                ErrorMessage = job.ErrorMessage,
+                Result = job.Result,
             };
         }
     }

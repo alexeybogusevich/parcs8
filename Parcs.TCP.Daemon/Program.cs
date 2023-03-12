@@ -10,7 +10,6 @@ class Program
     static async Task Main(string[] args)
     {
         IConfiguration configuration = new ConfigurationBuilder()
-            .SetBasePath(Path.Combine(AppContext.BaseDirectory))
             .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
             .AddEnvironmentVariables()
             .AddCommandLine(args)
@@ -19,13 +18,7 @@ class Program
         var nodeConfiguration = configuration
             .GetSection(NodeConfiguration.SectionName)
             .Get<NodeConfiguration>();
-
-        if (!IPAddress.TryParse(nodeConfiguration.IpAddress, out var ipAddress))
-        {
-            throw new ArgumentException($"IP address configuration is invalid: {nodeConfiguration.IpAddress}.");
-        }
         
-        Console.WriteLine($"Server address: {nodeConfiguration.IpAddress}");
         Console.WriteLine($"Server port: {nodeConfiguration.Port}");
         Console.WriteLine();
 

@@ -1,5 +1,5 @@
 ﻿using MediatR;
-using Parcs.HostAPI.Models.Domain;
+using Parcs.Core;
 using Parcs.HostAPI.Models.Responses;
 
 namespace Parcs.HostAPI.Models.Commands
