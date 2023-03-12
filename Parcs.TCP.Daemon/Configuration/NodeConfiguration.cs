@@ -1,4 +1,6 @@
-﻿namespace Parcs.TCP.Daemon.Configuration
+﻿using System.Net;
+
+namespace Parcs.TCP.Daemon.Configuration
 {
     public sealed class NodeConfiguration
     {

@@ -1,47 +1,39 @@
 ﻿using Parcs.Core;
-using Parcs.HostAPI.Clients.TCP;
-using System.Collections.Concurrent;
+using System.Net.Sockets;
 
 namespace Parcs.TCP.Host.Models
 {
-    internal sealed class Point : IPoint
+    internal sealed class Point : IPoint, IDisposable
     {
-        private static readonly ConcurrentDictionary<string, DaemonClient> _connectedClients = new();
+        private TcpClient _tcpClient;
+        private Channel _createdChannel;
 
-        private readonly DaemonClient _daemonClient;
-
-        public Point(string ipAddress, int port)
+        public Point(TcpClient tcpClient)
         {
-            if (_connectedClients.TryGetValue(ipAddress, out var existingClient))
-            {
-                _daemonClient = existingClient;
-                return;
-            }
-
-            _daemonClient = new DaemonClient(ipAddress, port);
-            _connectedClients.TryAdd(ipAddress, _daemonClient);
+            _tcpClient = tcpClient;
         }
 
         public IChannel CreateChannel()
         {
-            if (!_daemonClient.IsConnected && !_daemonClient.Connect())
+            if (_createdChannel is not null)
             {
-                throw new ArgumentException($"Can't connect to the daemon ({_daemonClient.Endpoint})");
+                return _createdChannel;
             }
 
-            var channel = new Channel(_daemonClient);
+            var networkStream = _tcpClient.GetStream();
+            _createdChannel = new Channel(networkStream);
 
-            if (channel.ReadSignal() != Signal.AcknowledgeConnection)
-            {
-                throw new IOException("The connection was not acknowledged by the daemon.");
-            }
-
-            return channel;
+            return _createdChannel;
         }
 
-        public void Delete()
+        public void Delete() => Dispose();
+
+        public void Dispose()
         {
-            _daemonClient.DisconnectAndStop();
+            _tcpClient.Dispose();
+            _tcpClient = null;
+            _createdChannel.Dispose();
+            _createdChannel = null;
         }
     }
 }

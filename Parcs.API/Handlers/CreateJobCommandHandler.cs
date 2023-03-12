@@ -33,19 +33,19 @@ namespace Parcs.HostAPI.Handlers
 
             for (int i = 0; i < pointsNumber; ++i)
             {
-                points[i] = hostInfo.CreatePoint();
+                points[i] = await hostInfo.CreatePointAsync();
                 channels[i] = points[i].CreateChannel();
-                channels[i].ExecuteClass("Some funny class :)");
+                await channels[i].ExecuteClassAsync("Some funny class :)");
             }
 
             for (int i = 0; i < pointsNumber; ++i)
             {
-                channels[i].WriteData(10.1D);
-                channels[i].WriteData(true);
-                channels[i].WriteData("Hello world");
-                channels[i].WriteData((byte)1);
-                channels[i].WriteData(123L);
-                channels[i].WriteData(22);
+                await channels[i].WriteDataAsync(10.1D, cancellationToken);
+                await channels[i].WriteDataAsync(true, cancellationToken);
+                await channels[i].WriteDataAsync("Hello world", cancellationToken);
+                await channels[i].WriteDataAsync((byte)1, cancellationToken);
+                await channels[i].WriteDataAsync(123L, cancellationToken);
+                await channels[i].WriteDataAsync(22, cancellationToken);
 
                 var job = new Job
                 {
@@ -56,7 +56,7 @@ namespace Parcs.HostAPI.Handlers
                     Id = Guid.NewGuid(),
                 };
 
-                channels[i].WriteObject(job);
+                await channels[i].WriteObjectAsync(job, cancellationToken);
             }
             DateTime time = DateTime.Now;
             _logger.LogInformation("Waiting for result...");
@@ -64,7 +64,7 @@ namespace Parcs.HostAPI.Handlers
             double result = 0;
             for (int i = pointsNumber - 1; i >= 0; --i)
             {
-                result += channels[i].ReadDouble();
+                result += await channels[i].ReadDoubleAsync(cancellationToken);
             }
             var elapsedSeconds = Math.Round((DateTime.Now - time).TotalSeconds, 3);
 

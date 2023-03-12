@@ -2,10 +2,10 @@
 {
     public static class IChannelExtensions
     {
-        public static void ExecuteClass(this IChannel channel, string className)
+        public static async Task ExecuteClassAsync(this IChannel channel, string className)
         {
-            channel.WriteSignal(Signal.ExecuteClass);
-            channel.WriteData(className);
+            await channel.WriteSignalAsync(Signal.ExecuteClass);
+            await channel.WriteDataAsync(className);
         }
     }
 }

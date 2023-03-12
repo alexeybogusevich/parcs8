@@ -5,17 +5,17 @@ namespace Parcs.TCP.Daemon.Handlers
 {
     internal sealed class ExecuteClassSignalHandler : ISignalHandler
     {
-        public void Handle(IChannel channel)
+        public async Task HandleAsync(IChannel channel, CancellationToken cancellationToken = default)
         {
-            Console.WriteLine(channel.ReadString());
-            Console.WriteLine(channel.ReadDouble());
-            Console.WriteLine(channel.ReadBoolean());
-            Console.WriteLine(channel.ReadString());
-            Console.WriteLine(channel.ReadByte());
-            Console.WriteLine(channel.ReadLong());
-            Console.WriteLine(channel.ReadInt());
+            Console.WriteLine(await channel.ReadStringAsync(cancellationToken));
+            Console.WriteLine(await channel.ReadDoubleAsync(cancellationToken));
+            Console.WriteLine(await channel.ReadBooleanAsync(cancellationToken));
+            Console.WriteLine(await channel.ReadStringAsync(cancellationToken));
+            Console.WriteLine(await channel.ReadByteAsync(cancellationToken));
+            Console.WriteLine(await channel.ReadLongAsync(cancellationToken));
+            Console.WriteLine(await channel.ReadIntAsync(cancellationToken));
 
-            var job = channel.ReadObject<Job>();
+            var job = await channel.ReadObjectAsync<Job>(cancellationToken);
             Console.WriteLine("JOB");
             Console.WriteLine(job.Id);
             Console.WriteLine(job.Status);
@@ -23,7 +23,7 @@ namespace Parcs.TCP.Daemon.Handlers
             Console.WriteLine(job.StartDateUtc);
             Console.WriteLine(job.EndDateUtc);
 
-            channel.WriteData(1111.11D);
+            await channel.WriteDataAsync(1111.11D, cancellationToken);
         }
     }
 }

@@ -3,6 +3,6 @@
     public interface IHostInfo
     {
         int MaximumPointsNumber { get; }
-        IPoint CreatePoint();
+        Task<IPoint> CreatePointAsync();
     }
 }

@@ -6,7 +6,7 @@ namespace Parcs.HostAPI.Models.Commands
 {
     public class CreateJobCommand : IRequest<CreateJobCommandResponse>
     {
-        public Guid ModuleId { get; set; }
+        public Guid? ModuleId { get; set; }
 
         public IFormFile InputFile { get; set; }
 

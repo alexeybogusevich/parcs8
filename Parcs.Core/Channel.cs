@@ -1,157 +1,143 @@
-﻿using Parcs.Core.Internal;
+﻿using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
 
 namespace Parcs.Core
 {
-    public sealed class Channel : IChannel
+    public sealed class Channel : IChannel, IDisposable
     {
-        private readonly ITransmissonManager _transmissonManager;
+        private NetworkStream _networkStream;
 
-        public Channel(ITransmissonManager transmissonManager)
+        public Channel(NetworkStream networkStream)
         {
-            _transmissonManager = transmissonManager;
+            _networkStream = networkStream;
         }
 
-        public Signal ReadSignal()
+        public async Task<Signal> ReadSignalAsync(CancellationToken cancellationToken = default)
         {
-            var @byte = TryReceiveSignal();
-            return (Signal)@byte;
+            var size = sizeof(byte);
+            var bytes = await TryReceiveAsync(size, cancellationToken);
+            return (Signal)bytes[0];
         }
 
-        public bool ReadBoolean()
+        public async Task<bool> ReadBooleanAsync(CancellationToken cancellationToken = default)
         {
             var size = sizeof(bool);
-            var buffer = TryReceiveData(size);
+            var buffer = await TryReceiveAsync(size, cancellationToken);
             return BitConverter.ToBoolean(buffer);
         }
 
-        public byte ReadByte()
+        public async Task<byte> ReadByteAsync(CancellationToken cancellationToken = default)
         {
             var size = sizeof(byte);
-            var buffer = TryReceiveData(size);
+            var buffer = await TryReceiveAsync(size, cancellationToken);
             return buffer[0];
         }
 
-        public double ReadDouble()
+        public async Task<double> ReadDoubleAsync(CancellationToken cancellationToken = default)
         {
             var size = sizeof(double);
-            var buffer = TryReceiveData(size);
+            var buffer = await TryReceiveAsync(size, cancellationToken);
             return BitConverter.ToDouble(buffer);
         }
 
-        public int ReadInt()
+        public async Task<int> ReadIntAsync(CancellationToken cancellationToken = default)
         {
             var size = sizeof(int);
-            var buffer = TryReceiveData(size);
+            var buffer = await TryReceiveAsync(size, cancellationToken);
             return BitConverter.ToInt32(buffer);
         }
 
-        public long ReadLong()
+        public async Task<long> ReadLongAsync(CancellationToken cancellationToken = default)
         {
             var size = sizeof(long);
-            var buffer = TryReceiveData(size);
+            var buffer = await TryReceiveAsync(size, cancellationToken);
             return BitConverter.ToInt64(buffer);
         }
 
-        public T ReadObject<T>()
+        public async Task<T> ReadObjectAsync<T>(CancellationToken cancellationToken = default)
         {
-            var size = ReadInt();
-            var buffer = TryReceiveData(size);
-            using MemoryStream ms = new(buffer.ToArray());
-            return JsonSerializer.Deserialize<T>(ms);
+            var size = await ReadIntAsync(cancellationToken);
+            var buffer = await TryReceiveAsync(size, cancellationToken);
+            using var memoryStream = new MemoryStream(buffer.ToArray());
+            return JsonSerializer.Deserialize<T>(memoryStream);
         }
 
-        public string ReadString()
+        public async Task<string> ReadStringAsync(CancellationToken cancellationToken = default)
         {
-            var size = ReadInt();
-            var buffer = TryReceiveData(size);
+            var size = await ReadIntAsync(cancellationToken);
+            var buffer = await TryReceiveAsync(size, cancellationToken);
             return Encoding.UTF8.GetString(buffer);
         }
 
-        public void WriteSignal(Signal signal)
+        public ValueTask WriteSignalAsync(Signal signal, CancellationToken cancellationToken = default)
         {
             var bytes = new byte[] { (byte)signal };
-            _transmissonManager.Send(bytes);
+            return _networkStream.WriteAsync(bytes, cancellationToken);
         }
 
-        public void WriteData(bool data)
+        public ValueTask WriteDataAsync(bool data, CancellationToken cancellationToken = default)
         {
             var bytes = BitConverter.GetBytes(data);
-            var bytesWithSignal = bytes.Prepend((byte)Signal.TransmitData);
-            _transmissonManager.Send(bytesWithSignal);
+            return _networkStream.WriteAsync(bytes, cancellationToken);
         }
 
-        public void WriteData(byte data)
+        public ValueTask WriteDataAsync(byte data, CancellationToken cancellationToken = default)
         {
             var bytes = new byte[] { data };
-            var bytesWithSignal = bytes.Prepend((byte)Signal.TransmitData);
-            _transmissonManager.Send(bytesWithSignal);
+            return _networkStream.WriteAsync(bytes, cancellationToken);
         }
 
-        public void WriteData(int data)
+        public ValueTask WriteDataAsync(int data, CancellationToken cancellationToken = default)
         {
             var bytes = BitConverter.GetBytes(data);
-            var bytesWithSignal = bytes.Prepend((byte)Signal.TransmitData);
-            _transmissonManager.Send(bytesWithSignal);
+            return _networkStream.WriteAsync(bytes, cancellationToken);
         }
 
-        public void WriteData(long data)
+        public ValueTask WriteDataAsync(long data, CancellationToken cancellationToken = default)
         {
             var bytes = BitConverter.GetBytes(data);
-            var bytesWithSignal = bytes.Prepend((byte)Signal.TransmitData);
-            _transmissonManager.Send(bytesWithSignal);
+            return _networkStream.WriteAsync(bytes, cancellationToken);
         }
 
-        public void WriteData(double data)
+        public ValueTask WriteDataAsync(double data, CancellationToken cancellationToken = default)
         {
             var bytes = BitConverter.GetBytes(data);
-            var bytesWithSignal = bytes.Prepend((byte)Signal.TransmitData);
-            _transmissonManager.Send(bytesWithSignal);
+            return _networkStream.WriteAsync(bytes, cancellationToken);
         }
 
-        public void WriteData(string data)
+        public async ValueTask WriteDataAsync(string data, CancellationToken cancellationToken = default)
         {
             var bytes = Encoding.UTF8.GetBytes(data);
-            WriteData(bytes.Length);
-            var bytesWithSignal = bytes.Prepend((byte)Signal.TransmitData);
-            _transmissonManager.Send(bytesWithSignal);
+            await WriteDataAsync(bytes.Length, cancellationToken);
+            await _networkStream.WriteAsync(bytes, cancellationToken);
         }
 
-        public void WriteObject<T>(T @object)
+        public async ValueTask WriteObjectAsync<T>(T @object, CancellationToken cancellationToken = default)
         {
             var bytes = JsonSerializer.SerializeToUtf8Bytes(@object);
-            WriteData(bytes.Length);
-            var bytesWithSignal = bytes.Prepend((byte)Signal.TransmitData);
-            _transmissonManager.Send(bytesWithSignal);
+            await WriteDataAsync(bytes.Length, cancellationToken);
+            await _networkStream.WriteAsync(bytes, cancellationToken);
         }
 
-        private Span<byte> TryReceiveData(int size)
+        private async Task<byte[]> TryReceiveAsync(int size, CancellationToken cancellationToken = default)
         {
-            var sizeAfterSignal = sizeof(Signal) + size;
+            var buffer = new byte[size];
 
-            var buffer = new byte[sizeAfterSignal];
-            var length = _transmissonManager.Receive(buffer);
+            var length = await _networkStream.ReadAsync(buffer.AsMemory(0, size), cancellationToken);
 
-            if (length != sizeAfterSignal)
+            if (length != size)
             {
                 throw new ArgumentException($"Expected to receive {size} bytes, but got {length}.");
             }
 
-            return buffer.AsSpan()[1..];
+            return buffer;
         }
 
-        private byte TryReceiveSignal()
+        public void Dispose()
         {
-            var buffer = new byte[sizeof(Signal)];
-            var length = _transmissonManager.Receive(buffer);
-
-            if (length != sizeof(Signal))
-            {
-                throw new ArgumentException($"Expected to receive {sizeof(Signal)} bytes, but got {length}.");
-            }
-
-            return buffer[0];
+            _networkStream.Dispose();
+            _networkStream = null;
         }
     }
 }
