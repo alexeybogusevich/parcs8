@@ -2,7 +2,7 @@
 
 namespace Parcs.HostAPI.Models.Responses
 {
-    public class CreateJobCommandResponse
+    public class RunJobCommandResponse
     {
         public double? ElapsedSeconds { get; set; }
 

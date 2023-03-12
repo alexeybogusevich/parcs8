@@ -6,35 +6,42 @@ using Parcs.HostAPI.Services.Interfaces;
 
 namespace Parcs.HostAPI.Handlers
 {
-    public class CreateJobCommandHandler : IRequestHandler<CreateJobCommand, CreateJobCommandResponse>
+    public class RunJobCommandHandler : IRequestHandler<RunJobCommand, RunJobCommandResponse>
     {
         private readonly IHostInfoFactory _hostInfoFactory;
+        private readonly IInputReaderFactory _inputReaderFactory;
         private readonly IMainModule _mainModule;
         private readonly IJobManager _jobManager;
-        private readonly IDaemonSelector _daemonPicker;
+        private readonly IDaemonSelector _daemonSelector;
 
-        public CreateJobCommandHandler(
-            IHostInfoFactory hostInfoFactory, IMainModule mainModule, IJobManager jobManager, IDaemonSelector daemonPicker)
+        public RunJobCommandHandler(
+            IHostInfoFactory hostInfoFactory,
+            IInputReaderFactory inputReaderFactory,
+            IMainModule mainModule,
+            IJobManager jobManager,
+            IDaemonSelector daemonSelector)
         {
             _hostInfoFactory = hostInfoFactory;
+            _inputReaderFactory = inputReaderFactory;
             _mainModule = mainModule;
             _jobManager = jobManager;
-            _daemonPicker = daemonPicker;
+            _daemonSelector = daemonSelector;
         }
 
-        public async Task<CreateJobCommandResponse> Handle(CreateJobCommand request, CancellationToken cancellationToken)
+        public async Task<RunJobCommandResponse> Handle(RunJobCommand request, CancellationToken cancellationToken)
         {
             var job = _jobManager.Create();
 
-            var selectedDaemons = _daemonPicker.Select(request.Daemons);
+            var selectedDaemons = _daemonSelector.Select(request.Daemons);
             job.SetDaemons(selectedDaemons);
 
             var hostInfo = _hostInfoFactory.Create(selectedDaemons);
+            var inputReader = _inputReaderFactory.Create(job.Id);
 
             try
             {
                 job.Start();
-                var moduleOutput = await _mainModule.RunAsync(hostInfo, job.CancellationToken);
+                var moduleOutput = await _mainModule.RunAsync(hostInfo, inputReader, job.CancellationToken);
                 job.Finish(moduleOutput.Result);
             }
             catch (Exception ex)
@@ -42,7 +49,7 @@ namespace Parcs.HostAPI.Handlers
                 job.Fail(ex.Message);
             }
 
-            return new CreateJobCommandResponse
+            return new RunJobCommandResponse
             {
                 ElapsedSeconds = job.ExecutionTime?.TotalSeconds,
                 JobStatus = job.Status,

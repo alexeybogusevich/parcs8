@@ -2,17 +2,30 @@
 
 namespace Parcs.HostAPI.Modules
 {
-    public class SampleModule : IMainModule
+    public class MainModuleSample : IMainModule
     {
-        private readonly ILogger<SampleModule> _logger;
+        private readonly ILogger<MainModuleSample> _logger;
 
-        public SampleModule(ILogger<SampleModule> logger)
+        public MainModuleSample(ILogger<MainModuleSample> logger)
         {
             _logger = logger;
         }
 
-        public async Task<ModuleOutput> RunAsync(IHostInfo hostInfo, CancellationToken cancellationToken = default)
+        public async Task<ModuleOutput> RunAsync(IHostInfo hostInfo, IInputReader inputReader, CancellationToken cancellationToken = default)
         {
+            await using var inputFileStream1 = inputReader.MoveNext();
+            await using var inputFileStream2 = inputReader.MoveNext();
+
+            using (var reader = new StreamReader(inputFileStream1))
+            {
+                Console.WriteLine(await reader.ReadToEndAsync(cancellationToken));
+            }
+
+            using (var reader = new StreamReader(inputFileStream2))
+            {
+                Console.WriteLine(await reader.ReadToEndAsync(cancellationToken));
+            }
+
             var pointsNumber = hostInfo.MaximumPointsNumber;
             var channels = new IChannel[pointsNumber];
             var points = new IPoint[pointsNumber];

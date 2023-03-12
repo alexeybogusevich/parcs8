@@ -1,6 +1,5 @@
 ﻿using MediatR;
 using Microsoft.AspNetCore.Mvc;
-using Parcs.Core;
 using Parcs.HostAPI.Models.Commands;
 
 namespace Parcs.HostAPI.Controllers
@@ -17,19 +16,23 @@ namespace Parcs.HostAPI.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> CreateAsync([FromForm] CreateJobCommand command)
+        public async Task<IActionResult> RunAsync([FromForm] RunJobCommand command)
         {
-            command.Daemons = new List<Daemon>
-            {
-                new Daemon
-                {
-                    IpAddress = "172.17.0.2",
-                    Port = 1111,
-                },
-            };
-
             var response = await _mediator.Send(command);
             return Ok(response);
+        }
+
+        [HttpDelete("{JobId}")]
+        public async Task<IActionResult> AbortAsync([FromRoute] AbortJobCommand command)
+        {
+            var wasAborted = await _mediator.Send(command);
+
+            if (!wasAborted)
+            {
+                return NotFound();
+            }
+
+            return NoContent();
         }
     }
 }

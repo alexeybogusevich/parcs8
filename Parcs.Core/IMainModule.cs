@@ -2,6 +2,6 @@
 {
     public interface IMainModule
     {
-        Task<ModuleOutput> RunAsync(IHostInfo hostInfo, CancellationToken cancellationToken = default);
+        Task<ModuleOutput> RunAsync(IHostInfo hostInfo, IInputReader inputReader, CancellationToken cancellationToken = default);
     }
 }

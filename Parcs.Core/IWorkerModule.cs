@@ -2,6 +2,6 @@
 {
     public interface IWorkerModule
     {
-        void Run(IChannel channel, string input = null, CancellationToken cancellationToken = default);
+        Task RunAsync(IChannel channel, CancellationToken cancellationToken = default);
     }
 }
