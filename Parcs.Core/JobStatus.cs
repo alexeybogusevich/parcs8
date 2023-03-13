@@ -5,7 +5,7 @@
         New = 0,
         InProgress = 1,
         Error = 2,
-        Finished = 3,
+        Done = 3,
         Aborted = 4,
     }
 }

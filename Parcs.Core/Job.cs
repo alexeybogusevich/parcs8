@@ -41,7 +41,7 @@
         public void Finish(double result)
         {
             EndDateUtc = DateTime.UtcNow;
-            Status = JobStatus.Finished;
+            Status = JobStatus.Done;
             Result = result;
         }
 
