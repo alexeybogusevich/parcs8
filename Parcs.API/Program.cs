@@ -1,4 +1,5 @@
 using Parcs.Core;
+using Parcs.HostAPI.Configuration;
 using Parcs.HostAPI.Modules;
 using Parcs.HostAPI.Services;
 using Parcs.HostAPI.Services.Interfaces;
@@ -16,6 +17,9 @@ builder.Services.AddScoped<IHostInfoFactory, HostInfoFactory>();
 builder.Services.AddSingleton<IJobManager, JobManager>();
 builder.Services.AddMediatR(options => options.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
 
+builder.Services.Configure<FileSystemConfiguration>(builder.Configuration.GetSection(FileSystemConfiguration.SectionName));
+builder.Services.Configure<DefaultDaemonConfiguration>(builder.Configuration.GetSection(DefaultDaemonConfiguration.SectionName));
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -25,9 +29,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
 app.UseAuthorization();
-
 app.MapControllers();
 
 app.Run();

@@ -1,0 +1,24 @@
+version: '3.4'
+
+services:
+  parcs.daemon:
+    image: ${DOCKER_REGISTRY-}parcsdaemon
+    build:
+      context: .
+      dockerfile: Parcs.TCP.Daemon/Dockerfile
+
+  parcs.hostapi:
+    image: ${DOCKER_REGISTRY-}parcshostapi
+    build:
+      context: .
+      dockerfile: Parcs.API/Dockerfile
+    volumes:
+      - type: volume
+        source: parcs.storage
+        target: /var/lib/storage
+    environment:
+      DefaultDaemon__HostUrl: parcs.daemon
+      Foo: bar
+
+volumes:
+  parcs.storage:

@@ -2,7 +2,7 @@
 {
     public class Daemon
     {
-        public string IpAddress { get; set; }
+        public string HostUrl { get; set; }
 
         public int Port { get; set; }
     }

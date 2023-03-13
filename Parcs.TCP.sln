@@ -9,6 +9,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Parcs.Core", "Parcs.Core\Pa
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Parcs.HostAPI", "Parcs.API\Parcs.HostAPI.csproj", "{97DD4C1E-4246-47EE-8270-6A9E579A9B14}"
 EndProject
+Project("{E53339B2-1760-4266-BCC7-CA923CBCF16C}") = "docker-compose", "docker-compose.dcproj", "{3E63CE55-2662-4204-9DF7-A0C0B1D84BA8}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,10 @@ Global
 		{97DD4C1E-4246-47EE-8270-6A9E579A9B14}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{97DD4C1E-4246-47EE-8270-6A9E579A9B14}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{97DD4C1E-4246-47EE-8270-6A9E579A9B14}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3E63CE55-2662-4204-9DF7-A0C0B1D84BA8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3E63CE55-2662-4204-9DF7-A0C0B1D84BA8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3E63CE55-2662-4204-9DF7-A0C0B1D84BA8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3E63CE55-2662-4204-9DF7-A0C0B1D84BA8}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

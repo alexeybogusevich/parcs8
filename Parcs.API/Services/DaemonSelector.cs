@@ -1,27 +1,34 @@
-﻿using Parcs.Core;
+﻿using Microsoft.Extensions.Options;
+using Parcs.Core;
+using Parcs.HostAPI.Configuration;
 using Parcs.HostAPI.Services.Interfaces;
 
 namespace Parcs.HostAPI.Services
 {
     public class DaemonSelector : IDaemonSelector
     {
+        private readonly DefaultDaemonConfiguration _defaultDaemonConfiguration;
+
+        public DaemonSelector(IOptions<DefaultDaemonConfiguration> options)
+        {
+            _defaultDaemonConfiguration = options.Value;
+        }
+
         public IEnumerable<Daemon> Select(IEnumerable<Daemon> suppliedDaemons = null)
         {
-            suppliedDaemons = new List<Daemon>
+            if (suppliedDaemons != null && suppliedDaemons.Any())
+            {
+                return suppliedDaemons;
+            }
+
+            return new List<Daemon>
             {
                 new Daemon
                 {
-                    IpAddress = "172.17.0.2",
-                    Port = 1111,
-                },
+                    HostUrl = _defaultDaemonConfiguration.HostUrl,
+                    Port = _defaultDaemonConfiguration.Port,
+                }
             };
-
-            if (suppliedDaemons == null)
-            {
-                throw new ArgumentException("No daemons to run the module on.");
-            }
-
-            return suppliedDaemons;
         }
     }
 }

@@ -20,15 +20,13 @@ namespace Parcs.HostAPI.Models.Domain
 
         public async Task<IPoint> CreatePointAsync()
         {
-            var configurationToUse = _unusedDaemons.Dequeue();
-
-            if (!IPAddress.TryParse(configurationToUse.IpAddress, out var parsedAddress))
+            if (!_unusedDaemons.TryDequeue(out var configurationToUse))
             {
-                throw new ArgumentException($"Unrecognized IP address format. {configurationToUse.IpAddress}.");
+                throw new ArgumentException("No more points can be created.");
             }
 
             var tcpClient = new TcpClient();
-            await tcpClient.ConnectAsync(parsedAddress, configurationToUse.Port);
+            await tcpClient.ConnectAsync(configurationToUse.HostUrl, configurationToUse.Port);
 
             return new Point(tcpClient);
         }
