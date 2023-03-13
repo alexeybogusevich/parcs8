@@ -8,7 +8,7 @@ namespace Parcs.HostAPI.Models.Commands
     {
         public Guid? ModuleId { get; set; }
 
-        public IEnumerable<IFormFile> InputFile { get; set; }
+        public IEnumerable<IFormFile> InputFiles { get; set; }
 
         public IEnumerable<Daemon> Daemons { get; set; }
     }

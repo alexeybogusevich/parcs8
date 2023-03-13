@@ -13,6 +13,7 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddScoped<IMainModule, MainModuleSample>();
 builder.Services.AddScoped<IDaemonSelector, DaemonSelector>();
 builder.Services.AddScoped<IInputReaderFactory, InputReaderFactory>();
+builder.Services.AddScoped<IInputWriter, InputWriter>();
 builder.Services.AddScoped<IHostInfoFactory, HostInfoFactory>();
 builder.Services.AddSingleton<IJobManager, JobManager>();
 builder.Services.AddMediatR(options => options.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
