@@ -13,29 +13,27 @@ namespace Parcs.HostAPI.Handlers
         private readonly IMainModule _mainModule;
         private readonly IJobManager _jobManager;
         private readonly IDaemonSelector _daemonSelector;
-        private readonly IInputWriter _inputWriter;
 
         public RunJobCommandHandler(
             IHostInfoFactory hostInfoFactory,
             IInputReaderFactory inputReaderFactory,
             IMainModule mainModule,
             IJobManager jobManager,
-            IDaemonSelector daemonSelector,
-            IInputWriter inputWriter)
+            IDaemonSelector daemonSelector)
         {
             _hostInfoFactory = hostInfoFactory;
             _inputReaderFactory = inputReaderFactory;
             _mainModule = mainModule;
             _jobManager = jobManager;
             _daemonSelector = daemonSelector;
-            _inputWriter = inputWriter;
         }
 
         public async Task<RunJobCommandResponse> Handle(RunJobCommand request, CancellationToken cancellationToken)
         {
-            var job = _jobManager.Create();
-
-            await _inputWriter.WriteAllAsync(request.InputFiles, job.Id, job.CancellationToken);
+            if (!_jobManager.TryGet(request.JobId, out var job))
+            {
+                throw new ArgumentException($"Job not found: {request.JobId}");
+            }
 
             var selectedDaemons = _daemonSelector.Select(request.Daemons);
             job.SetDaemons(selectedDaemons);

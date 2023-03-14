@@ -1,15 +1,12 @@
-﻿using Parcs.Core;
-
-namespace Parcs.HostAPI.Models.Responses
+﻿namespace Parcs.HostAPI.Models.Responses
 {
-    public class RunJobCommandResponse
+    public class CreateJobCommandResponse
     {
-        public double? ElapsedSeconds { get; set; }
+        public CreateJobCommandResponse(Guid jobId)
+        {
+            JobId = jobId;
+        }
 
-        public JobStatus JobStatus { get; set; }
-
-        public string ErrorMessage { get; set; }
-
-        public double? Result { get; set; }
+        public Guid JobId { get; set; }
     }
 }

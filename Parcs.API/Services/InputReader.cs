@@ -4,23 +4,29 @@ namespace Parcs.HostAPI.Services
 {
     public class InputReader : IInputReader
     {
-        private readonly Queue<string> _filenames;
+        private readonly string _targetDirectoryPath;
 
         public InputReader(string inputFoldersPath, Guid jobId)
         {
-            var targetDirectoryPath = Path.Combine(inputFoldersPath, jobId.ToString());
-            var directoryFiles = Directory.GetFiles(targetDirectoryPath);
-            _filenames = new Queue<string>(directoryFiles.Order());
+            _targetDirectoryPath = Path.Combine(inputFoldersPath, jobId.ToString());
         }
 
-        public FileStream MoveNext()
+        public IEnumerable<string> GetFilenames() => Directory.GetFiles(_targetDirectoryPath).Select(Path.GetFileName);
+
+        public FileStream GetFileStreamForFile(string filename)
         {
-            if (!_filenames.TryDequeue(out var currentFilename))
+            ArgumentException.ThrowIfNullOrEmpty(filename);
+
+            var filePath = Directory
+                .GetFiles(_targetDirectoryPath)
+                .FirstOrDefault(filePath => filePath.EndsWith(filename));
+
+            if (filePath is null)
             {
-                throw new ArgumentException("No more files found.");
+                throw new ArgumentException($"{filename} not found among the input files for the job.");
             }
 
-            return new FileStream(currentFilename, FileMode.Open);
+            return new FileStream(filePath, FileMode.Open);
         }
     }
 }

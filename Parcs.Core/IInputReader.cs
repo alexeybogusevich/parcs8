@@ -2,6 +2,7 @@
 {
     public interface IInputReader
     {
-        FileStream MoveNext();
+        IEnumerable<string> GetFilenames();
+        FileStream GetFileStreamForFile(string filename);
     }
 }

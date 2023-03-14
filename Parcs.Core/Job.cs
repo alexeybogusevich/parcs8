@@ -14,6 +14,8 @@
 
         public Guid Id { get; private set; }
 
+        public Guid? ModuleId { get; private set; }
+
         public JobStatus Status { get; private set; }
 
         public DateTime CreateDateUtc { get; private set; }
@@ -57,6 +59,11 @@
             EndDateUtc = DateTime.UtcNow;
             Status = JobStatus.Aborted;
             _cancellationTokenSource.Cancel();
+        }
+
+        public void SetModule(Guid moduleId)
+        {
+            ModuleId = moduleId;
         }
 
         public void SetDaemons(IEnumerable<Daemon> daemons)

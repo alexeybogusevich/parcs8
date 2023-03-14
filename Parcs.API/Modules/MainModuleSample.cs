@@ -13,17 +13,11 @@ namespace Parcs.HostAPI.Modules
 
         public async Task<ModuleOutput> RunAsync(IHostInfo hostInfo, IInputReader inputReader, CancellationToken cancellationToken = default)
         {
-            await using var inputFileStream1 = inputReader.MoveNext();
-            await using var inputFileStream2 = inputReader.MoveNext();
-
-            using (var reader = new StreamReader(inputFileStream1))
+            foreach (var filename in inputReader.GetFilenames())
             {
-                Console.WriteLine(await reader.ReadToEndAsync(cancellationToken));
-            }
-
-            using (var reader = new StreamReader(inputFileStream2))
-            {
-                Console.WriteLine(await reader.ReadToEndAsync(cancellationToken));
+                await using var fileStream = inputReader.GetFileStreamForFile(filename);
+                using var streamReader = new StreamReader(fileStream);
+                Console.WriteLine(await streamReader.ReadToEndAsync(cancellationToken));
             }
 
             var pointsNumber = hostInfo.MaximumPointsNumber;

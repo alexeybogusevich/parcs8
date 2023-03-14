@@ -6,20 +6,20 @@ namespace Parcs.HostAPI.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class JobsController : ControllerBase
+    public class ScheduledJobsController : ControllerBase
     {
         private readonly IMediator _mediator;
 
-        public JobsController(IMediator mediator)
+        public ScheduledJobsController(IMediator mediator)
         {
             _mediator = mediator;
         }
 
         [HttpPost]
-        public async Task<IActionResult> RunAsync([FromForm] CreateJobCommand command)
+        public async Task<IActionResult> ScheduleAsync([FromBody] ScheduleJobCommand command)
         {
-            var response = await _mediator.Send(command);
-            return Ok(response);
+            await _mediator.Send(command);
+            return Accepted();
         }
     }
 }

@@ -6,9 +6,7 @@ namespace Parcs.HostAPI.Models.Commands
 {
     public class RunJobCommand : IRequest<RunJobCommandResponse>
     {
-        public Guid? ModuleId { get; set; }
-
-        public IEnumerable<IFormFile> InputFiles { get; set; }
+        public Guid JobId { get; set; }
 
         public IEnumerable<Daemon> Daemons { get; set; }
     }
