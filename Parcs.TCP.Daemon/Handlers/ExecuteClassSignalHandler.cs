@@ -1,5 +1,5 @@
 ﻿using Parcs.Core;
-using Parcs.Daemon.Modules;
+using Parcs.Modules.Sample;
 using Parcs.TCP.Daemon.Handlers.Interfaces;
 
 namespace Parcs.TCP.Daemon.Handlers
@@ -8,7 +8,7 @@ namespace Parcs.TCP.Daemon.Handlers
     {
         public Task HandleAsync(IChannel channel, CancellationToken cancellationToken = default)
         {
-            var sampleModule = new WorkerModuleSample();
+            var sampleModule = new SampleWorkerModule();
             return sampleModule.RunAsync(channel, cancellationToken);
         }
     }

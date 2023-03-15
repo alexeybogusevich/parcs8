@@ -16,11 +16,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\Parcs.Modules\Parcs.Modules.csproj" />
     <ProjectReference Include="..\Parcs.Core\Parcs.Core.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Models\Requests\" />
   </ItemGroup>
 
 </Project>

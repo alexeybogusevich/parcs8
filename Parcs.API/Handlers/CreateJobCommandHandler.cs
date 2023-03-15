@@ -8,19 +8,18 @@ namespace Parcs.HostAPI.Handlers
     public class CreateJobCommandHandler : IRequestHandler<CreateJobCommand, CreateJobCommandResponse>
     {
         private readonly IJobManager _jobManager;
-        private readonly IInputWriter _inputWriter;
+        private readonly IInputSaver _inputSaver;
 
-        public CreateJobCommandHandler(IJobManager jobManager, IInputWriter inputWriter)
+        public CreateJobCommandHandler(IJobManager inputSaver, IInputSaver inputWriter)
         {
-            _jobManager = jobManager;
-            _inputWriter = inputWriter;
+            _jobManager = inputSaver;
+            _inputSaver = inputWriter;
         }
 
         public async Task<CreateJobCommandResponse> Handle(CreateJobCommand request, CancellationToken cancellationToken)
         {
-            var job = _jobManager.Create();
-            job.SetModule(request.ModuleId);
-            await _inputWriter.WriteAllAsync(request.InputFiles, job.Id, job.CancellationToken);
+            var job = _jobManager.Create(request.ModuleId);
+            await _inputSaver.SaveAsync(request.InputFiles, job.Id, job.CancellationToken);
             return new CreateJobCommandResponse(job.Id);
         }
     }

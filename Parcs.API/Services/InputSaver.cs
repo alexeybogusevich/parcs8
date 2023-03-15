@@ -4,16 +4,16 @@ using Parcs.HostAPI.Services.Interfaces;
 
 namespace Parcs.HostAPI.Services
 {
-    public class InputWriter : IInputWriter
+    public class InputSaver : IInputSaver
     {
         private readonly FileSystemConfiguration _fileSystemConfiguration;
 
-        public InputWriter(IOptions<FileSystemConfiguration> options)
+        public InputSaver(IOptions<FileSystemConfiguration> options)
         {
             _fileSystemConfiguration = options.Value;
         }
 
-        public async Task WriteAllAsync(IEnumerable<IFormFile> inputFiles, Guid jobId, CancellationToken cancellationToken = default)
+        public async Task SaveAsync(IEnumerable<IFormFile> inputFiles, Guid jobId, CancellationToken cancellationToken = default)
         {
             if (!Directory.Exists(_fileSystemConfiguration.InputFoldersPath))
             {

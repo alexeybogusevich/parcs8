@@ -8,9 +8,9 @@ namespace Parcs.HostAPI.Services
     {
         private readonly ConcurrentDictionary<Guid, Job> _activeJobs = new ();
 
-        public Job Create()
+        public Job Create(Guid moduleId)
         {
-            var job = new Job();
+            var job = new Job(moduleId);
             _activeJobs.TryAdd(job.Id, job);
             return job;
         }

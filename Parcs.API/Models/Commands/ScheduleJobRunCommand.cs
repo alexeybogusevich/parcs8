@@ -3,13 +3,9 @@ using Parcs.Core;
 
 namespace Parcs.HostAPI.Models.Commands
 {
-    public class ScheduleJobCommand : IRequest
+    public class ScheduleJobRunCommand : IRequest
     {
         public Guid JobId { get; set; }
-
-        public Guid? ModuleId { get; set; }
-
-        public IEnumerable<IFormFile> InputFiles { get; set; }
 
         public IEnumerable<Daemon> Daemons { get; set; }
 

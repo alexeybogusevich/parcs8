@@ -6,16 +6,19 @@ namespace Parcs.HostAPI.Services
 {
     public class JobCompletionNotifier : IJobCompletionNotifier
     {
-        private readonly FlurlClient _flurlClient;
+        private readonly IHttpClientFactory _httpClientFactory;
 
         public JobCompletionNotifier(IHttpClientFactory httpClientFactory)
         {
-            _flurlClient = new(httpClientFactory.CreateClient());
+            _httpClientFactory = httpClientFactory;
         }
 
         public Task NotifyAsync(RunJobCommandResponse response, string callbackUrl, CancellationToken cancellationToken = default)
         {
-            return _flurlClient.Request(callbackUrl).PostJsonAsync(response, cancellationToken);
+            return Task.CompletedTask;
+
+            using var flurlClient = new FlurlClient(_httpClientFactory.CreateClient());
+            return flurlClient.Request(callbackUrl).PostJsonAsync(response, cancellationToken);
         }
     }
 }

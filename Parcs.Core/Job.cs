@@ -4,11 +4,12 @@
     {
         private readonly CancellationTokenSource _cancellationTokenSource;
 
-        public Job()
+        public Job(Guid? moduleId)
         {
             Id = Guid.NewGuid();
             CreateDateUtc = DateTime.UtcNow;
             Status = JobStatus.New;
+            ModuleId = moduleId;
             _cancellationTokenSource = new ();
         }
 
@@ -59,11 +60,6 @@
             EndDateUtc = DateTime.UtcNow;
             Status = JobStatus.Aborted;
             _cancellationTokenSource.Cancel();
-        }
-
-        public void SetModule(Guid moduleId)
-        {
-            ModuleId = moduleId;
         }
 
         public void SetDaemons(IEnumerable<Daemon> daemons)
