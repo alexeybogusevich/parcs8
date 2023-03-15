@@ -16,9 +16,9 @@ namespace Parcs.HostAPI.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> ScheduleAsync([FromBody] CreateAsynchronousJobRunCommand command)
+        public async Task<IActionResult> ScheduleAsync([FromBody] CreateAsynchronousJobRunCommand command, CancellationToken cancellationToken)
         {
-            await _mediator.Send(command);
+            await _mediator.Send(command, cancellationToken);
             return Accepted();
         }
     }

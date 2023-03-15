@@ -20,10 +20,7 @@ namespace Parcs.HostAPI.Handlers
         public async Task<CreateJobCommandResponse> Handle(CreateJobCommand request, CancellationToken cancellationToken)
         {
             var job = _jobManager.Create(request.ModuleId);
-
             await _fileManager.SaveAsync(request.InputFiles, DirectoryGroup.Input, job.Id, job.CancellationToken);
-            await _fileManager.SaveAsync(request.ModuleFiles, DirectoryGroup.Modules, job.Id, job.CancellationToken);
-
             return new CreateJobCommandResponse(job.Id);
         }
     }
