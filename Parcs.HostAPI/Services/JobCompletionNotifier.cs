@@ -1,5 +1,5 @@
 ﻿using Flurl.Http;
-using Parcs.HostAPI.Models.Responses;
+using Parcs.HostAPI.Models.Domain;
 using Parcs.HostAPI.Services.Interfaces;
 
 namespace Parcs.HostAPI.Services
@@ -13,12 +13,12 @@ namespace Parcs.HostAPI.Services
             _httpClientFactory = httpClientFactory;
         }
 
-        public Task NotifyAsync(RunJobCommandResponse response, string callbackUrl, CancellationToken cancellationToken = default)
+        public Task NotifyAsync(JobCompletionNotification notification, string subscriberUrl, CancellationToken cancellationToken = default)
         {
             return Task.CompletedTask;
 
             using var flurlClient = new FlurlClient(_httpClientFactory.CreateClient());
-            return flurlClient.Request(callbackUrl).PostJsonAsync(response, cancellationToken);
+            return flurlClient.Request(subscriberUrl).PostJsonAsync(notification, cancellationToken);
         }
     }
 }

@@ -3,7 +3,7 @@ using Parcs.Core;
 
 namespace Parcs.HostAPI.Models.Commands
 {
-    public class ScheduleJobRunCommand : IRequest
+    public class CreateAsynchronousJobRunCommand : IRequest
     {
         public Guid JobId { get; set; }
 

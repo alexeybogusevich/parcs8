@@ -7,7 +7,7 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.AddApplicationServices();
 builder.Services.AddApplicationOptions(builder.Configuration);
-builder.Services.AddJobScheduling();
+builder.Services.AddAsynchronousJobProcessing();
 builder.Services.AddHttpClient();
 
 var app = builder.Build();

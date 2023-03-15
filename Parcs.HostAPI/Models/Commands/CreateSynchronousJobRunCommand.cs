@@ -4,7 +4,7 @@ using Parcs.HostAPI.Models.Responses;
 
 namespace Parcs.HostAPI.Models.Commands
 {
-    public class RunJobCommand : IRequest<RunJobCommandResponse>
+    public class CreateSynchronousJobRunCommand : IRequest<CreateSynchronousJobRunCommandResponse>
     {
         public Guid JobId { get; set; }
 

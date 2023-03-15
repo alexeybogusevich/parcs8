@@ -13,13 +13,13 @@ namespace Parcs.HostAPI.Extensions
 {
     public static class IServiceCollectionExtensions
     {
-        public static IServiceCollection AddJobScheduling(this IServiceCollection services)
+        public static IServiceCollection AddAsynchronousJobProcessing(this IServiceCollection services)
         {
             return services
-                .AddSingleton(Channel.CreateUnbounded<ScheduleJobRunCommand>(new UnboundedChannelOptions() { SingleReader = true }))
-                .AddSingleton(svc => svc.GetRequiredService<Channel<ScheduleJobRunCommand>>().Reader)
-                .AddSingleton(svc => svc.GetRequiredService<Channel<ScheduleJobRunCommand>>().Writer)
-                .AddHostedService<ScheduledJobRunProcessor>();
+                .AddSingleton(Channel.CreateUnbounded<CreateAsynchronousJobRunCommand>(new UnboundedChannelOptions() { SingleReader = true }))
+                .AddSingleton(svc => svc.GetRequiredService<Channel<CreateAsynchronousJobRunCommand>>().Reader)
+                .AddSingleton(svc => svc.GetRequiredService<Channel<CreateAsynchronousJobRunCommand>>().Writer)
+                .AddHostedService<AsynchronousJobRunner>();
         }
 
         public static IServiceCollection AddApplicationOptions(this IServiceCollection services, IConfiguration configuration)

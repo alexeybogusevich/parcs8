@@ -55,10 +55,10 @@
             ErrorMessage = errorMessage;
         }
 
-        public void Abort()
+        public void Cancel()
         {
             EndDateUtc = DateTime.UtcNow;
-            Status = JobStatus.Aborted;
+            Status = JobStatus.Cancelled;
             _cancellationTokenSource.Cancel();
         }
 

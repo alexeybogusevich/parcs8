@@ -6,6 +6,6 @@
         InProgress = 1,
         Error = 2,
         Done = 3,
-        Aborted = 4,
+        Cancelled = 4,
     }
 }
