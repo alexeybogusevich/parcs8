@@ -1,5 +1,6 @@
 ﻿using MediatR;
 using Parcs.HostAPI.Models.Commands;
+using Parcs.HostAPI.Models.Enums;
 using Parcs.HostAPI.Models.Responses;
 using Parcs.HostAPI.Services.Interfaces;
 
@@ -8,18 +9,21 @@ namespace Parcs.HostAPI.Handlers
     public class CreateJobCommandHandler : IRequestHandler<CreateJobCommand, CreateJobCommandResponse>
     {
         private readonly IJobManager _jobManager;
-        private readonly IInputSaver _inputSaver;
+        private readonly IFileManager _fileManager;
 
-        public CreateJobCommandHandler(IJobManager inputSaver, IInputSaver inputWriter)
+        public CreateJobCommandHandler(IJobManager inputSaver, IFileManager fileManager)
         {
             _jobManager = inputSaver;
-            _inputSaver = inputWriter;
+            _fileManager = fileManager;
         }
 
         public async Task<CreateJobCommandResponse> Handle(CreateJobCommand request, CancellationToken cancellationToken)
         {
             var job = _jobManager.Create(request.ModuleId);
-            await _inputSaver.SaveAsync(request.InputFiles, job.Id, job.CancellationToken);
+
+            await _fileManager.SaveAsync(request.InputFiles, DirectoryGroup.Input, job.Id, job.CancellationToken);
+            await _fileManager.SaveAsync(request.ModuleFiles, DirectoryGroup.Modules, job.Id, job.CancellationToken);
+
             return new CreateJobCommandResponse(job.Id);
         }
     }

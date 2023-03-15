@@ -4,28 +4,28 @@ using Parcs.HostAPI.Services.Interfaces;
 
 namespace Parcs.HostAPI.Handlers
 {
-    public class CancelJobCommandHandler : IRequestHandler<CancelJobCommand, bool>
+    public class CancelJobCommandHandler : IRequestHandler<CancelJobCommand>
     {
         private readonly IJobManager _jobManager;
+        private readonly IFileManager _fileManager;
 
-        public CancelJobCommandHandler(IJobManager jobManager)
+        public CancelJobCommandHandler(IJobManager jobManager, IFileManager fileManager)
         {
             _jobManager = jobManager;
+            _fileManager = fileManager;
         }
 
-        public async Task<bool> Handle(CancelJobCommand request, CancellationToken cancellationToken)
+        public Task Handle(CancelJobCommand request, CancellationToken cancellationToken)
         {
             if (!_jobManager.TryGet(request.JobId, out var job))
             {
-                return false;
+                return Task.CompletedTask;
             }
 
             job.Cancel();
             _ = _jobManager.TryRemove(job.Id);
 
-            await Task.CompletedTask;
-
-            return true;
+            return _fileManager.CleanAsync(job.Id, cancellationToken);
         }
     }
 }

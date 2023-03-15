@@ -4,6 +4,6 @@
     {
         public const string SectionName = "FileSystem";
 
-        public string InputFoldersPath { get; set; }
+        public string BasePath { get; set; }
     }
 }

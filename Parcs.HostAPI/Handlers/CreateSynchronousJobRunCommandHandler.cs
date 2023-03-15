@@ -52,13 +52,7 @@ namespace Parcs.HostAPI.Handlers
                 job.Fail(ex.Message);
             }
 
-            return new CreateSynchronousJobRunCommandResponse
-            {
-                ElapsedSeconds = job.ExecutionTime?.TotalSeconds,
-                JobStatus = job.Status,
-                ErrorMessage = job.ErrorMessage,
-                Result = job.Result,
-            };
+            return new CreateSynchronousJobRunCommandResponse(job);
         }
     }
 }

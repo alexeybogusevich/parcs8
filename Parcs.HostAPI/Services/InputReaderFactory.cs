@@ -14,6 +14,6 @@ namespace Parcs.HostAPI.Services
             _fileSystemConfiguration = fileSystemOptions.Value;
         }
 
-        public IInputReader Create(Guid jobId) => new InputReader(_fileSystemConfiguration.InputFoldersPath, jobId);
+        public IInputReader Create(Guid jobId) => new InputReader(_fileSystemConfiguration.BasePath, jobId);
     }
 }

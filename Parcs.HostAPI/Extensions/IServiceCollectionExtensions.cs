@@ -35,7 +35,7 @@ namespace Parcs.HostAPI.Extensions
                 .AddScoped<IDaemonSelector, DaemonSelector>()
                 .AddScoped<IHostInfoFactory, HostInfoFactory>()
                 .AddScoped<IInputReaderFactory, InputReaderFactory>()
-                .AddScoped<IInputSaver, InputSaver>()
+                .AddScoped<IFileManager, FileManager>()
                 .AddScoped<IMainModule, SampleMainModule>()
                 .AddScoped<IJobCompletionNotifier, JobCompletionNotifier>()
                 .AddSingleton<IJobManager, JobManager>()
