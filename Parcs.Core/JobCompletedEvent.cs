@@ -1,8 +1,8 @@
 ﻿namespace Parcs.Core
 {
-    public class JobCompletionNotification
+    public class JobCompletedEvent
     {
-        public JobCompletionNotification(Guid jobId, JobStatus jobStatus)
+        public JobCompletedEvent(Guid jobId, JobStatus jobStatus)
         {
             JobId = jobId;
             JobStatus = jobStatus;

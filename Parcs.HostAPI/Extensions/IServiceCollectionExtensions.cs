@@ -32,14 +32,17 @@ namespace Parcs.HostAPI.Extensions
         public static IServiceCollection AddApplicationServices(this IServiceCollection services)
         {
             return services
+                .AddScoped<IGuidReference, GuidReference>()
                 .AddScoped<IDaemonSelector, DaemonSelector>()
                 .AddScoped<IHostInfoFactory, HostInfoFactory>()
                 .AddScoped<IInputReaderFactory, InputReaderFactory>()
-                .AddScoped<IDirectoryPathBuilder, DirectoryPathBuilder>()
-                .AddScoped<IFileSaver, FileSaver>()
-                .AddScoped<IMainModule, SampleMainModule>()
                 .AddScoped<IJobCompletionNotifier, JobCompletionNotifier>()
-                .AddSingleton<IInMemoryModulesManager, InMemoryModulesManager>()
+                .AddScoped<IJobDirectoryPathBuilder, JobDirectoryPathBuilder>()
+                .AddScoped<IModuleDirectoryPathBuilder, ModuleDirectoryPathBuilder>()
+                .AddScoped<IFileSaver, FileSaver>()
+                .AddScoped<IFileReader, FileReader>()
+                .AddScoped<IMainModule, SampleMainModule>()
+                .AddSingleton<IJobCompletionObserver, JobCompletionObserver>()
                 .AddSingleton<IJobManager, JobManager>()
                 .AddMediatR(options => options.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
         }

@@ -26,11 +26,11 @@ namespace Parcs.HostAPI.Handlers
             job.Cancel();
             _ = _jobManager.TryRemove(job.Id);
 
-            var fileDeletionTasks = new Task[]
-            {
-                _fileManager.DeleteAsync(JobDirectoryGroup.Input, job.Id, cancellationToken),
-                _fileManager.DeleteAsync(JobDirectoryGroup.Output, job.Id, cancellationToken),
-            };
+            //var fileDeletionTasks = new Task[]
+            //{
+            //    _fileManager.DeleteAsync(JobDirectoryGroup.Input, job.Id, cancellationToken),
+            //    _fileManager.DeleteAsync(JobDirectoryGroup.Output, job.Id, cancellationToken),
+            //};
 
             return Task.WhenAll(fileDeletionTasks);
         }

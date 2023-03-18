@@ -1,5 +1,4 @@
 ﻿using MediatR;
-using Parcs.Core;
 using Parcs.HostAPI.Models.Commands;
 using Parcs.HostAPI.Models.Responses;
 using Parcs.HostAPI.Services.Interfaces;
@@ -43,7 +42,8 @@ namespace Parcs.HostAPI.Handlers
 
             try
             {
-                var mainModule = await _mainModuleLoader.LoadAsync(job.ModuleId, job.AssemblyName, job.ClassName);
+                var mainModule = job.MainModule ?? await _mainModuleLoader.LoadAsync(job.ModuleId, job.AssemblyName, job.ClassName, job.CancellationToken);
+                
                 job.Start();
                 var moduleOutput = await mainModule.RunAsync(hostInfo, inputReader, job.CancellationToken);
                 job.Finish(moduleOutput.Result);

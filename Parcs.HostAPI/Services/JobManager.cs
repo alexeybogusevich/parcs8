@@ -6,31 +6,29 @@ using System.Collections.Concurrent;
 
 namespace Parcs.HostAPI.Services
 {
-    public class JobManager : IJobManager, IObserver<JobCompletionNotification>
+    public class JobManager : IJobManager
     {
         private readonly JobsConfiguration _jobsConfiguration;
-        private readonly ILogger<JobManager> _logger;
-        private readonly ConcurrentDictionary<Guid, IDisposable> _subscribedJobs = new();
         private readonly ConcurrentDictionary<Guid, Job> _activeJobs = new();
+        private readonly IJobCompletionObserver _jobCompletionObserver;
 
-        public JobManager(IOptions<JobsConfiguration> options, ILogger<JobManager> logger)
+        public JobManager(IJobCompletionObserver jobCompletionObserver, IOptions<JobsConfiguration> options)
         {
-            _logger = logger;
             _jobsConfiguration = options.Value;
+            _jobCompletionObserver = jobCompletionObserver;
         }
 
-        public Job Create(Guid moduleId)
+        public Job Create(Guid moduleId, string assemblyName, string className)
         {
             if (_activeJobs.Count == _jobsConfiguration.MaximumActiveJobs)
             {
                 throw new ArgumentException("Maximum number of active jobs reached. Consider deleting idle jobs.");
             }
 
-            var job = new Job(moduleId);
+            var job = new Job(moduleId, assemblyName, className);
             _ = _activeJobs.TryAdd(job.Id, job);
 
-            var subscription = job.Subscribe(this);
-            _ = _subscribedJobs.TryAdd(job.Id, subscription);
+            _jobCompletionObserver.Subscribe(job);
 
             return job;
         }
@@ -44,21 +42,5 @@ namespace Parcs.HostAPI.Services
         {
             return _activeJobs.TryRemove(id, out _);
         }
-
-        public void OnNext(JobCompletionNotification notification)
-        {
-            _logger.LogInformation("Job {Id} is being disposed. Last status: {Status}.", notification.JobId, notification.JobStatus);
-                        
-            if (_subscribedJobs.TryGetValue(notification.JobId, out var jobSubscription))
-            {
-                jobSubscription.Dispose();
-            }
-
-            _ = _activeJobs.TryRemove(notification.JobId, out _);
-        }
-
-        public void OnCompleted() => _logger.LogInformation("Job completed.");
-
-        public void OnError(Exception ex) => _logger.LogError(ex, "Job failed with an error {Message}.", ex.Message);
     }
 }

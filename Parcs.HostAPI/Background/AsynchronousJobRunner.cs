@@ -40,6 +40,11 @@ namespace Parcs.HostAPI.Background
             var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
             var jobCompletionNotifier = scope.ServiceProvider.GetRequiredService<IJobCompletionNotifier>();
 
+            if (!_jobManager.TryGet(command.JobId, out var job))
+            {
+                throw new ArgumentException($"Job {job.Id} not found.");
+            }
+
             try
             {
                 var synchronousJobCommand = new CreateSynchronousJobRunCommand { Daemons = command.Daemons, JobId = command.JobId };
@@ -50,10 +55,7 @@ namespace Parcs.HostAPI.Background
                 _logger.LogError(e, "Exception thrown during scheduled job processing.");
             }
 
-            if (_jobManager.TryGet(command.JobId, out var job))
-            {
-                await jobCompletionNotifier.NotifyAsync(new JobCompletionNotification(job), command.CallbackUrl, stoppingToken);
-            }
+            await jobCompletionNotifier.NotifyAsync(new JobCompletionNotification(job), command.CallbackUrl, stoppingToken);
         }
     }
 }

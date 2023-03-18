@@ -22,7 +22,7 @@ namespace Parcs.HostAPI.Handlers
 
         public async Task<CreateJobCommandResponse> Handle(CreateJobCommand request, CancellationToken cancellationToken)
         {
-            var job = _jobManager.Create(request.ModuleId);
+            var job = _jobManager.Create(request.ModuleId, request.AssemblyName, request.ClassName);
 
             try
             {

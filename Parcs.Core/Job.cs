@@ -2,19 +2,21 @@
 
 namespace Parcs.Core
 {
-    public sealed class Job : IObservable<JobCompletionNotification>
+    public sealed class Job : IObservable<JobCompletedEvent>
     {
         private bool _hasBeenRun;
         private bool _canBeCancelled;
-        private readonly List<IObserver<JobCompletionNotification>> _observers;
+        private readonly List<IObserver<JobCompletedEvent>> _observers;
         private readonly CancellationTokenSource _cancellationTokenSource;
 
-        public Job(Guid moduleId)
+        public Job(Guid moduleId, string assemblyName, string className)
         {
             Id = Guid.NewGuid();
             CreateDateUtc = DateTime.UtcNow;
             Status = JobStatus.New;
             ModuleId = moduleId;
+            AssemblyName = assemblyName;
+            ClassName = className;
             _hasBeenRun = false;
             _cancellationTokenSource = new ();
             _canBeCancelled = true;
@@ -23,6 +25,10 @@ namespace Parcs.Core
         public Guid Id { get; private set; }
 
         public Guid ModuleId { get; private set; }
+
+        public string AssemblyName { get; private set; }
+
+        public string ClassName { get; private set; }
 
         public IMainModule MainModule { get; private set; }
 
@@ -59,7 +65,6 @@ namespace Parcs.Core
 
         public void Finish(double result)
         {
-            EndDateUtc = DateTime.UtcNow;
             Status = JobStatus.Done;
             Result = result;
 
@@ -68,7 +73,6 @@ namespace Parcs.Core
 
         public void Fail(string errorMessage)
         {
-            EndDateUtc = DateTime.UtcNow;
             Status = JobStatus.Error;
             ErrorMessage = errorMessage;
 
@@ -82,7 +86,6 @@ namespace Parcs.Core
                 return;
             }
 
-            EndDateUtc = DateTime.UtcNow;
             Status = JobStatus.Cancelled;
             _cancellationTokenSource.Cancel();
 
@@ -99,27 +102,28 @@ namespace Parcs.Core
             MainModule = mainModule;
         }
 
-        private void OnFinished()
-        {
-            _canBeCancelled = false;
-            MainModule = null;
-
-            var jobCompletionNotification = new JobCompletionNotification(Id, Status);
-
-            foreach (var observer in _observers)
-            {
-                observer.OnNext(jobCompletionNotification);
-            }
-        }
-
-        public IDisposable Subscribe(IObserver<JobCompletionNotification> observer)
+        public IDisposable Subscribe(IObserver<JobCompletedEvent> observer)
         {
             if (!_observers.Contains(observer))
             {
                 _observers.Add(observer);
             }
 
-            return new Unsubscriber<JobCompletionNotification>(_observers, observer);
+            return new Unsubscriber<JobCompletedEvent>(_observers, observer);
+        }
+
+        private void OnFinished()
+        {
+            _canBeCancelled = false;
+            EndDateUtc = DateTime.UtcNow;
+            MainModule = null;
+
+            var jobCompletionNotification = new JobCompletedEvent(Id, Status);
+
+            foreach (var observer in _observers)
+            {
+                observer.OnNext(jobCompletionNotification);
+            }
         }
     }
 }
