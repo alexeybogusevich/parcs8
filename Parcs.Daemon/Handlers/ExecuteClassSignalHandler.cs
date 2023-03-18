@@ -8,7 +8,11 @@ namespace Parcs.TCP.Daemon.Handlers
     {
         public Task HandleAsync(IChannel channel, CancellationToken cancellationToken = default)
         {
+            var assemblyName = channel.ReadStringAsync(cancellationToken);
+            var className = channel.ReadStringAsync(cancellationToken);
+
             var sampleModule = new SampleWorkerModule();
+
             return sampleModule.RunAsync(channel, cancellationToken);
         }
     }

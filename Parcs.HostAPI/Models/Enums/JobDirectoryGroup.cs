@@ -1,9 +1,8 @@
 ﻿namespace Parcs.HostAPI.Models.Enums
 {
-    public enum DirectoryGroup
+    public enum JobDirectoryGroup
     {
         Input = 0,
         Output = 1,
-        Modules = 2,
     }
 }

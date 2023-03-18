@@ -13,6 +13,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Parcs.Daemon", "Parcs.Daemo
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Parcs.Modules", "Parcs.Modules\Parcs.Modules.csproj", "{38FAF843-997C-4E5B-B5B5-65D763185EDA}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Parcs.AzurePortal", "..\Parcs.AzurePortal\Parcs.AzurePortal.csproj", "{F8005DEB-6D2B-4280-A658-B63BB815F9F3}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -39,6 +41,10 @@ Global
 		{38FAF843-997C-4E5B-B5B5-65D763185EDA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{38FAF843-997C-4E5B-B5B5-65D763185EDA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{38FAF843-997C-4E5B-B5B5-65D763185EDA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F8005DEB-6D2B-4280-A658-B63BB815F9F3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F8005DEB-6D2B-4280-A658-B63BB815F9F3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F8005DEB-6D2B-4280-A658-B63BB815F9F3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F8005DEB-6D2B-4280-A658-B63BB815F9F3}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

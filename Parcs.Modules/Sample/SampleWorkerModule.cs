@@ -6,7 +6,6 @@ namespace Parcs.Modules.Sample
     {
         public async Task RunAsync(IChannel channel, CancellationToken cancellationToken = default)
         {
-            Console.WriteLine(await channel.ReadStringAsync(cancellationToken));
             Console.WriteLine(await channel.ReadDoubleAsync(cancellationToken));
             Console.WriteLine(await channel.ReadBooleanAsync(cancellationToken));
             Console.WriteLine(await channel.ReadStringAsync(cancellationToken));

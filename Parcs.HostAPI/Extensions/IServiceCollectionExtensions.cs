@@ -35,9 +35,11 @@ namespace Parcs.HostAPI.Extensions
                 .AddScoped<IDaemonSelector, DaemonSelector>()
                 .AddScoped<IHostInfoFactory, HostInfoFactory>()
                 .AddScoped<IInputReaderFactory, InputReaderFactory>()
-                .AddScoped<IFileManager, FileManager>()
+                .AddScoped<IDirectoryPathBuilder, DirectoryPathBuilder>()
+                .AddScoped<IFileSaver, FileSaver>()
                 .AddScoped<IMainModule, SampleMainModule>()
                 .AddScoped<IJobCompletionNotifier, JobCompletionNotifier>()
+                .AddSingleton<IInMemoryModulesManager, InMemoryModulesManager>()
                 .AddSingleton<IJobManager, JobManager>()
                 .AddMediatR(options => options.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
         }

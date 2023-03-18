@@ -1,4 +1,5 @@
 ﻿using Parcs.Core;
+using Parcs.HostAPI.Models.Enums;
 
 namespace Parcs.HostAPI.Services
 {
@@ -6,9 +7,9 @@ namespace Parcs.HostAPI.Services
     {
         private readonly string _targetDirectoryPath;
 
-        public InputReader(string inputFoldersPath, Guid jobId)
+        public InputReader(string basePath, Guid jobId)
         {
-            _targetDirectoryPath = Path.Combine(inputFoldersPath, jobId.ToString());
+            _targetDirectoryPath = Path.Combine(basePath, jobId.ToString(), JobDirectoryGroup.Input.ToString());
         }
 
         public IEnumerable<string> GetFilenames() => Directory.GetFiles(_targetDirectoryPath).Select(Path.GetFileName);
@@ -21,12 +22,11 @@ namespace Parcs.HostAPI.Services
                 .GetFiles(_targetDirectoryPath)
                 .FirstOrDefault(filePath => filePath.EndsWith(filename));
 
-            if (filePath is null)
+            return filePath switch
             {
-                throw new ArgumentException($"{filename} not found among the input files for the job.");
-            }
-
-            return new FileStream(filePath, FileMode.Open);
+                null => throw new ArgumentException($"{filename} not found among the input files for the job."),
+                _ => new FileStream(filePath, FileMode.Open)
+            };
         }
     }
 }

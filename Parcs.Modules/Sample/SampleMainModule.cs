@@ -31,7 +31,7 @@ namespace Parcs.Modules.Sample
             {
                 points[i] = await hostInfo.CreatePointAsync();
                 channels[i] = points[i].CreateChannel();
-                await channels[i].ExecuteClassAsync("Some funny class :)");
+                await channels[i].ExecuteClassAsync("Some funny assembly", "Some funny class :)");
             }
 
             _logger.LogInformation("Sending data...");
