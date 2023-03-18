@@ -2,6 +2,6 @@
 {
     public interface IFileReader
     {
-        Task<byte[]> ReadAsync(string directoryPath, string fileName);
+        Task<byte[]> ReadAsync(string directoryPath, string fileName, CancellationToken cancellationToken = default);
     }
 }

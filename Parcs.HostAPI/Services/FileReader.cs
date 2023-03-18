@@ -4,7 +4,7 @@ namespace Parcs.HostAPI.Services
 {
     public class FileReader : IFileReader
     {
-        public async Task<byte[]> ReadAsync(string directoryPath, string fileName)
+        public async Task<byte[]> ReadAsync(string directoryPath, string fileName, CancellationToken cancellationToken = default)
         {
             var filePath = Path.Combine(directoryPath, fileName);
             
@@ -20,7 +20,7 @@ namespace Parcs.HostAPI.Services
 
             await using var fileStream = File.OpenRead(filePath);
             await using var memoryStream = new MemoryStream();
-            fileStream.CopyTo(memoryStream);
+            await fileStream.CopyToAsync(memoryStream, cancellationToken);
 
             return memoryStream.ToArray();
         }

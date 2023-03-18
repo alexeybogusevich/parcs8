@@ -7,5 +7,6 @@
         Error = 2,
         Done = 3,
         Cancelled = 4,
+        Retired = 5,
     }
 }

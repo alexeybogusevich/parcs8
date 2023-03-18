@@ -10,20 +10,20 @@ namespace Parcs.HostAPI.Handlers
     {
         private readonly IHostInfoFactory _hostInfoFactory;
         private readonly IInputReaderFactory _inputReaderFactory;
-        private readonly IMainModule _mainModule;
+        private readonly IMainModuleLoader _mainModuleLoader;
         private readonly IJobManager _jobManager;
         private readonly IDaemonSelector _daemonSelector;
 
         public CreateSynchronousJobRunCommandHandler(
             IHostInfoFactory hostInfoFactory,
             IInputReaderFactory inputReaderFactory,
-            IMainModule mainModule,
+            IMainModuleLoader mainModuleLoader,
             IJobManager jobManager,
             IDaemonSelector daemonSelector)
         {
             _hostInfoFactory = hostInfoFactory;
             _inputReaderFactory = inputReaderFactory;
-            _mainModule = mainModule;
+            _mainModuleLoader = mainModuleLoader;
             _jobManager = jobManager;
             _daemonSelector = daemonSelector;
         }
@@ -43,11 +43,12 @@ namespace Parcs.HostAPI.Handlers
 
             try
             {
+                var mainModule = await _mainModuleLoader.LoadAsync(job.ModuleId, job.AssemblyName, job.ClassName);
                 job.Start();
-                var moduleOutput = await _mainModule.RunAsync(hostInfo, inputReader, job.CancellationToken);
+                var moduleOutput = await mainModule.RunAsync(hostInfo, inputReader, job.CancellationToken);
                 job.Finish(moduleOutput.Result);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 job.Fail(ex.Message);
             }
