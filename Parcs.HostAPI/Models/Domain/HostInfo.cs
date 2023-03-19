@@ -1,6 +1,5 @@
 ﻿using Parcs.Core;
 using Parcs.TCP.Host.Models;
-using System.Net;
 using System.Net.Sockets;
 
 namespace Parcs.HostAPI.Models.Domain

@@ -5,13 +5,13 @@ services:
     image: ${DOCKER_REGISTRY-}parcsdaemon
     build:
       context: .
-      dockerfile: Parcs.TCP.Daemon/Dockerfile
+      dockerfile: Parcs.Daemon/Dockerfile
 
   parcs.hostapi:
     image: ${DOCKER_REGISTRY-}parcshostapi
     build:
       context: .
-      dockerfile: Parcs.API/Dockerfile
+      dockerfile: Parcs.HostAPI/Dockerfile
     volumes:
       - type: volume
         source: parcs.storage

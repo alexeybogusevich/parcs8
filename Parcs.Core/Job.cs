@@ -18,7 +18,7 @@ namespace Parcs.Core
             AssemblyName = assemblyName;
             ClassName = className;
             _hasBeenRun = false;
-            _cancellationTokenSource = new ();
+            _cancellationTokenSource = new();
             _canBeCancelled = true;
         }
 

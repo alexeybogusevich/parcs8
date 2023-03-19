@@ -1,11 +1,9 @@
-﻿using Parcs.Core;
-using Parcs.HostAPI.Background;
+﻿using Parcs.HostAPI.Background;
 using Parcs.HostAPI.Configuration;
 using Parcs.HostAPI.Models.Commands;
-using Parcs.HostAPI.Services.Interfaces;
 using Parcs.HostAPI.Services;
+using Parcs.HostAPI.Services.Interfaces;
 using System.Reflection;
-using Parcs.Modules.Sample;
 using System.Threading.Channels;
 using Channel = System.Threading.Channels.Channel;
 
@@ -16,9 +14,9 @@ namespace Parcs.HostAPI.Extensions
         public static IServiceCollection AddAsynchronousJobProcessing(this IServiceCollection services)
         {
             return services
-                .AddSingleton(Channel.CreateUnbounded<CreateAsynchronousJobRunCommand>(new UnboundedChannelOptions() { SingleReader = true }))
-                .AddSingleton(svc => svc.GetRequiredService<Channel<CreateAsynchronousJobRunCommand>>().Reader)
-                .AddSingleton(svc => svc.GetRequiredService<Channel<CreateAsynchronousJobRunCommand>>().Writer)
+                .AddSingleton(Channel.CreateUnbounded<RunJobAsynchronouslyCommand>(new UnboundedChannelOptions() { SingleReader = true }))
+                .AddSingleton(svc => svc.GetRequiredService<Channel<RunJobAsynchronouslyCommand>>().Reader)
+                .AddSingleton(svc => svc.GetRequiredService<Channel<RunJobAsynchronouslyCommand>>().Writer)
                 .AddHostedService<AsynchronousJobRunner>();
         }
 
@@ -38,12 +36,12 @@ namespace Parcs.HostAPI.Extensions
                 .AddScoped<IHostInfoFactory, HostInfoFactory>()
                 .AddScoped<IInputReaderFactory, InputReaderFactory>()
                 .AddScoped<IJobCompletionNotifier, JobCompletionNotifier>()
-                .AddScoped<IJobDirectoryPathBuilder, JobDirectoryPathBuilder>()
-                .AddScoped<IModuleDirectoryPathBuilder, ModuleDirectoryPathBuilder>()
-                .AddScoped<IFileSaver, FileSaver>()
-                .AddScoped<IFileReader, FileReader>()
-                .AddScoped<IFileEraser, FileEraser>()
-                .AddScoped<IMainModule, SampleMainModule>()
+                .AddScoped<IMainModuleLoader, MainModuleLoader>()
+                .AddSingleton<IJobDirectoryPathBuilder, JobDirectoryPathBuilder>()
+                .AddSingleton<IModuleDirectoryPathBuilder, ModuleDirectoryPathBuilder>()
+                .AddSingleton<IFileSaver, FileSaver>()
+                .AddSingleton<IFileReader, FileReader>()
+                .AddSingleton<IFileEraser, FileEraser>()
                 .AddSingleton<IJobManager, JobManager>()
                 .AddMediatR(options => options.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
         }

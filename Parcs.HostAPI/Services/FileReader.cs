@@ -7,7 +7,7 @@ namespace Parcs.HostAPI.Services
         public async Task<byte[]> ReadAsync(string directoryPath, string fileName, CancellationToken cancellationToken = default)
         {
             var filePath = Path.Combine(directoryPath, fileName);
-            
+
             if (!Directory.Exists(directoryPath))
             {
                 throw new ArgumentException($"Directory not found: {directoryPath}");

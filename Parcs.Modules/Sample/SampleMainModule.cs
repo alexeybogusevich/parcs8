@@ -45,7 +45,7 @@ namespace Parcs.Modules.Sample
                 await channels[i].WriteDataAsync(123L, cancellationToken);
                 await channels[i].WriteDataAsync(22, cancellationToken);
 
-                var job = new 
+                var job = new
                 {
                     StartDateUtc = DateTime.UtcNow,
                     Status = JobStatus.InProgress,

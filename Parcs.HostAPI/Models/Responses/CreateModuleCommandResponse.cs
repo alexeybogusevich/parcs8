@@ -1,6 +1,4 @@
-﻿using Parcs.HostAPI.Models.Domain;
-
-namespace Parcs.HostAPI.Models.Responses
+﻿namespace Parcs.HostAPI.Models.Responses
 {
     public class CreateModuleCommandResponse
     {

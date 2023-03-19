@@ -1,6 +1,5 @@
 ﻿using FluentValidation;
 using Parcs.HostAPI.Models.Commands;
-using System.Reflection;
 
 namespace Parcs.HostAPI.Validators
 {

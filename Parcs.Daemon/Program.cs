@@ -18,7 +18,7 @@ class Program
         var nodeConfiguration = configuration
             .GetSection(NodeConfiguration.SectionName)
             .Get<NodeConfiguration>();
-        
+
         Console.WriteLine($"Server port: {nodeConfiguration.Port}");
         Console.WriteLine();
 
