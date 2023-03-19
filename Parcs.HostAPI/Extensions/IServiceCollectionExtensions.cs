@@ -25,6 +25,7 @@ namespace Parcs.HostAPI.Extensions
         public static IServiceCollection AddApplicationOptions(this IServiceCollection services, IConfiguration configuration)
         {
             return services
+                .Configure<JobsConfiguration>(configuration.GetSection(JobsConfiguration.SectionName))
                 .Configure<FileSystemConfiguration>(configuration.GetSection(FileSystemConfiguration.SectionName))
                 .Configure<DefaultDaemonConfiguration>(configuration.GetSection(DefaultDaemonConfiguration.SectionName));
         }
@@ -41,8 +42,8 @@ namespace Parcs.HostAPI.Extensions
                 .AddScoped<IModuleDirectoryPathBuilder, ModuleDirectoryPathBuilder>()
                 .AddScoped<IFileSaver, FileSaver>()
                 .AddScoped<IFileReader, FileReader>()
+                .AddScoped<IFileEraser, FileEraser>()
                 .AddScoped<IMainModule, SampleMainModule>()
-                .AddSingleton<IJobCompletionObserver, JobCompletionObserver>()
                 .AddSingleton<IJobManager, JobManager>()
                 .AddMediatR(options => options.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
         }

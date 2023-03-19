@@ -2,9 +2,9 @@
 
 namespace Parcs.HostAPI.Models.Responses
 {
-    public class CreateSynchronousJobRunCommandResponse
+    public class RunJobSynchronouslyCommandResponse
     {
-        public CreateSynchronousJobRunCommandResponse(Job job)
+        public RunJobSynchronouslyCommandResponse(Job job)
         {
             ElapsedSeconds = job.ExecutionTime?.Seconds;
             JobStatus = job.Status;

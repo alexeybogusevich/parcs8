@@ -73,6 +73,11 @@ namespace Parcs.Core
 
         public void Fail(string errorMessage)
         {
+            if (Status == JobStatus.Cancelled)
+            {
+                return;
+            }
+
             Status = JobStatus.Error;
             ErrorMessage = errorMessage;
 

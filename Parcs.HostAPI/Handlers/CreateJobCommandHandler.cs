@@ -29,7 +29,7 @@ namespace Parcs.HostAPI.Handlers
                 var mainModule = await _mainModuleLoader.LoadAsync(request.ModuleId, request.AssemblyName, request.ClassName, job.CancellationToken);
                 job.SetMainModule(mainModule);
             }
-            catch (Exception ex) when (ex is not OperationCanceledException)
+            catch (Exception ex)
             {
                 job.Fail(ex.Message);
             }

@@ -5,7 +5,7 @@ using Parcs.HostAPI.Services.Interfaces;
 
 namespace Parcs.HostAPI.Handlers
 {
-    public class CreateSynchronousJobRunCommandHandler : IRequestHandler<CreateSynchronousJobRunCommand, CreateSynchronousJobRunCommandResponse>
+    public class RunJobSynchronouslyCommandHandler : IRequestHandler<RunJobSynchronouslyCommand, RunJobSynchronouslyCommandResponse>
     {
         private readonly IHostInfoFactory _hostInfoFactory;
         private readonly IInputReaderFactory _inputReaderFactory;
@@ -13,7 +13,7 @@ namespace Parcs.HostAPI.Handlers
         private readonly IJobManager _jobManager;
         private readonly IDaemonSelector _daemonSelector;
 
-        public CreateSynchronousJobRunCommandHandler(
+        public RunJobSynchronouslyCommandHandler(
             IHostInfoFactory hostInfoFactory,
             IInputReaderFactory inputReaderFactory,
             IMainModuleLoader mainModuleLoader,
@@ -27,7 +27,7 @@ namespace Parcs.HostAPI.Handlers
             _daemonSelector = daemonSelector;
         }
 
-        public async Task<CreateSynchronousJobRunCommandResponse> Handle(CreateSynchronousJobRunCommand request, CancellationToken cancellationToken)
+        public async Task<RunJobSynchronouslyCommandResponse> Handle(RunJobSynchronouslyCommand request, CancellationToken cancellationToken)
         {
             if (!_jobManager.TryGet(request.JobId, out var job))
             {
@@ -53,7 +53,7 @@ namespace Parcs.HostAPI.Handlers
                 job.Fail(ex.Message);
             }
 
-            return new CreateSynchronousJobRunCommandResponse(job);
+            return new RunJobSynchronouslyCommandResponse(job);
         }
     }
 }

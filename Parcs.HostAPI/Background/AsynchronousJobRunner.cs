@@ -10,13 +10,13 @@ namespace Parcs.HostAPI.Background
     {
         private readonly IJobManager _jobManager;
         private readonly IServiceScopeFactory _serviceScopeFactory;
-        private readonly ChannelReader<CreateAsynchronousJobRunCommand> _channelReader;
+        private readonly ChannelReader<RunJobAsynchronouslyCommand> _channelReader;
         private readonly ILogger<AsynchronousJobRunner> _logger;
 
         public AsynchronousJobRunner(
             IJobManager jobManager,
             IServiceScopeFactory serviceScopeFactory,
-            ChannelReader<CreateAsynchronousJobRunCommand> channelReader,
+            ChannelReader<RunJobAsynchronouslyCommand> channelReader,
             ILogger<AsynchronousJobRunner> logger)
         {
             _jobManager = jobManager;
@@ -33,7 +33,7 @@ namespace Parcs.HostAPI.Background
             }
         }
 
-        private async Task HandleCommandAsync(CreateAsynchronousJobRunCommand command, CancellationToken stoppingToken)
+        private async Task HandleCommandAsync(RunJobAsynchronouslyCommand command, CancellationToken stoppingToken)
         {
             using var scope = _serviceScopeFactory.CreateScope();
 
@@ -47,7 +47,7 @@ namespace Parcs.HostAPI.Background
 
             try
             {
-                var synchronousJobCommand = new CreateSynchronousJobRunCommand { Daemons = command.Daemons, JobId = command.JobId };
+                var synchronousJobCommand = new RunJobSynchronouslyCommand(command);
                 _ = await mediator.Send(synchronousJobCommand, stoppingToken);
             }
             catch (Exception e)

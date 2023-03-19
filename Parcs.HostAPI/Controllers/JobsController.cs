@@ -23,13 +23,6 @@ namespace Parcs.HostAPI.Controllers
             return Ok(response);
         }
 
-        [HttpPost]
-        public async Task<IActionResult> RunAsync([FromForm] CreateJobCommand command, CancellationToken cancellationToken)
-        {
-            var response = await _mediator.Send(command, cancellationToken);
-            return Ok(response);
-        }
-
         [HttpDelete("{JobId}")]
         public async Task<IActionResult> DeleteAsync([FromRoute] DeleteJobCommand command, CancellationToken cancellationToken)
         {

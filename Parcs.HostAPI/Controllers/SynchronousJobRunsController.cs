@@ -18,8 +18,13 @@ namespace Parcs.HostAPI.Controllers
         [HttpPost]
         public async Task<IActionResult> RunAsync([FromBody] CreateSynchronousJobRunCommand command, CancellationToken cancellationToken)
         {
-            var response = await _mediator.Send(command, cancellationToken);
-            return Ok(response);
+            var createJobCommand = new CreateJobCommand(command);
+            _ = await _mediator.Send(createJobCommand, cancellationToken);
+
+            var runJobCommand = new RunJobSynchronouslyCommand { Daemons = command.Daemons, JobId = command.JobId };
+            var runJobCommandResponse = await _mediator.Send(runJobCommand, cancellationToken);
+
+            return Ok(runJobCommandResponse);
         }
     }
 }
