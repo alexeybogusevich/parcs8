@@ -1,21 +1,18 @@
 ﻿using MediatR;
-using Parcs.Core;
+using Parcs.HostAPI.Models.Commands.Base;
 using Parcs.HostAPI.Models.Responses;
 
 namespace Parcs.HostAPI.Models.Commands
 {
-    public class CreateSynchronousJobRunCommand : IRequest<RunJobSynchronouslyCommandResponse>
+    public class CreateSynchronousJobRunCommand : CreateJobRunCommand, IRequest<RunJobSynchronouslyCommandResponse>
     {
-        public Guid JobId { get; set; }
-
-        public Guid ModuleId { get; set; }
-
-        public string AssemblyName { get; set; }
-
-        public string ClassName { get; set; }
-
-        public IEnumerable<IFormFile> InputFiles { get; set; }
-
-        public IEnumerable<Daemon> Daemons { get; set; }
+        public CreateSynchronousJobRunCommand(CreateJobRunCommand baseCommand)
+        {
+            ModuleId = baseCommand.ModuleId;
+            AssemblyName = baseCommand.AssemblyName;
+            ClassName = baseCommand.ClassName;
+            InputFiles = baseCommand.InputFiles;
+            Daemons = baseCommand.Daemons;
+        }
     }
 }

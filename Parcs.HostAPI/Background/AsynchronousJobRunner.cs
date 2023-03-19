@@ -56,6 +56,8 @@ namespace Parcs.HostAPI.Background
             }
 
             await jobCompletionNotifier.NotifyAsync(new JobCompletionNotification(job), command.CallbackUrl, stoppingToken);
+            
+            await mediator.Send(new DeleteJobCommand(job.Id), CancellationToken.None);
         }
     }
 }

@@ -1,6 +1,7 @@
 ﻿using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Parcs.HostAPI.Models.Commands;
+using Parcs.HostAPI.Models.Commands.Base;
 
 namespace Parcs.HostAPI.Controllers
 {
@@ -16,15 +17,19 @@ namespace Parcs.HostAPI.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> RunAsync([FromBody] CreateSynchronousJobRunCommand command, CancellationToken cancellationToken)
+        public async Task<IActionResult> RunAsync([FromForm] CreateSynchronousJobRunCommand command, CancellationToken cancellationToken)
         {
             var createJobCommand = new CreateJobCommand(command);
-            _ = await _mediator.Send(createJobCommand, cancellationToken);
+            var createJobCommandResponse = await _mediator.Send(createJobCommand, cancellationToken);
 
-            var runJobCommand = new RunJobSynchronouslyCommand { Daemons = command.Daemons, JobId = command.JobId };
-            var runJobCommandResponse = await _mediator.Send(runJobCommand, cancellationToken);
+            var runJobCommand = new RunJobCommand(createJobCommandResponse.JobId, command.Daemons);
+            var runJobSynchronouslyCommand = new RunJobSynchronouslyCommand(runJobCommand);
+            await _mediator.Send(runJobSynchronouslyCommand, CancellationToken.None);
 
-            return Ok(runJobCommandResponse);
+            var deleteJobCommand = new DeleteJobCommand(createJobCommandResponse.JobId);
+            await _mediator.Send(deleteJobCommand, CancellationToken.None);
+
+            return Ok(runJobSynchronouslyCommand);
         }
     }
 }

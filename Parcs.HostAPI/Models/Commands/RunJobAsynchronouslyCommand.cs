@@ -1,20 +1,16 @@
 ﻿using MediatR;
-using Parcs.Core;
+using Parcs.HostAPI.Models.Commands.Base;
 
 namespace Parcs.HostAPI.Models.Commands
 {
-    public class RunJobAsynchronouslyCommand : IRequest
+    public class RunJobAsynchronouslyCommand : RunJobCommand, IRequest
     {
-        public RunJobAsynchronouslyCommand(CreateAsynchronousJobRunCommand command)
+        public RunJobAsynchronouslyCommand(RunJobCommand command, string callbackUrl)
         {
             JobId = command.JobId;
             Daemons = command.Daemons;
-            CallbackUrl = command.CallbackUrl;
+            CallbackUrl = callbackUrl;
         }
-
-        public Guid JobId { get; set; }
-
-        public IEnumerable<Daemon> Daemons { get; set; }
 
         public string CallbackUrl { get; set; }
     }

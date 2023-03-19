@@ -1,13 +1,10 @@
-﻿using Parcs.HostAPI.Services;
-
-namespace Parcs.Core
+﻿namespace Parcs.Core
 {
-    public sealed class Job : IObservable<JobCompletedEvent>
+    public sealed class Job
     {
         private bool _hasBeenRun;
         private bool _canBeCancelled;
-        private readonly List<IObserver<JobCompletedEvent>> _observers;
-        private readonly CancellationTokenSource _cancellationTokenSource;
+        private readonly CancellationTokenSource _cancellationTokenSource = new();
 
         public Job(Guid moduleId, string assemblyName, string className)
         {
@@ -18,7 +15,6 @@ namespace Parcs.Core
             AssemblyName = assemblyName;
             ClassName = className;
             _hasBeenRun = false;
-            _cancellationTokenSource = new();
             _canBeCancelled = true;
         }
 
@@ -107,28 +103,11 @@ namespace Parcs.Core
             MainModule = mainModule;
         }
 
-        public IDisposable Subscribe(IObserver<JobCompletedEvent> observer)
-        {
-            if (!_observers.Contains(observer))
-            {
-                _observers.Add(observer);
-            }
-
-            return new Unsubscriber<JobCompletedEvent>(_observers, observer);
-        }
-
         private void OnFinished()
         {
             _canBeCancelled = false;
             EndDateUtc = DateTime.UtcNow;
             MainModule = null;
-
-            var jobCompletionNotification = new JobCompletedEvent(Id, Status);
-
-            foreach (var observer in _observers)
-            {
-                observer.OnNext(jobCompletionNotification);
-            }
         }
     }
 }

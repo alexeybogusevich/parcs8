@@ -13,11 +13,16 @@ namespace Parcs.HostAPI.Handlers
         private readonly IFileSaver _fileSaver;
         private readonly IMainModuleLoader _mainModuleLoader;
 
-        public CreateJobCommandHandler(IJobManager jobManager, IJobDirectoryPathBuilder jobDirectoryPathBuilder, IFileSaver fileSaver)
+        public CreateJobCommandHandler(
+            IJobManager jobManager,
+            IJobDirectoryPathBuilder jobDirectoryPathBuilder,
+            IFileSaver fileSaver,
+            IMainModuleLoader mainModuleLoader)
         {
             _jobManager = jobManager;
             _jobDirectoryPathBuilder = jobDirectoryPathBuilder;
             _fileSaver = fileSaver;
+            _mainModuleLoader = mainModuleLoader;
         }
 
         public async Task<CreateJobCommandResponse> Handle(CreateJobCommand request, CancellationToken cancellationToken)
