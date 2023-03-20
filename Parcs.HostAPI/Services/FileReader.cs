@@ -6,23 +6,6 @@ namespace Parcs.HostAPI.Services
 {
     public class FileReader : IFileReader
     {
-        public async Task<IEnumerable<FileDescription>> ReadAsync(string directoryPath, CancellationToken cancellationToken = default)
-        {
-            if (!Directory.Exists(directoryPath))
-            {
-                throw new ArgumentException($"Directory not found: {directoryPath}");
-            }
-
-            var fileDescriptions = new List<FileDescription>();
-
-            foreach (var filePath in Directory.GetFiles(directoryPath))
-            {
-                await ReadAsync(filePath, cancellationToken);
-            }
-
-            return fileDescriptions;
-        }
-
         public async Task<FileDescription> ReadAsync(string directoryPath, string fileName, CancellationToken cancellationToken = default)
         {
             var filePath = Path.Combine(directoryPath, fileName);
