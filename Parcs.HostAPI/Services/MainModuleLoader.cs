@@ -24,10 +24,10 @@ namespace Parcs.HostAPI.Services
             var assembly = Assembly.Load(rawAssembly);
             var @class = assembly.GetType(className) ?? throw new ArgumentException($"Class {className} not found in the assembly.");
 
-            if (!@class.IsAssignableFrom(typeof(IMainModule)))
-            {
-                throw new ArgumentException($"Class {className} does not implement {nameof(IMainModule)}.");
-            }
+            //if (typeof(IMainModule).IsAssignableFrom(@class))
+            //{
+            //    throw new ArgumentException($"Class {className} does not implement {nameof(IMainModule)}.");
+            //}
 
             return (IMainModule)Activator.CreateInstance(@class);
         }

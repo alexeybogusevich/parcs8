@@ -34,9 +34,10 @@ namespace Parcs.HostAPI.Handlers
                 var mainModule = await _mainModuleLoader.LoadAsync(request.ModuleId, request.AssemblyName, request.ClassName, job.CancellationToken);
                 job.SetMainModule(mainModule);
             }
-            catch (Exception ex)
+            catch
             {
-                job.Fail(ex.Message);
+                _ = _jobManager.TryRemove(job.Id);
+                throw;
             }
 
             var inputPath = _jobDirectoryPathBuilder.Build(job.Id, JobDirectoryGroup.Input);

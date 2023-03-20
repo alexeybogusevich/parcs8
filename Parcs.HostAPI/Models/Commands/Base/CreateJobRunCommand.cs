@@ -4,6 +4,10 @@ namespace Parcs.HostAPI.Models.Commands.Base
 {
     public class CreateJobRunCommand
     {
+        public CreateJobRunCommand()
+        {
+        }
+
         public CreateJobRunCommand(
             Guid moduleId,
             string assemblyName,

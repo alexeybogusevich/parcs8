@@ -5,13 +5,6 @@ namespace Parcs.Modules.Sample
 {
     public class SampleMainModule : IMainModule
     {
-        private readonly ILogger<SampleMainModule> _logger;
-
-        public SampleMainModule(ILogger<SampleMainModule> logger)
-        {
-            _logger = logger;
-        }
-
         public async Task<ModuleOutput> RunAsync(IHostInfo hostInfo, IInputReader inputReader, CancellationToken cancellationToken = default)
         {
             foreach (var filename in inputReader.GetFilenames())
@@ -25,16 +18,12 @@ namespace Parcs.Modules.Sample
             var channels = new IChannel[pointsNumber];
             var points = new IPoint[pointsNumber];
 
-            _logger.LogInformation("Creating the control space...");
-
             for (int i = 0; i < pointsNumber; ++i)
             {
                 points[i] = await hostInfo.CreatePointAsync();
                 channels[i] = points[i].CreateChannel();
                 await channels[i].ExecuteClassAsync("Some funny assembly", "Some funny class :)");
             }
-
-            _logger.LogInformation("Sending data...");
 
             for (int i = 0; i < pointsNumber; ++i)
             {
@@ -56,8 +45,6 @@ namespace Parcs.Modules.Sample
 
                 await channels[i].WriteObjectAsync(job, cancellationToken);
             }
-
-            _logger.LogInformation("Waiting for result...");
 
             double result = 0;
             for (int i = pointsNumber - 1; i >= 0; --i)

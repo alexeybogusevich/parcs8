@@ -7,10 +7,14 @@ namespace Parcs.HostAPI.Handlers
     public class DeleteJobCommandHandler : IRequestHandler<DeleteJobCommand>
     {
         private readonly IJobManager _jobManager;
+        private readonly IJobDirectoryPathBuilder _jobDirectoryPathBuilder;
+        private readonly IFileEraser _fileEraser;
 
-        public DeleteJobCommandHandler(IJobManager jobManager)
+        public DeleteJobCommandHandler(IJobManager jobManager, IJobDirectoryPathBuilder jobDirectoryPathBuilder, IFileEraser fileEraser)
         {
             _jobManager = jobManager;
+            _jobDirectoryPathBuilder = jobDirectoryPathBuilder;
+            _fileEraser = fileEraser;
         }
 
         public Task Handle(DeleteJobCommand request, CancellationToken cancellationToken)
@@ -21,6 +25,11 @@ namespace Parcs.HostAPI.Handlers
             }
 
             job.Cancel();
+
+            var jobDirectoryPath = _jobDirectoryPathBuilder.Build(job.Id);
+            _fileEraser.TryDeleteRecursively(jobDirectoryPath);
+
+            _ = _jobManager.TryRemove(job.Id);
 
             return Task.CompletedTask;
         }

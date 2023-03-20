@@ -6,10 +6,15 @@ namespace Parcs.HostAPI.Models.Commands
 {
     public class RunJobSynchronouslyCommand : RunJobCommand, IRequest<RunJobSynchronouslyCommandResponse>
     {
-        public RunJobSynchronouslyCommand(RunJobCommand command)
+        public RunJobSynchronouslyCommand()
         {
-            JobId = command.JobId;
-            Daemons = command.Daemons; 
+        }
+
+        public RunJobSynchronouslyCommand(RunJobCommand baseCommand)
+            : base(baseCommand.JobId, baseCommand.Daemons)
+        {
+            JobId = baseCommand.JobId;
+            Daemons = baseCommand.Daemons; 
         }
     }
 }

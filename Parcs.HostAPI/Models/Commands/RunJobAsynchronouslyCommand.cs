@@ -5,10 +5,9 @@ namespace Parcs.HostAPI.Models.Commands
 {
     public class RunJobAsynchronouslyCommand : RunJobCommand, IRequest
     {
-        public RunJobAsynchronouslyCommand(RunJobCommand command, string callbackUrl)
+        public RunJobAsynchronouslyCommand(RunJobCommand baseCommand, string callbackUrl)
+            : base(baseCommand.JobId, baseCommand.Daemons)
         {
-            JobId = command.JobId;
-            Daemons = command.Daemons;
             CallbackUrl = callbackUrl;
         }
 

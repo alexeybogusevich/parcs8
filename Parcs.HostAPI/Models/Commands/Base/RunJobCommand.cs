@@ -4,6 +4,10 @@ namespace Parcs.HostAPI.Models.Commands.Base
 {
     public class RunJobCommand
     {
+        public RunJobCommand()
+        {
+        }
+
         public RunJobCommand(Guid jobId, IEnumerable<Daemon> daemons)
         {
             JobId = jobId;

@@ -1,25 +1,24 @@
 ﻿using Parcs.Core;
-using Parcs.HostAPI.Models.Enums;
 
 namespace Parcs.HostAPI.Services
 {
     public class InputReader : IInputReader
     {
-        private readonly string _targetDirectoryPath;
+        private readonly string _basePath;
 
-        public InputReader(string basePath, Guid jobId)
+        public InputReader(string basePath)
         {
-            _targetDirectoryPath = Path.Combine(basePath, jobId.ToString(), JobDirectoryGroup.Input.ToString());
+            _basePath = basePath;
         }
 
-        public IEnumerable<string> GetFilenames() => Directory.GetFiles(_targetDirectoryPath).Select(Path.GetFileName);
+        public IEnumerable<string> GetFilenames() => Directory.GetFiles(_basePath).Select(Path.GetFileName);
 
         public FileStream GetFileStreamForFile(string filename)
         {
             ArgumentException.ThrowIfNullOrEmpty(filename);
 
             var filePath = Directory
-                .GetFiles(_targetDirectoryPath)
+                .GetFiles(_basePath)
                 .FirstOrDefault(filePath => filePath.EndsWith(filename));
 
             return filePath switch

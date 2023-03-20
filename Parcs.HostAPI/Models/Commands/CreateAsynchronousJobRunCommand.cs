@@ -5,13 +5,13 @@ namespace Parcs.HostAPI.Models.Commands
 {
     public class CreateAsynchronousJobRunCommand : CreateJobRunCommand, IRequest
     {
-        public CreateAsynchronousJobRunCommand(CreateJobRunCommand baseCommand, string callbackUrl)
+        public CreateAsynchronousJobRunCommand()
         {
-            ModuleId = baseCommand.ModuleId;
-            AssemblyName = baseCommand.AssemblyName;
-            ClassName = baseCommand.ClassName;
-            InputFiles = baseCommand.InputFiles;
-            Daemons = baseCommand.Daemons;
+        }
+
+        public CreateAsynchronousJobRunCommand(CreateJobRunCommand baseCommand, string callbackUrl)
+            : base(baseCommand.ModuleId, baseCommand.AssemblyName, baseCommand.ClassName, baseCommand.InputFiles, baseCommand.Daemons)
+        {
             CallbackUrl = callbackUrl;
         }
 

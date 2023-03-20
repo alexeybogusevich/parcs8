@@ -24,12 +24,12 @@ namespace Parcs.HostAPI.Controllers
 
             var runJobCommand = new RunJobCommand(createJobCommandResponse.JobId, command.Daemons);
             var runJobSynchronouslyCommand = new RunJobSynchronouslyCommand(runJobCommand);
-            await _mediator.Send(runJobSynchronouslyCommand, CancellationToken.None);
+            var runJobSynchronouslyCommandResponse = await _mediator.Send(runJobSynchronouslyCommand, CancellationToken.None);
 
             var deleteJobCommand = new DeleteJobCommand(createJobCommandResponse.JobId);
             await _mediator.Send(deleteJobCommand, CancellationToken.None);
 
-            return Ok(runJobSynchronouslyCommand);
+            return Ok(runJobSynchronouslyCommandResponse);
         }
     }
 }

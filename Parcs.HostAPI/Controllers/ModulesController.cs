@@ -21,5 +21,12 @@ namespace Parcs.HostAPI.Controllers
             var response = await _mediator.Send(command, cancellationToken);
             return Ok(response);
         }
+
+        [HttpDelete]
+        public async Task<IActionResult> DeleteAsync(CancellationToken cancellationToken)
+        {
+            await _mediator.Send(new DeleteAllModulesCommand(), cancellationToken);
+            return NoContent();
+        }
     }
 }

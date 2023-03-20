@@ -1,19 +1,18 @@
-﻿using Microsoft.Extensions.Options;
-using Parcs.Core;
-using Parcs.HostAPI.Configuration;
+﻿using Parcs.Core;
+using Parcs.HostAPI.Models.Enums;
 using Parcs.HostAPI.Services.Interfaces;
 
 namespace Parcs.HostAPI.Services
 {
     public class InputReaderFactory : IInputReaderFactory
     {
-        private readonly FileSystemConfiguration _fileSystemConfiguration;
+        private readonly IJobDirectoryPathBuilder _jobDirectoryPathBuilder;
 
-        public InputReaderFactory(IOptions<FileSystemConfiguration> fileSystemOptions)
+        public InputReaderFactory(IJobDirectoryPathBuilder jobDirectoryPathBuilder)
         {
-            _fileSystemConfiguration = fileSystemOptions.Value;
+            _jobDirectoryPathBuilder = jobDirectoryPathBuilder;
         }
 
-        public IInputReader Create(Guid jobId) => new InputReader(_fileSystemConfiguration.BasePath, jobId);
+        public IInputReader Create(Guid jobId) => new InputReader(_jobDirectoryPathBuilder.Build(jobId, JobDirectoryGroup.Input));
     }
 }
