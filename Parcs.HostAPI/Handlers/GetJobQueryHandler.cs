@@ -28,7 +28,6 @@ namespace Parcs.HostAPI.Handlers
                 StartDateUtc = job.StartDateUtc,
                 EndDateUtc = job.EndDateUtc,
                 ErrorMessage = job.ErrorMessage,
-                Result = job.Result,
             });
         }
     }

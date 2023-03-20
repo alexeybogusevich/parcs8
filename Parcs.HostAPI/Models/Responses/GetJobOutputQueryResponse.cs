@@ -4,6 +4,15 @@ namespace Parcs.HostAPI.Models.Responses
 {
     public class GetJobOutputQueryResponse
     {
-        public IEnumerable<FileDescription> FileDescriptions { get; set; }
+        public GetJobOutputQueryResponse()
+        {
+        }
+
+        public GetJobOutputQueryResponse(FileDescription archivedOutput)
+        {
+            ArchivedOutput = archivedOutput;
+        }
+
+        public FileDescription ArchivedOutput { get; set; }
     }
 }

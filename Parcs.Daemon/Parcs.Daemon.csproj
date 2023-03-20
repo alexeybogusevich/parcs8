@@ -30,6 +30,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Parcs.Core\Parcs.Core.csproj" />
+    <ProjectReference Include="..\Parcs.Modules\Parcs.Modules.csproj" />
   </ItemGroup>
 
 </Project>

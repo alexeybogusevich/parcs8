@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Parcs.HostAPI.Models.Commands;
 using Parcs.HostAPI.Models.Commands.Base;
 using Parcs.HostAPI.Models.Responses;
+using System.Net;
 
 namespace Parcs.HostAPI.Controllers
 {
@@ -18,6 +19,7 @@ namespace Parcs.HostAPI.Controllers
         }
 
         [HttpPost]
+        [ProducesResponseType(typeof(CreateAsynchronousJobRunCommandResponse), (int)HttpStatusCode.Accepted)]
         public async Task<IActionResult> ScheduleAsync([FromForm] CreateAsynchronousJobRunCommand command, CancellationToken cancellationToken)
         {
             var createJobCommand = new CreateJobCommand(command);

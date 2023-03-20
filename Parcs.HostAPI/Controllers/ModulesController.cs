@@ -1,6 +1,8 @@
 ﻿using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Parcs.HostAPI.Models.Commands;
+using Parcs.HostAPI.Models.Responses;
+using System.Net;
 
 namespace Parcs.HostAPI.Controllers
 {
@@ -16,6 +18,7 @@ namespace Parcs.HostAPI.Controllers
         }
 
         [HttpPost]
+        [ProducesResponseType(typeof(CreateModuleCommandResponse), (int)HttpStatusCode.OK)]
         public async Task<IActionResult> CreateAsync([FromForm] CreateModuleCommand command, CancellationToken cancellationToken)
         {
             var response = await _mediator.Send(command, cancellationToken);
@@ -23,6 +26,7 @@ namespace Parcs.HostAPI.Controllers
         }
 
         [HttpDelete]
+        [ProducesResponseType((int)HttpStatusCode.NoContent)]
         public async Task<IActionResult> DeleteAsync(CancellationToken cancellationToken)
         {
             await _mediator.Send(new DeleteAllModulesCommand(), cancellationToken);

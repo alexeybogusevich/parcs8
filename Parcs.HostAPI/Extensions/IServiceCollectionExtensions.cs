@@ -39,6 +39,7 @@ namespace Parcs.HostAPI.Extensions
                 .AddScoped<IMainModuleLoader, MainModuleLoader>()
                 .AddSingleton<IJobDirectoryPathBuilder, JobDirectoryPathBuilder>()
                 .AddSingleton<IModuleDirectoryPathBuilder, ModuleDirectoryPathBuilder>()
+                .AddSingleton<IFileArchiver, FileArchiver>()
                 .AddSingleton<IFileSaver, FileSaver>()
                 .AddSingleton<IFileReader, FileReader>()
                 .AddSingleton<IFileEraser, FileEraser>()
