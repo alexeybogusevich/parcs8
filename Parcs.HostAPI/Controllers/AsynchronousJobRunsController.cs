@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Parcs.HostAPI.Models.Commands;
 using Parcs.HostAPI.Models.Commands.Base;
+using Parcs.HostAPI.Models.Responses;
 
 namespace Parcs.HostAPI.Controllers
 {
@@ -26,7 +27,9 @@ namespace Parcs.HostAPI.Controllers
             var runJobAsynchronouslyCommand = new RunJobAsynchronouslyCommand(runJobCommand, command.CallbackUrl);
             await _mediator.Send(runJobAsynchronouslyCommand, cancellationToken);
 
-            return Accepted(createJobCommandResponse);
+            var response = new CreateAsynchronousJobRunCommandResponse(createJobCommandResponse.JobId);
+
+            return Accepted(response);
         }
     }
 }

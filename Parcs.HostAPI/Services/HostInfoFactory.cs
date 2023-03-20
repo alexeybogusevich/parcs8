@@ -6,6 +6,6 @@ namespace Parcs.HostAPI.Services
 {
     public class HostInfoFactory : IHostInfoFactory
     {
-        public IHostInfo Create(IEnumerable<Daemon> daemons) => new HostInfo(daemons);
+        public IHostInfo Create(Job job, IEnumerable<Daemon> daemons) => new HostInfo(job, daemons);
     }
 }

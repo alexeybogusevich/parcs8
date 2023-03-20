@@ -5,6 +5,7 @@
         private bool _hasBeenRun;
         private bool _canBeCancelled;
         private readonly CancellationTokenSource _cancellationTokenSource = new();
+        private readonly List<Daemon> _executedOnDaemons = new();
 
         public Job(Guid moduleId, string assemblyName, string className)
         {
@@ -36,11 +37,9 @@
 
         public DateTime? EndDateUtc { get; private set; }
 
-        public double? Result { get; private set; }
-
         public string ErrorMessage { get; private set; }
 
-        public IEnumerable<Daemon> CanBeExecutedOnDaemons { get; private set; }
+        public IEnumerable<Daemon> ExecutedOnDaemons { get; private set; }
 
         public TimeSpan? ExecutionTime => EndDateUtc is null ? default : EndDateUtc - StartDateUtc;
 
@@ -59,11 +58,9 @@
             _hasBeenRun = true;
         }
 
-        public void Finish(double result)
+        public void Finish()
         {
-            Status = JobStatus.Done;
-            Result = result;
-
+            Status = JobStatus.Completed;
             OnFinished();
         }
 
@@ -93,9 +90,9 @@
             OnFinished();
         }
 
-        public void SetDaemons(IEnumerable<Daemon> daemons)
+        public void TrackExecution(Daemon daemon)
         {
-            CanBeExecutedOnDaemons = daemons;
+            _executedOnDaemons.Add(daemon);
         }
 
         public void SetMainModule(IMainModule mainModule)

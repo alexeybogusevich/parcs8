@@ -4,6 +4,6 @@ namespace Parcs.HostAPI.Services.Interfaces
 {
     public interface IHostInfoFactory
     {
-        IHostInfo Create(IEnumerable<Daemon> daemons);
+        IHostInfo Create(Job job, IEnumerable<Daemon> daemons);
     }
 }

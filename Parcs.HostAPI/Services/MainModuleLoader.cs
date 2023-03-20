@@ -19,9 +19,9 @@ namespace Parcs.HostAPI.Services
         public async Task<IMainModule> LoadAsync(Guid moduleId, string assemblyName, string className, CancellationToken cancellationToken = default)
         {
             var mainModuleDirectoryPath = _moduleDirectoryPathBuilder.Build(moduleId, ModuleDirectoryGroup.Main);
-            var rawAssembly = await _fileReader.ReadAsync(mainModuleDirectoryPath, assemblyName, cancellationToken);
+            var mainModuleFile = await _fileReader.ReadAsync(mainModuleDirectoryPath, assemblyName, cancellationToken);
 
-            var assembly = Assembly.Load(rawAssembly);
+            var assembly = Assembly.Load(mainModuleFile.Content);
             var @class = assembly.GetType(className) ?? throw new ArgumentException($"Class {className} not found in the assembly.");
 
             //if (typeof(IMainModule).IsAssignableFrom(@class))

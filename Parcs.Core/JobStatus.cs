@@ -5,7 +5,7 @@
         New = 0,
         InProgress = 1,
         Error = 2,
-        Done = 3,
+        Completed = 3,
         Cancelled = 4,
         Retired = 5,
     }

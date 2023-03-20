@@ -8,20 +8,20 @@ namespace Parcs.HostAPI.Handlers
     public class RunJobSynchronouslyCommandHandler : IRequestHandler<RunJobSynchronouslyCommand, RunJobSynchronouslyCommandResponse>
     {
         private readonly IHostInfoFactory _hostInfoFactory;
-        private readonly IInputReaderFactory _inputReaderFactory;
+        private readonly IInputOutputFactory _inputOutputFactory;
         private readonly IMainModuleLoader _mainModuleLoader;
         private readonly IJobManager _jobManager;
         private readonly IDaemonSelector _daemonSelector;
 
         public RunJobSynchronouslyCommandHandler(
             IHostInfoFactory hostInfoFactory,
-            IInputReaderFactory inputReaderFactory,
+            IInputOutputFactory inputOutputFactory,
             IMainModuleLoader mainModuleLoader,
             IJobManager jobManager,
             IDaemonSelector daemonSelector)
         {
             _hostInfoFactory = hostInfoFactory;
-            _inputReaderFactory = inputReaderFactory;
+            _inputOutputFactory = inputOutputFactory;
             _mainModuleLoader = mainModuleLoader;
             _jobManager = jobManager;
             _daemonSelector = daemonSelector;
@@ -34,19 +34,19 @@ namespace Parcs.HostAPI.Handlers
                 throw new ArgumentException($"Job not found: {request.JobId}");
             }
 
-            var selectedDaemons = _daemonSelector.Select(request.Daemons);
-            job.SetDaemons(selectedDaemons);
+            var availableDaemons = _daemonSelector.Select(request.Daemons);
+            var hostInfo = _hostInfoFactory.Create(job, availableDaemons);
 
-            var hostInfo = _hostInfoFactory.Create(selectedDaemons);
-            var inputReader = _inputReaderFactory.Create(job.Id);
+            var inputReader = _inputOutputFactory.CreateReader(job.Id);
+            var outputWriter = _inputOutputFactory.CreateWriter(job.Id);
 
             try
             {
                 var mainModule = job.MainModule ?? await _mainModuleLoader.LoadAsync(job.ModuleId, job.AssemblyName, job.ClassName, job.CancellationToken);
 
                 job.Start();
-                var moduleOutput = await mainModule.RunAsync(hostInfo, inputReader, job.CancellationToken);
-                job.Finish(moduleOutput.Result);
+                await mainModule.RunAsync(hostInfo, inputReader, outputWriter, job.CancellationToken);
+                job.Finish();
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {

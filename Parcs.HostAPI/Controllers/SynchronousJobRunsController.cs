@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Parcs.HostAPI.Models.Commands;
 using Parcs.HostAPI.Models.Commands.Base;
+using Parcs.HostAPI.Models.Queries;
 
 namespace Parcs.HostAPI.Controllers
 {
@@ -25,6 +26,9 @@ namespace Parcs.HostAPI.Controllers
             var runJobCommand = new RunJobCommand(createJobCommandResponse.JobId, command.Daemons);
             var runJobSynchronouslyCommand = new RunJobSynchronouslyCommand(runJobCommand);
             var runJobSynchronouslyCommandResponse = await _mediator.Send(runJobSynchronouslyCommand, CancellationToken.None);
+
+            var getJobOutputQuery = new GetJobOutputQuery(createJobCommandResponse.JobId);
+            var getJobOutputQueryResponse = await _mediator.Send(getJobOutputQuery, CancellationToken.None);
 
             var deleteJobCommand = new DeleteJobCommand(createJobCommandResponse.JobId);
             await _mediator.Send(deleteJobCommand, CancellationToken.None);

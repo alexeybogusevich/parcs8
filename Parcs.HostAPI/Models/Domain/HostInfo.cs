@@ -6,26 +6,28 @@ namespace Parcs.HostAPI.Models.Domain
 {
     internal sealed class HostInfo : IHostInfo
     {
-        private readonly Queue<Daemon> _unusedDaemons;
-        private readonly int _initialDaemonsNumber;
+        private readonly Queue<Daemon> _availableDaemons;
+        private readonly Job _job;
 
-        public HostInfo(IEnumerable<Daemon> daemons)
+        public HostInfo(Job job, IEnumerable<Daemon> availableDaemons)
         {
-            _unusedDaemons = new Queue<Daemon>(daemons);
-            _initialDaemonsNumber = daemons.Count();
+            _job = job;
+            _availableDaemons = new Queue<Daemon>(availableDaemons);
         }
 
-        public int MaximumPointsNumber => _initialDaemonsNumber;
+        public int AvailablePointsNumber => _availableDaemons.Count;
 
         public async Task<IPoint> CreatePointAsync()
         {
-            if (!_unusedDaemons.TryDequeue(out var configurationToUse))
+            if (!_availableDaemons.TryDequeue(out var daemon))
             {
                 throw new ArgumentException("No more points can be created.");
             }
 
+            _job.TrackExecution(daemon);
+
             var tcpClient = new TcpClient();
-            await tcpClient.ConnectAsync(configurationToUse.HostUrl, configurationToUse.Port);
+            await tcpClient.ConnectAsync(daemon.HostUrl, daemon.Port);
 
             return new Point(tcpClient);
         }

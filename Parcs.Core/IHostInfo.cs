@@ -2,7 +2,7 @@
 {
     public interface IHostInfo
     {
-        int MaximumPointsNumber { get; }
+        int AvailablePointsNumber { get; }
         Task<IPoint> CreatePointAsync();
     }
 }

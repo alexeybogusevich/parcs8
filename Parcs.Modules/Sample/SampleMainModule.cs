@@ -1,11 +1,11 @@
-﻿using Microsoft.Extensions.Logging;
-using Parcs.Core;
+﻿using Parcs.Core;
+using System.Text;
 
 namespace Parcs.Modules.Sample
 {
     public class SampleMainModule : IMainModule
     {
-        public async Task<ModuleOutput> RunAsync(IHostInfo hostInfo, IInputReader inputReader, CancellationToken cancellationToken = default)
+        public async Task RunAsync(IHostInfo hostInfo, IInputReader inputReader, IOutputWriter outputWriter, CancellationToken cancellationToken = default)
         {
             foreach (var filename in inputReader.GetFilenames())
             {
@@ -14,7 +14,7 @@ namespace Parcs.Modules.Sample
                 Console.WriteLine(await streamReader.ReadToEndAsync(cancellationToken));
             }
 
-            var pointsNumber = hostInfo.MaximumPointsNumber;
+            var pointsNumber = hostInfo.AvailablePointsNumber;
             var channels = new IChannel[pointsNumber];
             var points = new IPoint[pointsNumber];
 
@@ -52,15 +52,12 @@ namespace Parcs.Modules.Sample
                 result += await channels[i].ReadDoubleAsync(cancellationToken);
             }
 
+            await outputWriter.WriteToFileAsync(Encoding.UTF8.GetBytes("Hello world!"), "test.txt",  cancellationToken);
+
             for (int i = 0; i < pointsNumber; ++i)
             {
                 points[i].Delete();
             }
-
-            return new ModuleOutput
-            {
-                Result = result,
-            };
         }
     }
 }

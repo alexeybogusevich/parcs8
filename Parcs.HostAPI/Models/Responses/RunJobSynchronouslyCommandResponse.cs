@@ -9,7 +9,6 @@ namespace Parcs.HostAPI.Models.Responses
             ElapsedSeconds = job.ExecutionTime?.Seconds;
             JobStatus = job.Status;
             ErrorMessage = job.ErrorMessage;
-            Result = job.Result;
         }
 
         public double? ElapsedSeconds { get; set; }
@@ -17,7 +16,5 @@ namespace Parcs.HostAPI.Models.Responses
         public JobStatus JobStatus { get; set; }
 
         public string ErrorMessage { get; set; }
-
-        public double? Result { get; set; }
     }
 }
