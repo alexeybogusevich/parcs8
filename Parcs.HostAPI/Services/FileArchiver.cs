@@ -16,15 +16,17 @@ namespace Parcs.HostAPI.Services
             var zipArchiveName = $"{new DirectoryInfo(directoryPath).Name}.zip"; 
 
             await using var memoryStream = new MemoryStream();
-            using var zipArchive = new ZipArchive(memoryStream, ZipArchiveMode.Create);
+            var zipArchive = new ZipArchive(memoryStream, ZipArchiveMode.Create);
 
             foreach (var filePath in Directory.GetFiles(directoryPath))
             {
                 var zipArchiveEntry = zipArchive.CreateEntry(Path.GetFileName(filePath), CompressionLevel.Fastest);
                 await using var zipStream = zipArchiveEntry.Open();
-                var bytes = File.ReadAllBytes(filePath);
-                zipStream.Write(bytes, 0, bytes.Length);
+                await using var fileStream = File.OpenRead(filePath);
+                fileStream.CopyTo(zipStream);
             }
+
+            zipArchive.Dispose();
 
             return new FileDescription
             {
