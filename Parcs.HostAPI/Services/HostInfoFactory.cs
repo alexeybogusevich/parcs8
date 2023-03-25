@@ -5,7 +5,7 @@ using Parcs.Shared.Models;
 
 namespace Parcs.HostAPI.Services
 {
-    public class HostInfoFactory : IHostInfoFactory
+    public sealed class HostInfoFactory : IHostInfoFactory
     {
         public IHostInfo Create(Job job, IEnumerable<Daemon> daemons) => new HostInfo(job, daemons);
     }

@@ -5,7 +5,7 @@ using Parcs.Shared.Models;
 
 namespace Parcs.HostAPI.Services
 {
-    public class DaemonSelector : IDaemonSelector
+    public sealed class DaemonSelector : IDaemonSelector
     {
         private readonly DefaultDaemonConfiguration _defaultDaemonConfiguration;
 

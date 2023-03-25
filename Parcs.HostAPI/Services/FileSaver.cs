@@ -2,7 +2,7 @@
 
 namespace Parcs.HostAPI.Services
 {
-    public class FileSaver : IFileSaver
+    public sealed class FileSaver : IFileSaver
     {
         public async Task SaveAsync(IFormFile file, string directoryPath, CancellationToken cancellationToken = default)
         {

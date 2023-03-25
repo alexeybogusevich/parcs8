@@ -2,7 +2,7 @@
 
 namespace Parcs.HostAPI.Services
 {
-    public class OutputWriter : IOutputWriter
+    public sealed class OutputWriter : IOutputWriter
     {
         private readonly string _basePath;
 

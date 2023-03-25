@@ -2,7 +2,7 @@
 
 namespace Parcs.HostAPI.Services
 {
-    public class InputReader : IInputReader
+    public sealed class InputReader : IInputReader
     {
         private readonly string _basePath;
 

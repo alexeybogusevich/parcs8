@@ -2,7 +2,7 @@
 
 namespace Parcs.HostAPI.Services
 {
-    public class FileEraser : IFileEraser
+    public sealed class FileEraser : IFileEraser
     {
         public void TryDeleteRecursively(string baseDirectoryPath)
         {

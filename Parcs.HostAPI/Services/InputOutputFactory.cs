@@ -4,7 +4,7 @@ using Parcs.Net;
 
 namespace Parcs.HostAPI.Services
 {
-    public class InputOutputFactory : IInputOutputFactory
+    public sealed class InputOutputFactory : IInputOutputFactory
     {
         private readonly IJobDirectoryPathBuilder _jobDirectoryPathBuilder;
 

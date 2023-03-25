@@ -4,7 +4,7 @@ using System.IO.Compression;
 
 namespace Parcs.HostAPI.Services
 {
-    public class FileArchiver : IFileArchiver
+    public sealed class FileArchiver : IFileArchiver
     {
         public async Task<FileDescription> ArchiveDirectoryAsync(string directoryPath, CancellationToken cancellationToken = default)
         {

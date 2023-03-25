@@ -6,7 +6,7 @@ using Parcs.HostAPI.Services.Interfaces;
 
 namespace Parcs.HostAPI.Services
 {
-    public class JobDirectoryPathBuilder : IJobDirectoryPathBuilder
+    public sealed class JobDirectoryPathBuilder : IJobDirectoryPathBuilder
     {
         private readonly FileSystemConfiguration _fileSystemConfiguration;
 

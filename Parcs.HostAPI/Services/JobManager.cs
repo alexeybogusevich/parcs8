@@ -6,7 +6,7 @@ using System.Collections.Concurrent;
 
 namespace Parcs.HostAPI.Services
 {
-    public class JobManager : IJobManager
+    public sealed class JobManager : IJobManager
     {
         private readonly JobsConfiguration _jobsConfiguration;
         private readonly ConcurrentDictionary<Guid, Job> _activeJobs = new();

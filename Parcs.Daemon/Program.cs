@@ -1,54 +1,55 @@
 ﻿using Microsoft.Extensions.Configuration;
-using Parcs.Shared;
+using Microsoft.Extensions.DependencyInjection;
+using Parcs.Daemon.Extensions;
+using Parcs.Shared.Models;
 using Parcs.TCP.Daemon.Configuration;
-using Parcs.TCP.Daemon.Services;
+using Parcs.TCP.Daemon.Services.Interfaces;
 using System.Net;
 using System.Net.Sockets;
 
-class Program
+var serviceProvider = new ServiceCollection()
+    .ConfigureServices()
+    .BuildServiceProvider();
+
+IConfiguration configuration = new ConfigurationBuilder()
+    .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+    .AddEnvironmentVariables()
+    .AddCommandLine(args)
+    .Build();
+
+var nodeConfiguration = configuration
+    .GetSection(NodeConfiguration.SectionName)
+    .Get<NodeConfiguration>();
+
+Console.WriteLine($"Server port: {nodeConfiguration.Port}");
+Console.WriteLine();
+
+var ipEndpoint = new IPEndPoint(IPAddress.Any, nodeConfiguration.Port);
+var tcpListener = new TcpListener(ipEndpoint);
+
+try
 {
-    static async Task Main(string[] args)
+    Console.Write("Server starting...");
+    tcpListener.Start();
+    Console.WriteLine("Done!");
+
+    var signalHandlerFactory = serviceProvider.GetRequiredService<ISignalHandlerFactory>();
+
+    for (;;)
     {
-        IConfiguration configuration = new ConfigurationBuilder()
-            .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
-            .AddEnvironmentVariables()
-            .AddCommandLine(args)
-            .Build();
+        Console.Write("Waiting for a connection... ");
 
-        var nodeConfiguration = configuration
-            .GetSection(NodeConfiguration.SectionName)
-            .Get<NodeConfiguration>();
+        using var tcpClient = await tcpListener.AcceptTcpClientAsync();
+        using var channel = new Channel(tcpClient.GetStream());
 
-        Console.WriteLine($"Server port: {nodeConfiguration.Port}");
-        Console.WriteLine();
-
-        var ipEndpoint = new IPEndPoint(IPAddress.Any, nodeConfiguration.Port);
-        var tcpListener = new TcpListener(ipEndpoint);
-
-        try
-        {
-            Console.Write("Server starting...");
-            tcpListener.Start();
-            Console.WriteLine("Done!");
-
-            for (;;)
-            {
-                Console.Write("Waiting for a connection... ");
-
-                using var tcpClient = await tcpListener.AcceptTcpClientAsync();
-                await using var networkStream = tcpClient.GetStream();
-                var channel = new Channel(networkStream);
-
-                var signal = await channel.ReadSignalAsync();
-                var signalHandler = new SignalHandlerFactory().Create(signal);
-                await signalHandler.HandleAsync(channel);
-            }
-        }
-        finally
-        {
-            Console.WriteLine("Stopping the server...");
-            tcpListener.Stop();
-            Console.WriteLine("Done!");
-        }
+        var signal = await channel.ReadSignalAsync();
+        var signalHandler = signalHandlerFactory.Create(signal);
+        await signalHandler.HandleAsync(channel);
     }
+}
+finally
+{
+    Console.WriteLine("Stopping the server...");
+    tcpListener.Stop();
+    Console.WriteLine("Done!");
 }

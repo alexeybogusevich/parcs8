@@ -6,7 +6,7 @@ using Parcs.HostAPI.Services.Interfaces;
 
 namespace Parcs.HostAPI.Services
 {
-    public class ModuleDirectoryPathBuilder : IModuleDirectoryPathBuilder
+    public sealed class ModuleDirectoryPathBuilder : IModuleDirectoryPathBuilder
     {
         private readonly FileSystemConfiguration _fileSystemConfiguration;
 

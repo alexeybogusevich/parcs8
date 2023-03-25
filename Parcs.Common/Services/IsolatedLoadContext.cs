@@ -3,13 +3,15 @@ using System.Runtime.Loader;
 
 namespace Parcs.Shared.Services
 {
-    public class ModuleLoadContext : AssemblyLoadContext
+    public class IsolatedLoadContext : AssemblyLoadContext
     {
         private readonly AssemblyDependencyResolver _resolver;
+        private readonly IEnumerable<string> _sharedAssemblyNames;
 
-        public ModuleLoadContext(string pluginPath)
+        public IsolatedLoadContext(string assemblyPath, IEnumerable<string> sharedAssemblyNames)
         {
-            _resolver = new AssemblyDependencyResolver(pluginPath);
+            _resolver = new AssemblyDependencyResolver(assemblyPath);
+            _sharedAssemblyNames = sharedAssemblyNames;
             Resolving += OnFailedResolution;
         }
 
@@ -39,7 +41,7 @@ namespace Parcs.Shared.Services
 
         private Assembly OnFailedResolution(AssemblyLoadContext loadContext, AssemblyName requestedAssemblyName)
         {
-            if (requestedAssemblyName?.Name is null || requestedAssemblyName.Name.StartsWith($"{nameof(Parcs)}.{nameof(Net)}") is false)
+            if (requestedAssemblyName?.Name is null || _sharedAssemblyNames.All(name => requestedAssemblyName.Name.StartsWith(name) is false))
             {
                 return null;
             }

@@ -4,7 +4,7 @@ using Parcs.HostAPI.Services.Interfaces;
 
 namespace Parcs.HostAPI.Services
 {
-    public class FileReader : IFileReader
+    public sealed class FileReader : IFileReader
     {
         public async Task<FileDescription> ReadAsync(string directoryPath, string fileName, CancellationToken cancellationToken = default)
         {

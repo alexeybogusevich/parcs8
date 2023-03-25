@@ -1,19 +1,27 @@
 ﻿using Parcs.Modules.Sample;
 using Parcs.Net;
+using Parcs.Shared.Services.Interfaces;
 using Parcs.TCP.Daemon.Handlers.Interfaces;
 
 namespace Parcs.TCP.Daemon.Handlers
 {
     internal sealed class ExecuteClassSignalHandler : ISignalHandler
     {
-        public Task HandleAsync(IChannel channel, CancellationToken cancellationToken = default)
+        private readonly ITypeLoader<IWorkerModule> _typeLoader;
+
+        public ExecuteClassSignalHandler(ITypeLoader<IWorkerModule> typeLoader)
         {
-            var assemblyName = channel.ReadStringAsync(cancellationToken);
-            var className = channel.ReadStringAsync(cancellationToken);
+            _typeLoader = typeLoader;
+        }
+
+        public async Task HandleAsync(IChannel channel, CancellationToken cancellationToken = default)
+        {
+            var assemblyName = await channel.ReadStringAsync(cancellationToken);
+            var className = await channel.ReadStringAsync(cancellationToken);
 
             var sampleModule = new SampleWorkerModule();
 
-            return sampleModule.RunAsync(channel, cancellationToken);
+            await sampleModule.RunAsync(channel, cancellationToken);
         }
     }
 }

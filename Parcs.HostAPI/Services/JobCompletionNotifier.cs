@@ -4,7 +4,7 @@ using Parcs.HostAPI.Services.Interfaces;
 
 namespace Parcs.HostAPI.Services
 {
-    public class JobCompletionNotifier : IJobCompletionNotifier
+    public sealed class JobCompletionNotifier : IJobCompletionNotifier
     {
         private readonly IHttpClientFactory _httpClientFactory;
 

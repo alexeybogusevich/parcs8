@@ -2,7 +2,7 @@
 
 namespace Parcs.HostAPI.Services
 {
-    public class GuidReference : IGuidReference
+    public sealed class GuidReference : IGuidReference
     {
         public Guid NewGuid() => Guid.NewGuid();
     }

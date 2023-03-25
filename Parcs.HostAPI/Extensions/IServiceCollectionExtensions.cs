@@ -3,6 +3,8 @@ using Parcs.HostAPI.Configuration;
 using Parcs.HostAPI.Models.Commands;
 using Parcs.HostAPI.Services;
 using Parcs.HostAPI.Services.Interfaces;
+using Parcs.Shared.Services;
+using Parcs.Shared.Services.Interfaces;
 using System.Reflection;
 using System.Threading.Channels;
 using Channel = System.Threading.Channels.Channel;
@@ -36,6 +38,7 @@ namespace Parcs.HostAPI.Extensions
                 .AddScoped<IHostInfoFactory, HostInfoFactory>()
                 .AddScoped<IInputOutputFactory, InputOutputFactory>()
                 .AddScoped<IJobCompletionNotifier, JobCompletionNotifier>()
+                .AddScoped(typeof(ITypeLoader<>), typeof(TypeLoader<>))
                 .AddScoped<IMainModuleLoader, MainModuleLoader>()
                 .AddSingleton<IJobDirectoryPathBuilder, JobDirectoryPathBuilder>()
                 .AddSingleton<IModuleDirectoryPathBuilder, ModuleDirectoryPathBuilder>()
