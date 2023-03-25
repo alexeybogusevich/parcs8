@@ -42,7 +42,7 @@ namespace Parcs.HostAPI.Handlers
 
             try
             {
-                var mainModule = job.MainModule ?? await _mainModuleLoader.LoadAsync(job.ModuleId, job.AssemblyName, job.ClassName, job.CancellationToken);
+                var mainModule = job.MainModule ?? _mainModuleLoader.Load(job.ModuleId, job.AssemblyName, job.ClassName);
 
                 job.Start();
                 await mainModule.RunAsync(hostInfo, inputReader, outputWriter, job.CancellationToken);

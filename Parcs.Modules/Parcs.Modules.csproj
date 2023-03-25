@@ -4,11 +4,10 @@
     <TargetFramework>net7.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
 	<EnableDynamicLoading>true</EnableDynamicLoading>
-	<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
   <ItemGroup>
-	  <PackageReference Include="Parcs.Net" Version="0.0.2">
+	  <PackageReference Include="Parcs.Net" Version="0.0.1">
 		  <ExcludeAssets>runtime</ExcludeAssets>
 	  </PackageReference>
   </ItemGroup>

@@ -33,16 +33,6 @@ namespace Parcs.Modules.Sample
                 await channels[i].WriteDataAsync((byte)1, cancellationToken);
                 await channels[i].WriteDataAsync(123L, cancellationToken);
                 await channels[i].WriteDataAsync(22, cancellationToken);
-
-                var job = new
-                {
-                    StartDateUtc = DateTime.UtcNow,
-                    CreateDateUtc = DateTime.UtcNow.AddDays(-1),
-                    EndDateUtc = DateTime.UtcNow.AddDays(1),
-                    Id = Guid.NewGuid(),
-                };
-
-                await channels[i].WriteObjectAsync(job, cancellationToken);
             }
 
             double result = 0;

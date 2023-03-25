@@ -3,13 +3,13 @@ using Parcs.HostAPI.Services.Interfaces;
 using Parcs.Net;
 using Parcs.Shared;
 using System.Reflection;
-using System.Runtime.Loader;
-using System.Windows.Input;
 
 namespace Parcs.HostAPI.Services
 {
     public class MainModuleLoader : IMainModuleLoader
     {
+        private const string AssemblyExtension = "dll";
+
         private readonly IFileReader _fileReader;
         private readonly IModuleDirectoryPathBuilder _moduleDirectoryPathBuilder;
 
@@ -19,23 +19,34 @@ namespace Parcs.HostAPI.Services
             _moduleDirectoryPathBuilder = moduleDirectoryPathBuilder;
         }
 
-        public async Task<IMainModule> LoadAsync(Guid moduleId, string assemblyName, string className, CancellationToken cancellationToken = default)
+        public IMainModule Load(Guid moduleId, string assemblyName, string className = null)
         {
             var mainModuleDirectoryPath = _moduleDirectoryPathBuilder.Build(moduleId, ModuleDirectoryGroup.Main);
-            //var mainModuleFile = await _fileReader.ReadAsync(mainModuleDirectoryPath, assemblyName, cancellationToken);
+            var mainModuleAssemblyPath = Path.Combine(mainModuleDirectoryPath, $"{assemblyName}.{AssemblyExtension}");
 
-            var assemblyFullName = Path.Combine(mainModuleDirectoryPath, assemblyName);
-            var moduleLoadContext = new ModuleLoadContext(assemblyFullName);
-            var assemblyName1 = AssemblyName.GetAssemblyName(assemblyFullName);
+            var moduleLoadContext = new ModuleLoadContext(mainModuleAssemblyPath);
+            var assembly = moduleLoadContext.LoadFromAssemblyName(AssemblyName.GetAssemblyName(mainModuleAssemblyPath));
+            var classes = assembly.GetTypes().Where(t => typeof(IMainModule).IsAssignableFrom(t));
 
-            var assembly = moduleLoadContext.LoadFromAssemblyName(assemblyName1);
-            var @class = assembly.GetTypes().FirstOrDefault(t => typeof(IMainModule).IsAssignableFrom(t));
-
-            if (@class == null)
+            if (!classes.Any())
             {
                 throw new ApplicationException(
-                    $"Can't find any type which implements {nameof(IMainModule)} in {assembly}.\n" +
+                    $"Can't find any type which implements {nameof(IMainModule)} in {assembly.FullName}.\n" +
                     $"Available types: {string.Join(",", assembly.GetTypes().Select(t => t.FullName))}");
+            }
+
+            if (className is null)
+            {
+                return Activator.CreateInstance(classes.FirstOrDefault()) as IMainModule;
+            }
+
+            var @class = classes.FirstOrDefault(c => c.FullName == className || c.Name == className);
+
+            if (@class is null)
+            {
+                throw new ApplicationException(
+                    $"The requested class {className} does not implement {nameof(IMainModule)} in {assembly.FullName}.\n" +
+                    $"Found implementations: {string.Join(",", classes.Select(t => t.FullName))}");
             }
 
             return Activator.CreateInstance(@class) as IMainModule;

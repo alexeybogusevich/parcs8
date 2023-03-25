@@ -10,6 +10,7 @@ namespace Parcs.Shared
         public ModuleLoadContext(string pluginPath)
         {
             _resolver = new AssemblyDependencyResolver(pluginPath);
+            Resolving += OnFailedResolution;
         }
 
         protected override Assembly Load(AssemblyName assemblyName)
@@ -34,6 +35,30 @@ namespace Parcs.Shared
             }
 
             return IntPtr.Zero;
+        }
+
+        private Assembly OnFailedResolution(AssemblyLoadContext loadContext, AssemblyName requestedAssemblyName)
+        {
+            if (requestedAssemblyName?.Name is null || requestedAssemblyName.Name.StartsWith($"{nameof(Parcs)}.{nameof(Net)}") is false)
+            {
+                return null;
+            }
+
+            var defaultContextAssembly = Default.Assemblies.FirstOrDefault(a => a.GetName().Name == requestedAssemblyName.Name);
+
+            if (defaultContextAssembly == null)
+            {
+                return null;
+            }
+
+            var defaultContextAssemblyVersion = defaultContextAssembly.GetName().Version;
+
+            if (defaultContextAssemblyVersion == null || defaultContextAssemblyVersion.Major < requestedAssemblyName.Version.Major)
+            {
+                return null;
+            }
+
+            return defaultContextAssembly;
         }
     }
 }

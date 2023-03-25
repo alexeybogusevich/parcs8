@@ -4,6 +4,6 @@ namespace Parcs.HostAPI.Services.Interfaces
 {
     public interface IMainModuleLoader
     {
-        Task<IMainModule> LoadAsync(Guid moduleId, string assemblyName, string className, CancellationToken cancellationToken = default);
+        IMainModule Load(Guid moduleId, string assemblyName, string className = null);
     }
 }

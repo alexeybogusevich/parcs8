@@ -13,14 +13,6 @@ namespace Parcs.Modules.Sample
             Console.WriteLine(await channel.ReadLongAsync(cancellationToken));
             Console.WriteLine(await channel.ReadIntAsync(cancellationToken));
 
-            dynamic job = await channel.ReadObjectAsync<object>(cancellationToken);
-            Console.WriteLine("JOB");
-            Console.WriteLine(job.Id);
-            Console.WriteLine(job.Status);
-            Console.WriteLine(job.CreateDateUtc);
-            Console.WriteLine(job.StartDateUtc);
-            Console.WriteLine(job.EndDateUtc);
-
             await channel.WriteDataAsync(1111.11D, cancellationToken);
         }
     }

@@ -31,7 +31,7 @@ namespace Parcs.HostAPI.Handlers
 
             try
             {
-                var mainModule = await _mainModuleLoader.LoadAsync(request.ModuleId, request.AssemblyName, request.ClassName, job.CancellationToken);
+                var mainModule = _mainModuleLoader.Load(request.ModuleId, request.AssemblyName, request.ClassName);
                 job.SetMainModule(mainModule);
             }
             catch
