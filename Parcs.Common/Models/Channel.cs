@@ -3,7 +3,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
 
-namespace Parcs.Shared
+namespace Parcs.Shared.Models
 {
     public sealed class Channel : IChannel, IDisposable
     {

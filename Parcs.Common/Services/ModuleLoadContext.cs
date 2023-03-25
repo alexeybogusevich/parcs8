@@ -1,7 +1,7 @@
 ﻿using System.Reflection;
 using System.Runtime.Loader;
 
-namespace Parcs.Shared
+namespace Parcs.Shared.Services
 {
     public class ModuleLoadContext : AssemblyLoadContext
     {

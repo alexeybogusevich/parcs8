@@ -1,5 +1,5 @@
 ﻿using Parcs.Net;
-using Parcs.Shared;
+using Parcs.Shared.Models;
 
 namespace Parcs.HostAPI.Services.Interfaces
 {

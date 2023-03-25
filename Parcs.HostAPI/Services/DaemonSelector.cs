@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.Options;
 using Parcs.HostAPI.Configuration;
 using Parcs.HostAPI.Services.Interfaces;
-using Parcs.Shared;
+using Parcs.Shared.Models;
 
 namespace Parcs.HostAPI.Services
 {

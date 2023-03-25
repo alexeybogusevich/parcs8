@@ -1,7 +1,7 @@
 ﻿using Parcs.HostAPI.Models.Enums;
 using Parcs.HostAPI.Services.Interfaces;
 using Parcs.Net;
-using Parcs.Shared;
+using Parcs.Shared.Services;
 using System.Reflection;
 
 namespace Parcs.HostAPI.Services
@@ -9,13 +9,10 @@ namespace Parcs.HostAPI.Services
     public class MainModuleLoader : IMainModuleLoader
     {
         private const string AssemblyExtension = "dll";
-
-        private readonly IFileReader _fileReader;
         private readonly IModuleDirectoryPathBuilder _moduleDirectoryPathBuilder;
 
-        public MainModuleLoader(IFileReader fileReader, IModuleDirectoryPathBuilder moduleDirectoryPathBuilder)
+        public MainModuleLoader(IModuleDirectoryPathBuilder moduleDirectoryPathBuilder)
         {
-            _fileReader = fileReader;
             _moduleDirectoryPathBuilder = moduleDirectoryPathBuilder;
         }
 
@@ -26,9 +23,9 @@ namespace Parcs.HostAPI.Services
 
             var moduleLoadContext = new ModuleLoadContext(mainModuleAssemblyPath);
             var assembly = moduleLoadContext.LoadFromAssemblyName(AssemblyName.GetAssemblyName(mainModuleAssemblyPath));
-            var classes = assembly.GetTypes().Where(t => typeof(IMainModule).IsAssignableFrom(t));
+            var mainModuleClasses = assembly.GetTypes().Where(t => typeof(IMainModule).IsAssignableFrom(t));
 
-            if (!classes.Any())
+            if (!mainModuleClasses.Any())
             {
                 throw new ApplicationException(
                     $"Can't find any type which implements {nameof(IMainModule)} in {assembly.FullName}.\n" +
@@ -37,16 +34,16 @@ namespace Parcs.HostAPI.Services
 
             if (className is null)
             {
-                return Activator.CreateInstance(classes.FirstOrDefault()) as IMainModule;
+                return Activator.CreateInstance(mainModuleClasses.FirstOrDefault()) as IMainModule;
             }
 
-            var @class = classes.FirstOrDefault(c => c.FullName == className || c.Name == className);
+            var @class = mainModuleClasses.FirstOrDefault(c => c.FullName == className || c.Name == className);
 
             if (@class is null)
             {
                 throw new ApplicationException(
                     $"The requested class {className} does not implement {nameof(IMainModule)} in {assembly.FullName}.\n" +
-                    $"Found implementations: {string.Join(",", classes.Select(t => t.FullName))}");
+                    $"Found implementations: {string.Join(",", mainModuleClasses.Select(t => t.FullName))}");
             }
 
             return Activator.CreateInstance(@class) as IMainModule;

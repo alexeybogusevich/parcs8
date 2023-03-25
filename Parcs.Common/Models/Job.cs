@@ -1,6 +1,6 @@
 ﻿using Parcs.Net;
 
-namespace Parcs.Shared
+namespace Parcs.Shared.Models
 {
     public sealed class Job
     {
