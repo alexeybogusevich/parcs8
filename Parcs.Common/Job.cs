@@ -1,4 +1,6 @@
-﻿namespace Parcs.Core
+﻿using Parcs.Net;
+
+namespace Parcs.Shared
 {
     public sealed class Job
     {

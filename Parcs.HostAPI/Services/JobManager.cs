@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.Options;
-using Parcs.Core;
 using Parcs.HostAPI.Configuration;
 using Parcs.HostAPI.Services.Interfaces;
+using Parcs.Shared;
 using System.Collections.Concurrent;
 
 namespace Parcs.HostAPI.Services

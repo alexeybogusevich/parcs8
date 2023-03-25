@@ -1,4 +1,5 @@
-﻿using Parcs.Core;
+﻿using Parcs.Shared;
+
 namespace Parcs.HostAPI.Services.Interfaces
 {
     public interface IJobManager

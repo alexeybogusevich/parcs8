@@ -29,7 +29,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Parcs.Core\Parcs.Core.csproj" />
+    <ProjectReference Include="..\Parcs.Common\Parcs.Shared.csproj" />
     <ProjectReference Include="..\Parcs.Modules\Parcs.Modules.csproj" />
   </ItemGroup>
 

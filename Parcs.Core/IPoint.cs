@@ -1,4 +1,4 @@
-﻿namespace Parcs.Core
+﻿namespace Parcs.Net
 {
     public interface IPoint
     {

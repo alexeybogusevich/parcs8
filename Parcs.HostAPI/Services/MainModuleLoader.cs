@@ -1,7 +1,10 @@
-﻿using Parcs.Core;
-using Parcs.HostAPI.Models.Enums;
+﻿using Parcs.HostAPI.Models.Enums;
 using Parcs.HostAPI.Services.Interfaces;
+using Parcs.Net;
+using Parcs.Shared;
 using System.Reflection;
+using System.Runtime.Loader;
+using System.Windows.Input;
 
 namespace Parcs.HostAPI.Services
 {
@@ -19,17 +22,23 @@ namespace Parcs.HostAPI.Services
         public async Task<IMainModule> LoadAsync(Guid moduleId, string assemblyName, string className, CancellationToken cancellationToken = default)
         {
             var mainModuleDirectoryPath = _moduleDirectoryPathBuilder.Build(moduleId, ModuleDirectoryGroup.Main);
-            var mainModuleFile = await _fileReader.ReadAsync(mainModuleDirectoryPath, assemblyName, cancellationToken);
+            //var mainModuleFile = await _fileReader.ReadAsync(mainModuleDirectoryPath, assemblyName, cancellationToken);
 
-            var assembly = Assembly.Load(mainModuleFile.Content);
-            var @class = assembly.GetType(className) ?? throw new ArgumentException($"Class {className} not found in the assembly.");
+            var assemblyFullName = Path.Combine(mainModuleDirectoryPath, assemblyName);
+            var moduleLoadContext = new ModuleLoadContext(assemblyFullName);
+            var assemblyName1 = AssemblyName.GetAssemblyName(assemblyFullName);
 
-            //if (typeof(IMainModule).IsAssignableFrom(@class))
-            //{
-            //    throw new ArgumentException($"Class {className} does not implement {nameof(IMainModule)}.");
-            //}
+            var assembly = moduleLoadContext.LoadFromAssemblyName(assemblyName1);
+            var @class = assembly.GetTypes().FirstOrDefault(t => typeof(IMainModule).IsAssignableFrom(t));
 
-            return (IMainModule)Activator.CreateInstance(@class);
+            if (@class == null)
+            {
+                throw new ApplicationException(
+                    $"Can't find any type which implements {nameof(IMainModule)} in {assembly}.\n" +
+                    $"Available types: {string.Join(",", assembly.GetTypes().Select(t => t.FullName))}");
+            }
+
+            return Activator.CreateInstance(@class) as IMainModule;
         }
     }
 }

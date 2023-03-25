@@ -1,4 +1,5 @@
-﻿using Parcs.Core;
+﻿using Parcs.Net;
+using Parcs.Shared;
 using System.Net.Sockets;
 
 namespace Parcs.TCP.Host.Models

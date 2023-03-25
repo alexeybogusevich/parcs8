@@ -1,5 +1,5 @@
 ﻿using Microsoft.Extensions.Configuration;
-using Parcs.Core;
+using Parcs.Shared;
 using Parcs.TCP.Daemon.Configuration;
 using Parcs.TCP.Daemon.Services;
 using System.Net;

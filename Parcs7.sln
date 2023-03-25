@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.5.33424.131
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Parcs.Core", "Parcs.Core\Parcs.Core.csproj", "{F0AB2C14-010C-464F-87B1-7149D2B62A4F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Parcs.Net", "Parcs.Core\Parcs.Net.csproj", "{F0AB2C14-010C-464F-87B1-7149D2B62A4F}"
 EndProject
 Project("{E53339B2-1760-4266-BCC7-CA923CBCF16C}") = "docker-compose", "docker-compose.dcproj", "{3E63CE55-2662-4204-9DF7-A0C0B1D84BA8}"
 EndProject
@@ -14,6 +14,8 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Parcs.AzurePortal", "Parcs.AzurePortal\Parcs.AzurePortal.csproj", "{35732477-7B43-498D-9398-A9791356DC41}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Parcs.Modules", "Parcs.Modules\Parcs.Modules.csproj", "{11F11088-B045-4D55-BA49-021C4D5D57AC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Parcs.Shared", "Parcs.Common\Parcs.Shared.csproj", "{0EA22D3F-696C-45EE-BD9A-90C33CEE59B6}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -45,6 +47,10 @@ Global
 		{11F11088-B045-4D55-BA49-021C4D5D57AC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{11F11088-B045-4D55-BA49-021C4D5D57AC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{11F11088-B045-4D55-BA49-021C4D5D57AC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0EA22D3F-696C-45EE-BD9A-90C33CEE59B6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0EA22D3F-696C-45EE-BD9A-90C33CEE59B6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0EA22D3F-696C-45EE-BD9A-90C33CEE59B6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0EA22D3F-696C-45EE-BD9A-90C33CEE59B6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

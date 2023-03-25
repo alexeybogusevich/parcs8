@@ -1,4 +1,4 @@
-﻿using Parcs.Core;
+﻿using Parcs.Shared;
 
 namespace Parcs.HostAPI.Models.Domain
 {

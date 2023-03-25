@@ -1,6 +1,7 @@
-﻿using Parcs.Core;
-using Parcs.HostAPI.Models.Domain;
+﻿using Parcs.HostAPI.Models.Domain;
 using Parcs.HostAPI.Services.Interfaces;
+using Parcs.Net;
+using Parcs.Shared;
 
 namespace Parcs.HostAPI.Services
 {

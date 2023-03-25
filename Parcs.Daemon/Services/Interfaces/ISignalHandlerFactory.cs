@@ -1,4 +1,4 @@
-﻿using Parcs.Core;
+﻿using Parcs.Net;
 using Parcs.TCP.Daemon.Handlers.Interfaces;
 
 namespace Parcs.TCP.Daemon.Services.Interfaces

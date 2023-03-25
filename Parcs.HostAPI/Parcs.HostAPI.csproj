@@ -17,7 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Parcs.Core\Parcs.Core.csproj" />
+    <ProjectReference Include="..\Parcs.Common\Parcs.Shared.csproj" />
   </ItemGroup>
 
 </Project>

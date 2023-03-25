@@ -1,4 +1,4 @@
-﻿using Parcs.Core;
+﻿using Parcs.Net;
 
 namespace Parcs.Modules.Sample
 {
@@ -13,7 +13,7 @@ namespace Parcs.Modules.Sample
             Console.WriteLine(await channel.ReadLongAsync(cancellationToken));
             Console.WriteLine(await channel.ReadIntAsync(cancellationToken));
 
-            var job = await channel.ReadObjectAsync<Job>(cancellationToken);
+            dynamic job = await channel.ReadObjectAsync<object>(cancellationToken);
             Console.WriteLine("JOB");
             Console.WriteLine(job.Id);
             Console.WriteLine(job.Status);

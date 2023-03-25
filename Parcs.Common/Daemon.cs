@@ -1,4 +1,4 @@
-﻿namespace Parcs.Core
+﻿namespace Parcs.Shared
 {
     public class Daemon
     {

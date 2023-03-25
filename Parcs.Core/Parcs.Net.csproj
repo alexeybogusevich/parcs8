@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net7.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <Title>Parcs.Net</Title>
+    <Description>PARCS for .NET</Description>
+    <Copyright>Taras Shevchenko National University of Kyiv</Copyright>
+    <PackageId>Parcs.Net</PackageId>
+    <Version>0.0.2</Version>
+    <PackageTags>parallel;distributed</PackageTags>
+    <Authors>Oleksii Bohusevych</Authors>
+    <Company>Taras Shevchenko National University of Kyiv</Company>
+  </PropertyGroup>
+
+</Project>

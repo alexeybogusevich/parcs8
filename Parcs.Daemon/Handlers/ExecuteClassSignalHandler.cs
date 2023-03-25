@@ -1,5 +1,5 @@
-﻿using Parcs.Core;
-using Parcs.Modules.Sample;
+﻿using Parcs.Modules.Sample;
+using Parcs.Net;
 using Parcs.TCP.Daemon.Handlers.Interfaces;
 
 namespace Parcs.TCP.Daemon.Handlers

@@ -1,4 +1,4 @@
-﻿using Parcs.Core;
+﻿using Parcs.Net;
 using System.Text;
 
 namespace Parcs.Modules.Sample
@@ -37,7 +37,6 @@ namespace Parcs.Modules.Sample
                 var job = new
                 {
                     StartDateUtc = DateTime.UtcNow,
-                    Status = JobStatus.InProgress,
                     CreateDateUtc = DateTime.UtcNow.AddDays(-1),
                     EndDateUtc = DateTime.UtcNow.AddDays(1),
                     Id = Guid.NewGuid(),

@@ -1,8 +1,9 @@
-﻿using System.Net.Sockets;
+﻿using Parcs.Net;
+using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
 
-namespace Parcs.Core
+namespace Parcs.Shared
 {
     public sealed class Channel : IChannel, IDisposable
     {
