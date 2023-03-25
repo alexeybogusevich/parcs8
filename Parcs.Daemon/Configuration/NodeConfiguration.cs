@@ -1,4 +1,4 @@
-﻿namespace Parcs.TCP.Daemon.Configuration
+﻿namespace Parcs.Daemon.Configuration
 {
     public sealed class NodeConfiguration
     {

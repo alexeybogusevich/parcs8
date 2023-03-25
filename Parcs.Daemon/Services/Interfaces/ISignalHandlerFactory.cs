@@ -1,7 +1,7 @@
-﻿using Parcs.Net;
-using Parcs.TCP.Daemon.Handlers.Interfaces;
+﻿using Parcs.Daemon.Handlers.Interfaces;
+using Parcs.Net;
 
-namespace Parcs.TCP.Daemon.Services.Interfaces
+namespace Parcs.Daemon.Services.Interfaces
 {
     internal interface ISignalHandlerFactory
     {

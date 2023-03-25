@@ -1,9 +1,9 @@
-﻿using Parcs.Net;
-using Parcs.TCP.Daemon.Handlers.Interfaces;
+﻿using Parcs.Daemon.Handlers.Interfaces;
+using Parcs.Net;
 
 namespace Parcs.Daemon.Handlers
 {
-    internal class DefaultSignalHandler : ISignalHandler
+    public sealed class DefaultSignalHandler : ISignalHandler
     {
         public Task HandleAsync(IChannel channel, CancellationToken cancellationToken = default)
         {

@@ -1,11 +1,11 @@
 ﻿using Parcs.Net;
 using Parcs.Daemon.Handlers;
 using Parcs.TCP.Daemon.Handlers;
-using Parcs.TCP.Daemon.Handlers.Interfaces;
-using Parcs.TCP.Daemon.Services.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
+using Parcs.Daemon.Services.Interfaces;
+using Parcs.Daemon.Handlers.Interfaces;
 
-namespace Parcs.TCP.Daemon.Services
+namespace Parcs.Daemon.Services
 {
     internal sealed class SignalHandlerFactory : ISignalHandlerFactory
     {

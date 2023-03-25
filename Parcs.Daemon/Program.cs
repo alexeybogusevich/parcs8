@@ -1,9 +1,9 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Parcs.Daemon.Configuration;
 using Parcs.Daemon.Extensions;
+using Parcs.Daemon.Services.Interfaces;
 using Parcs.Shared.Models;
-using Parcs.TCP.Daemon.Configuration;
-using Parcs.TCP.Daemon.Services.Interfaces;
 using System.Net;
 using System.Net.Sockets;
 

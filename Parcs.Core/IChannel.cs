@@ -9,6 +9,7 @@
         ValueTask WriteDataAsync(long data, CancellationToken cancellationToken = default);
         ValueTask WriteDataAsync(double data, CancellationToken cancellationToken = default);
         ValueTask WriteDataAsync(string data, CancellationToken cancellationToken = default);
+        ValueTask WriteDataAsync(Guid data, CancellationToken cancellationToken = default);
         ValueTask WriteObjectAsync<T>(T @object, CancellationToken cancellationToken = default);
         Task<Signal> ReadSignalAsync(CancellationToken cancellationToken = default);
         Task<bool> ReadBooleanAsync(CancellationToken cancellationToken = default);
@@ -17,6 +18,7 @@
         Task<long> ReadLongAsync(CancellationToken cancellationToken = default);
         Task<double> ReadDoubleAsync(CancellationToken cancellationToken = default);
         Task<string> ReadStringAsync(CancellationToken cancellationToken = default);
+        Task<Guid> ReadGuidAsync(CancellationToken cancellationToken = default);
         Task<T> ReadObjectAsync<T>(CancellationToken cancellationToken = default);
     }
 }

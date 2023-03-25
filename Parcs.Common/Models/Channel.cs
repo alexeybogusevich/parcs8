@@ -56,6 +56,13 @@ namespace Parcs.Shared.Models
             return BitConverter.ToInt64(buffer);
         }
 
+        public async Task<Guid> ReadGuidAsync(CancellationToken cancellationToken = default)
+        {
+            var size = sizeof(long);
+            var buffer = await TryReceiveAsync(size, cancellationToken);
+            return new Guid(buffer);
+        }
+
         public async Task<T> ReadObjectAsync<T>(CancellationToken cancellationToken = default)
         {
             var size = await ReadIntAsync(cancellationToken);
@@ -112,6 +119,12 @@ namespace Parcs.Shared.Models
             var bytes = Encoding.UTF8.GetBytes(data);
             await WriteDataAsync(bytes.Length, cancellationToken);
             await _networkStream.WriteAsync(bytes, cancellationToken);
+        }
+
+        public ValueTask WriteDataAsync(Guid data, CancellationToken cancellationToken = default)
+        {
+            var bytes = data.ToByteArray();
+            return _networkStream.WriteAsync(bytes, cancellationToken);
         }
 
         public async ValueTask WriteObjectAsync<T>(T @object, CancellationToken cancellationToken = default)

@@ -1,6 +1,6 @@
 ﻿using Parcs.Net;
 
-namespace Parcs.TCP.Daemon.Handlers.Interfaces
+namespace Parcs.Daemon.Handlers.Interfaces
 {
     internal interface ISignalHandler
     {

@@ -1,27 +1,43 @@
-﻿using Parcs.Modules.Sample;
+﻿using Parcs.Daemon.Handlers.Interfaces;
+using Parcs.Daemon.Services.Interfaces;
 using Parcs.Net;
 using Parcs.Shared.Services.Interfaces;
-using Parcs.TCP.Daemon.Handlers.Interfaces;
 
 namespace Parcs.TCP.Daemon.Handlers
 {
-    internal sealed class ExecuteClassSignalHandler : ISignalHandler
+    public sealed class ExecuteClassSignalHandler : ISignalHandler
     {
+        private readonly IJobContextAccessor _jobContextAccessor;
         private readonly ITypeLoader<IWorkerModule> _typeLoader;
 
-        public ExecuteClassSignalHandler(ITypeLoader<IWorkerModule> typeLoader)
+        public ExecuteClassSignalHandler(IJobContextAccessor jobContextAccessor, ITypeLoader<IWorkerModule> typeLoader)
         {
+            _jobContextAccessor = jobContextAccessor;
             _typeLoader = typeLoader;
         }
 
         public async Task HandleAsync(IChannel channel, CancellationToken cancellationToken = default)
         {
-            var assemblyName = await channel.ReadStringAsync(cancellationToken);
-            var className = await channel.ReadStringAsync(cancellationToken);
+            if (_jobContextAccessor.Current is null)
+            {
+                throw new ApplicationException("No job has been initialized.");
+            }
 
-            var sampleModule = new SampleWorkerModule();
+            var workerModulesPath = _jobContextAccessor.Current.WorkerModulesPath;
+            var jobCancellationToken = _jobContextAccessor.Current.CancellationTokenSource.Token;
 
-            await sampleModule.RunAsync(channel, cancellationToken);
+            try
+            {
+                var assemblyName = await channel.ReadStringAsync(jobCancellationToken);
+                var className = await channel.ReadStringAsync(jobCancellationToken);
+                var workerModule = _typeLoader.Load(workerModulesPath, assemblyName, className);
+
+                await workerModule.RunAsync(channel, jobCancellationToken);
+            }
+            finally
+            {
+                _jobContextAccessor.Reset();
+            }
         }
     }
 }

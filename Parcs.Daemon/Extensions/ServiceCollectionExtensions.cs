@@ -1,8 +1,8 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Parcs.Daemon.Handlers;
+using Parcs.Daemon.Services;
+using Parcs.Daemon.Services.Interfaces;
 using Parcs.TCP.Daemon.Handlers;
-using Parcs.TCP.Daemon.Services;
-using Parcs.TCP.Daemon.Services.Interfaces;
 
 namespace Parcs.Daemon.Extensions
 {
@@ -14,6 +14,7 @@ namespace Parcs.Daemon.Extensions
                 .AddSingleton<DefaultSignalHandler>()
                 .AddSingleton<ExecuteClassSignalHandler>()
                 .AddSingleton<InitializeJobSignalHandler>()
+                .AddSingleton<IJobContextAccessor, JobContextAccessor>()
                 .AddSingleton<ISignalHandlerFactory, SignalHandlerFactory>();
         }
     }

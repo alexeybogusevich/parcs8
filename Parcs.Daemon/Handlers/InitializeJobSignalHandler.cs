@@ -1,13 +1,24 @@
-﻿using Parcs.Net;
-using Parcs.TCP.Daemon.Handlers.Interfaces;
+﻿using Parcs.Daemon.Handlers.Interfaces;
+using Parcs.Daemon.Services.Interfaces;
+using Parcs.Net;
 
 namespace Parcs.Daemon.Handlers
 {
-    public class InitializeJobSignalHandler : ISignalHandler
+    public sealed class InitializeJobSignalHandler : ISignalHandler
     {
-        public Task HandleAsync(IChannel channel, CancellationToken cancellationToken = default)
+        private readonly IJobContextAccessor _jobContextAccessor;
+
+        public InitializeJobSignalHandler(IJobContextAccessor jobContextAccessor)
         {
-            throw new NotImplementedException();
+            _jobContextAccessor = jobContextAccessor;
+        }
+
+        public async Task HandleAsync(IChannel channel, CancellationToken cancellationToken = default)
+        {
+            var jobId = await channel.ReadGuidAsync(cancellationToken);
+            var workerModulesPath = await channel.ReadStringAsync(cancellationToken);
+            _jobContextAccessor.Current?.CancellationTokenSource.Cancel();
+            _jobContextAccessor.Set(jobId, workerModulesPath);
         }
     }
 }
