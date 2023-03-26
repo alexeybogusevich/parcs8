@@ -35,16 +35,19 @@ try
 
     var signalHandlerFactory = serviceProvider.GetRequiredService<ISignalHandlerFactory>();
 
-    for (;;)
+    for(;;)
     {
         Console.Write("Waiting for a connection... ");
 
         using var tcpClient = await tcpListener.AcceptTcpClientAsync();
         using var channel = new Channel(tcpClient.GetStream());
 
-        var signal = await channel.ReadSignalAsync();
-        var signalHandler = signalHandlerFactory.Create(signal);
-        await signalHandler.HandleAsync(channel);
+        for (;;)
+        {
+            var signal = await channel.ReadSignalAsync();
+            var signalHandler = signalHandlerFactory.Create(signal);
+            await signalHandler.HandleAsync(channel);
+        }
     }
 }
 finally
