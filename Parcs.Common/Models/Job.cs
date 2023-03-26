@@ -1,4 +1,5 @@
 ﻿using Parcs.Net;
+using System.Text;
 
 namespace Parcs.Shared.Models
 {
@@ -25,6 +26,8 @@ namespace Parcs.Shared.Models
 
         public Guid ModuleId { get; private set; }
 
+        public string ModuleName { get; private set; }
+
         public string AssemblyName { get; private set; }
 
         public string ClassName { get; private set; }
@@ -41,7 +44,7 @@ namespace Parcs.Shared.Models
 
         public string ErrorMessage { get; private set; }
 
-        public IEnumerable<Daemon> ExecutedOnDaemons { get; private set; }
+        public IReadOnlyCollection<Daemon> ExecutedOnDaemons => _executedOnDaemons.AsReadOnly();
 
         public TimeSpan? ExecutionTime => EndDateUtc is null ? default : EndDateUtc - StartDateUtc;
 
@@ -100,6 +103,25 @@ namespace Parcs.Shared.Models
         public void SetMainModule(IMainModule mainModule)
         {
             MainModule = mainModule;
+            ModuleName = mainModule.Name;
+        }
+
+        public override string ToString()
+        {
+            return new StringBuilder()
+                .AppendLine($"Job Id: {Id}")
+                .AppendLine($"Module Id: {ModuleId}")
+                .AppendLine($"Main module name: {ModuleName}")
+                .AppendLine($"Main module assembly: {AssemblyName}")
+                .AppendLine($"Main module class: {ClassName}")
+                .AppendLine($"Status: {Status}")
+                .AppendLine($"Created: {CreateDateUtc}")
+                .AppendLine($"Started: {StartDateUtc}")
+                .AppendLine($"Finished: {EndDateUtc}")
+                .AppendLine($"Execution time: {ExecutionTime}")
+                .AppendLine($"Execution nodes number: {ExecutedOnDaemons.Count}")
+                .AppendLine($"Error message: {ErrorMessage}")
+                .ToString();
         }
 
         private void OnFinished()

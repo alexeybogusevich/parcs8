@@ -26,6 +26,7 @@ namespace Parcs.HostAPI.Extensions
         {
             return services
                 .Configure<JobsConfiguration>(configuration.GetSection(JobsConfiguration.SectionName))
+                .Configure<JobOutputConfiguration>(configuration.GetSection(JobOutputConfiguration.SectionName))
                 .Configure<FileSystemConfiguration>(configuration.GetSection(FileSystemConfiguration.SectionName))
                 .Configure<DefaultDaemonConfiguration>(configuration.GetSection(DefaultDaemonConfiguration.SectionName));
         }

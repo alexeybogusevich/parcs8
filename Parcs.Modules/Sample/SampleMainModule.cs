@@ -5,6 +5,8 @@ namespace Parcs.Modules.Sample
 {
     public class SampleMainModule : IMainModule
     {
+        public string Name => "Sample main module";
+
         public async Task RunAsync(IHostInfo hostInfo, IInputReader inputReader, IOutputWriter outputWriter, CancellationToken cancellationToken = default)
         {
             foreach (var filename in inputReader.GetFilenames())
@@ -21,8 +23,8 @@ namespace Parcs.Modules.Sample
             for (int i = 0; i < pointsNumber; ++i)
             {
                 points[i] = await hostInfo.CreatePointAsync();
-                channels[i] = points[i].CreateChannel();
-                await channels[i].ExecuteClassAsync("Some funny assembly", "Some funny class :)");
+                channels[i] = await points[i].CreateChannelAsync();
+                await channels[i].ExecuteClassAsync("Parcs.Modules", "SampleWorkerModule");
             }
 
             for (int i = 0; i < pointsNumber; ++i)

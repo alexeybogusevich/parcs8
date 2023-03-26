@@ -1,27 +1,52 @@
 ﻿using MediatR;
+using Microsoft.Extensions.Options;
+using Parcs.HostAPI.Configuration;
 using Parcs.HostAPI.Models.Enums;
 using Parcs.HostAPI.Models.Queries;
 using Parcs.HostAPI.Models.Responses;
 using Parcs.HostAPI.Services.Interfaces;
+using System.Text;
 
 namespace Parcs.HostAPI.Handlers
 {
     public class GetJobOutputQueryHandler : IRequestHandler<GetJobOutputQuery, GetJobOutputQueryResponse>
     {
+        private readonly IJobManager _jobManager;
         private readonly IJobDirectoryPathBuilder _jobDirectoryPathBuilder;
+        private readonly IInputOutputFactory _inputOutputFactory;
         private readonly IFileArchiver _fileArchiver;
 
-        public GetJobOutputQueryHandler(IJobDirectoryPathBuilder jobDirectoryPathBuilder, IFileArchiver fileArchiver)
+        private readonly JobOutputConfiguration _configuration;
+
+        public GetJobOutputQueryHandler(
+            IJobManager jobManager,
+            IJobDirectoryPathBuilder jobDirectoryPathBuilder,
+            IInputOutputFactory inputOutputFactory,
+            IFileArchiver fileArchiver,
+            IOptions<JobOutputConfiguration> options)
         {
+            _jobManager = jobManager;
             _jobDirectoryPathBuilder = jobDirectoryPathBuilder;
+            _inputOutputFactory = inputOutputFactory;
             _fileArchiver = fileArchiver;
+            _configuration = options.Value;
         }
 
         public async Task<GetJobOutputQueryResponse> Handle(GetJobOutputQuery request, CancellationToken cancellationToken)
         {
-            var jobOutputDirectoryPath = _jobDirectoryPathBuilder.Build(request.JobId, JobDirectoryGroup.Output);
-            var archivedOutput = await _fileArchiver.ArchiveDirectoryAsync(jobOutputDirectoryPath, cancellationToken);
-            return new GetJobOutputQueryResponse(archivedOutput);
+            if (!_jobManager.TryGet(request.JobId, out var job))
+            {
+                throw new ArgumentException($"Job not found: {request.JobId}");
+            }
+
+            var jobSummary = job.ToString();
+            var outputWriter = _inputOutputFactory.CreateWriter(job.Id);
+            await outputWriter.WriteToFileAsync(Encoding.UTF8.GetBytes(jobSummary), _configuration.JobInfoFilename, cancellationToken);
+
+            var outputDirectoryPath = _jobDirectoryPathBuilder.Build(job.Id, JobDirectoryGroup.Output);
+            var outputDirectoryArchive = await _fileArchiver.ArchiveDirectoryAsync(outputDirectoryPath, cancellationToken);
+
+            return new GetJobOutputQueryResponse(outputDirectoryArchive);
         }
     }
 }

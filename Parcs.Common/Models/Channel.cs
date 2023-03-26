@@ -58,7 +58,7 @@ namespace Parcs.Shared.Models
 
         public async Task<Guid> ReadGuidAsync(CancellationToken cancellationToken = default)
         {
-            var size = sizeof(long);
+            var size = await ReadIntAsync(cancellationToken);
             var buffer = await TryReceiveAsync(size, cancellationToken);
             return new Guid(buffer);
         }
@@ -121,10 +121,11 @@ namespace Parcs.Shared.Models
             await _networkStream.WriteAsync(bytes, cancellationToken);
         }
 
-        public ValueTask WriteDataAsync(Guid data, CancellationToken cancellationToken = default)
+        public async ValueTask WriteDataAsync(Guid data, CancellationToken cancellationToken = default)
         {
             var bytes = data.ToByteArray();
-            return _networkStream.WriteAsync(bytes, cancellationToken);
+            await WriteDataAsync(bytes.Length, cancellationToken);
+            await _networkStream.WriteAsync(bytes, cancellationToken);
         }
 
         public async ValueTask WriteObjectAsync<T>(T @object, CancellationToken cancellationToken = default)

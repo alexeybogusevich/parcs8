@@ -7,12 +7,14 @@ namespace Parcs.HostAPI.Models.Domain
 {
     internal sealed class HostInfo : IHostInfo
     {
-        private readonly Queue<Daemon> _availableDaemons;
         private readonly Job _job;
+        private readonly string _workerModulesPath;
+        private readonly Queue<Daemon> _availableDaemons;
 
-        public HostInfo(Job job, IEnumerable<Daemon> availableDaemons)
+        public HostInfo(Job job, IEnumerable<Daemon> availableDaemons, string workerModulesPath)
         {
             _job = job;
+            _workerModulesPath = workerModulesPath;
             _availableDaemons = new Queue<Daemon>(availableDaemons);
         }
 
@@ -30,7 +32,7 @@ namespace Parcs.HostAPI.Models.Domain
             var tcpClient = new TcpClient();
             await tcpClient.ConnectAsync(daemon.HostUrl, daemon.Port);
 
-            return new Point(tcpClient);
+            return new Point(tcpClient, _job.Id, _workerModulesPath);
         }
     }
 }

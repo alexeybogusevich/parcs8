@@ -9,12 +9,17 @@ namespace Parcs.TCP.Host.Models
         private TcpClient _tcpClient;
         private Channel _createdChannel;
 
-        public Point(TcpClient tcpClient)
+        private readonly Guid _jobId;
+        private readonly string _workerModulesPath;
+
+        public Point(TcpClient tcpClient, Guid jobId, string workerModulesPath)
         {
             _tcpClient = tcpClient;
+            _jobId = jobId;
+            _workerModulesPath = workerModulesPath;
         }
 
-        public IChannel CreateChannel()
+        public async Task<IChannel> CreateChannelAsync(CancellationToken cancellationToken = default)
         {
             if (_createdChannel is not null)
             {
@@ -24,6 +29,10 @@ namespace Parcs.TCP.Host.Models
             var networkStream = _tcpClient.GetStream();
             _createdChannel = new Channel(networkStream);
 
+            await _createdChannel.WriteSignalAsync(Signal.InitializeJob, cancellationToken);
+            await _createdChannel.WriteDataAsync(_jobId, cancellationToken);
+            await _createdChannel.WriteDataAsync(_workerModulesPath, cancellationToken);
+
             return _createdChannel;
         }
 
@@ -31,10 +40,17 @@ namespace Parcs.TCP.Host.Models
 
         public void Dispose()
         {
-            _tcpClient.Dispose();
-            _tcpClient = null;
-            _createdChannel.Dispose();
-            _createdChannel = null;
+            if (_tcpClient is not null)
+            {
+                _tcpClient.Dispose();
+                _tcpClient = null;
+            }
+
+            if (_createdChannel is not null)
+            {
+                _createdChannel.Dispose();
+                _createdChannel = null;
+            }
         }
     }
 }

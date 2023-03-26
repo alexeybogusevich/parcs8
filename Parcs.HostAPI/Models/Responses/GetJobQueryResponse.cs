@@ -12,8 +12,6 @@ namespace Parcs.HostAPI.Models.Responses
 
         public DateTime? EndDateUtc { get; set; }
 
-        public double? Result { get; set; }
-
         public string ErrorMessage { get; set; }
     }
 }

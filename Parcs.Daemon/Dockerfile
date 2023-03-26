@@ -2,15 +2,14 @@
 
 FROM mcr.microsoft.com/dotnet/runtime:7.0 AS base
 WORKDIR /app
-EXPOSE 1111
 
 FROM mcr.microsoft.com/dotnet/sdk:7.0 AS build
 WORKDIR /src
-COPY ["Parcs.TCP.Daemon/Parcs.Daemon.csproj", "Parcs.TCP.Daemon/"]
-COPY ["Parcs.Core/Parcs.Core.csproj", "Parcs.Core/"]
-RUN dotnet restore "Parcs.TCP.Daemon/Parcs.Daemon.csproj"
+COPY ["Parcs.Daemon/Parcs.Daemon.csproj", "Parcs.Daemon/"]
+COPY ["Parcs.Common/Parcs.Shared.csproj", "Parcs.Common/"]
+RUN dotnet restore "Parcs.Daemon/Parcs.Daemon.csproj"
 COPY . .
-WORKDIR "/src/Parcs.TCP.Daemon"
+WORKDIR "/src/Parcs.Daemon"
 RUN dotnet build "Parcs.Daemon.csproj" -c Release -o /app/build
 
 FROM build AS publish

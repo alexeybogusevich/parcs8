@@ -18,7 +18,7 @@ namespace Parcs.Shared.Services
             if (!classes.Any())
             {
                 throw new ApplicationException(
-                    $"Can't find any type which implements {nameof(T)} in {assembly.FullName}.\n" +
+                    $"Can't find any type which implements {typeof(T).Name} in {assembly.FullName}.\n" +
                     $"Available types: {string.Join(",", assembly.GetTypes().Select(t => t.FullName))}");
             }
 
@@ -32,7 +32,7 @@ namespace Parcs.Shared.Services
             if (@class is null)
             {
                 throw new ApplicationException(
-                    $"The requested class {className} does not implement {nameof(T)} in {assembly.FullName}.\n" +
+                    $"The requested class {className} does not implement {typeof(T).Name} in {assembly.FullName}.\n" +
                     $"Found implementations: {string.Join(",", classes.Select(t => t.FullName))}");
             }
 

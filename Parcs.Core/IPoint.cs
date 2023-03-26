@@ -2,7 +2,7 @@
 {
     public interface IPoint
     {
-        IChannel CreateChannel();
+        Task<IChannel> CreateChannelAsync(CancellationToken cancellationToken = default);
         void Delete();
     }
 }
