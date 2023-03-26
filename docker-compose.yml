@@ -6,6 +6,10 @@ services:
     build:
       context: .
       dockerfile: Parcs.Daemon/Dockerfile
+    volumes:
+      - type: volume
+        source: parcs.storage
+        target: /var/lib/storage
 
   parcs.hostapi:
     image: ${DOCKER_REGISTRY-}parcshostapi
