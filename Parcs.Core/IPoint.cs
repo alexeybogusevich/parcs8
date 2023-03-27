@@ -3,6 +3,6 @@
     public interface IPoint
     {
         Task<IChannel> CreateChannelAsync(CancellationToken cancellationToken = default);
-        void Delete();
+        Task DeleteAsync();
     }
 }

@@ -5,12 +5,14 @@ using Parcs.Daemon.Services.Interfaces;
 using Parcs.Shared.Services.Interfaces;
 using Parcs.Shared.Services;
 using Parcs.TCP.Daemon.Handlers;
+using Microsoft.Extensions.Configuration;
+using Parcs.Daemon.Configuration;
 
 namespace Parcs.Daemon.Extensions
 {
-    public static class ServiceCollectionExtensions
+    public static class IServiceCollectionExtensions
     {
-        public static IServiceCollection ConfigureServices(this IServiceCollection services)
+        public static IServiceCollection AddApplicationServices(this IServiceCollection services)
         {
             return services
                 .AddSingleton<DefaultSignalHandler>()
@@ -19,6 +21,12 @@ namespace Parcs.Daemon.Extensions
                 .AddSingleton(typeof(ITypeLoader<>), typeof(TypeLoader<>))
                 .AddSingleton<IJobContextAccessor, JobContextAccessor>()
                 .AddSingleton<ISignalHandlerFactory, SignalHandlerFactory>();
+        }
+
+        public static IServiceCollection AddApplicationOptions(this IServiceCollection services, IConfiguration configuration)
+        {
+            return services
+                .Configure<NodeConfiguration>(configuration.GetSection(NodeConfiguration.SectionName));
         }
     }
 }

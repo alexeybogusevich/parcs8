@@ -47,7 +47,7 @@ namespace Parcs.Modules.Sample
 
             for (int i = 0; i < pointsNumber; ++i)
             {
-                points[i].Delete();
+                await points[i].DeleteAsync();
             }
         }
     }

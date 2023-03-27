@@ -36,7 +36,11 @@ namespace Parcs.TCP.Host.Models
             return _createdChannel;
         }
 
-        public void Delete() => Dispose();
+        public async Task DeleteAsync()
+        {
+            await _createdChannel.WriteSignalAsync(Signal.CloseConnection);
+            Dispose();
+        }
 
         public void Dispose()
         {
