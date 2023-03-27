@@ -20,6 +20,7 @@ namespace Parcs.Daemon.Services
         {
             return signal switch
             {
+                Signal.CancelJob => _serviceProvider.GetRequiredService<CancelJobSignalHandler>(),
                 Signal.InitializeJob => _serviceProvider.GetRequiredService<InitializeJobSignalHandler>(),
                 Signal.ExecuteClass => _serviceProvider.GetRequiredService<ExecuteClassSignalHandler>(),
                 _ => _serviceProvider.GetRequiredService<DefaultSignalHandler>(),

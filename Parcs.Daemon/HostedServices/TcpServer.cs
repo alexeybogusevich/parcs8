@@ -32,31 +32,36 @@ namespace Parcs.Daemon.HostedServices
 
             for (;;)
             {
-                _logger.LogInformation("Waiting for a connection... ");
+                _logger.LogInformation("Waiting for a connection...");
 
                 using var tcpClient = await _tcpListener.AcceptTcpClientAsync(cancellationToken);
                 using var channel = new Channel(tcpClient.GetStream());
 
-                for (;;)
+                await HandleConnectionAsync(channel, cancellationToken);
+            }
+        }
+
+        private async Task HandleConnectionAsync(Channel channel, CancellationToken cancellationToken)
+        {
+            for (;;)
+            {
+                try
                 {
-                    try
+                    var signal = await channel.ReadSignalAsync(cancellationToken);
+
+                    if (signal == Signal.CloseConnection)
                     {
-                        var signal = await channel.ReadSignalAsync(cancellationToken);
-
-                        if (signal == Signal.CloseConnection)
-                        {
-                            break;
-                        }
-
-                        var signalHandler = _signalHandlerFactory.Create(signal);
-
-                        await signalHandler.HandleAsync(channel, cancellationToken);
+                        return;
                     }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "Exception thrown: {Message}.", ex.Message);
-                        break;
-                    }
+
+                    var signalHandler = _signalHandlerFactory.Create(signal);
+
+                    await signalHandler.HandleAsync(channel, cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Exception thrown: {Message}.", ex.Message);
+                    return;
                 }
             }
         }

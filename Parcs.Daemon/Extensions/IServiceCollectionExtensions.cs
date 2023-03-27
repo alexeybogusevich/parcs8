@@ -15,6 +15,7 @@ namespace Parcs.Daemon.Extensions
         public static IServiceCollection AddApplicationServices(this IServiceCollection services)
         {
             return services
+                .AddSingleton<CancelJobSignalHandler>()
                 .AddSingleton<DefaultSignalHandler>()
                 .AddSingleton<ExecuteClassSignalHandler>()
                 .AddSingleton<InitializeJobSignalHandler>()
