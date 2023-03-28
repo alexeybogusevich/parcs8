@@ -34,7 +34,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Parcs.Common\Parcs.Shared.csproj" />
+    <ProjectReference Include="..\Parcs.Shared\Parcs.Shared.csproj" />
   </ItemGroup>
 
 </Project>

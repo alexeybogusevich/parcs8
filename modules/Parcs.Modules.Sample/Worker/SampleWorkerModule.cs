@@ -1,6 +1,6 @@
 ﻿using Parcs.Net;
 
-namespace Parcs.Modules.Sample
+namespace Parcs.Modules.Sample.Worker
 {
     public class SampleWorkerModule : IWorkerModule
     {

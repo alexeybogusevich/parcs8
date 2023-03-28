@@ -1,7 +1,7 @@
 ﻿using Parcs.Net;
 using System.Text;
 
-namespace Parcs.Modules.Sample
+namespace Parcs.Modules.Sample.Main
 {
     public class SampleMainModule : IMainModule
     {
@@ -24,7 +24,7 @@ namespace Parcs.Modules.Sample
             {
                 points[i] = await hostInfo.CreatePointAsync();
                 channels[i] = await points[i].CreateChannelAsync();
-                await channels[i].ExecuteClassAsync("Parcs.Modules", "SampleWorkerModule");
+                await channels[i].ExecuteClassAsync("Parcs.Modules.Sample", "SampleWorkerModule");
             }
 
             for (int i = 0; i < pointsNumber; ++i)
@@ -43,7 +43,7 @@ namespace Parcs.Modules.Sample
                 result += await channels[i].ReadDoubleAsync(cancellationToken);
             }
 
-            await outputWriter.WriteToFileAsync(Encoding.UTF8.GetBytes("Hello world!"), "test.txt",  cancellationToken);
+            await outputWriter.WriteToFileAsync(Encoding.UTF8.GetBytes("Hello world!"), "test.txt", cancellationToken);
 
             for (int i = 0; i < pointsNumber; ++i)
             {
