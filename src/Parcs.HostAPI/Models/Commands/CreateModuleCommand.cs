@@ -5,8 +5,8 @@ namespace Parcs.HostAPI.Models.Commands
 {
     public class CreateModuleCommand : IRequest<CreateModuleCommandResponse>
     {
-        public IEnumerable<IFormFile> MainModuleAssemblyFiles { get; set; }
+        public IEnumerable<IFormFile> HostBinaryFiles { get; set; }
 
-        public IEnumerable<IFormFile> WorkerModuleAssemblyFiles { get; set; }
+        public IEnumerable<IFormFile> WorkerBinaryFiles { get; set; }
     }
 }

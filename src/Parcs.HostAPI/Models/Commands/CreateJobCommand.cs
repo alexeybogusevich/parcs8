@@ -10,8 +10,8 @@ namespace Parcs.HostAPI.Models.Commands
         {
             ModuleId = jobRunCommand.ModuleId;
             InputFiles = jobRunCommand.InputFiles;
-            AssemblyName = jobRunCommand.AssemblyName;
-            ClassName = jobRunCommand.ClassName;
+            AssemblyName = jobRunCommand.MainModuleAssemblyName;
+            ClassName = jobRunCommand.MainModuleClassName;
         }
 
         public Guid ModuleId { get; set; }

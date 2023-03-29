@@ -11,7 +11,7 @@ namespace Parcs.HostAPI.Models.Commands
         }
 
         public CreateSynchronousJobRunCommand(CreateJobRunCommand baseCommand)
-            : base(baseCommand.ModuleId, baseCommand.AssemblyName, baseCommand.ClassName, baseCommand.InputFiles, baseCommand.Daemons)
+            : base(baseCommand.ModuleId, baseCommand.MainModuleAssemblyName, baseCommand.MainModuleClassName, baseCommand.InputFiles, baseCommand.Daemons)
         {
         }
     }

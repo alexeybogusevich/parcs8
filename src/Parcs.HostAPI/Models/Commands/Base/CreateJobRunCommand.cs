@@ -16,17 +16,17 @@ namespace Parcs.HostAPI.Models.Commands.Base
             IEnumerable<Daemon> daemons)
         {
             ModuleId = moduleId;
-            AssemblyName = assemblyName;
-            ClassName = className;
+            MainModuleAssemblyName = assemblyName;
+            MainModuleClassName = className;
             InputFiles = inputFiles;
             Daemons = daemons;
         }
 
         public Guid ModuleId { get; set; }
 
-        public string AssemblyName { get; set; }
+        public string MainModuleAssemblyName { get; set; }
 
-        public string ClassName { get; set; }
+        public string MainModuleClassName { get; set; }
 
         public IEnumerable<IFormFile> InputFiles { get; set; }
 

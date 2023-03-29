@@ -29,8 +29,8 @@ namespace Parcs.HostAPI.Handlers
             var mainModulesDirectoryPath = _moduleDirectoryPathBuilder.Build(moduleId, ModuleDirectoryGroup.Main);
             var workerModulesDirectoryPath = _moduleDirectoryPathBuilder.Build(moduleId, ModuleDirectoryGroup.Worker);
 
-            await _fileSaver.SaveAsync(request.MainModuleAssemblyFiles, mainModulesDirectoryPath, cancellationToken);
-            await _fileSaver.SaveAsync(request.WorkerModuleAssemblyFiles, workerModulesDirectoryPath, cancellationToken);
+            await _fileSaver.SaveAsync(request.HostBinaryFiles, mainModulesDirectoryPath, cancellationToken);
+            await _fileSaver.SaveAsync(request.WorkerBinaryFiles, workerModulesDirectoryPath, cancellationToken);
 
             return new CreateModuleCommandResponse(moduleId);
         }

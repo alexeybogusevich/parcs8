@@ -1,8 +1,11 @@
-﻿using Parcs.HostAPI.Background;
+﻿using FluentValidation;
+using FluentValidation.AspNetCore;
+using Parcs.HostAPI.Background;
 using Parcs.HostAPI.Configuration;
 using Parcs.HostAPI.Models.Commands;
 using Parcs.HostAPI.Services;
 using Parcs.HostAPI.Services.Interfaces;
+using Parcs.HostAPI.Validators;
 using Parcs.Shared.Services;
 using Parcs.Shared.Services.Interfaces;
 using System.Reflection;
@@ -49,6 +52,13 @@ namespace Parcs.HostAPI.Extensions
                 .AddSingleton<IFileEraser, FileEraser>()
                 .AddSingleton<IJobManager, JobManager>()
                 .AddMediatR(options => options.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
+        }
+
+        public static IServiceCollection AddValidation(this IServiceCollection services)
+        {
+            return services
+                .AddValidatorsFromAssemblyContaining<GetJobQueryValidator>()
+                .AddFluentValidationAutoValidation();
         }
     }
 }
