@@ -26,11 +26,11 @@ namespace Parcs.HostAPI.Handlers
         {
             var moduleId = _guidReference.NewGuid();
 
-            var mainModulesDirectoryPath = _moduleDirectoryPathBuilder.Build(moduleId, ModuleDirectoryGroup.Main);
-            var workerModulesDirectoryPath = _moduleDirectoryPathBuilder.Build(moduleId, ModuleDirectoryGroup.Worker);
+            var hostBinariesDirectoryPath = _moduleDirectoryPathBuilder.Build(moduleId, ModuleDirectoryGroup.Main);
+            var workerBinariesDirectoryPath = _moduleDirectoryPathBuilder.Build(moduleId, ModuleDirectoryGroup.Worker);
 
-            await _fileSaver.SaveAsync(request.HostBinaryFiles, mainModulesDirectoryPath, cancellationToken);
-            await _fileSaver.SaveAsync(request.WorkerBinaryFiles, workerModulesDirectoryPath, cancellationToken);
+            await _fileSaver.SaveAsync(request.HostBinaryFiles, hostBinariesDirectoryPath, cancellationToken);
+            await _fileSaver.SaveAsync(request.WorkerBinaryFiles, workerBinariesDirectoryPath, cancellationToken);
 
             return new CreateModuleCommandResponse(moduleId);
         }

@@ -2,7 +2,7 @@
 using Parcs.HostAPI.Models.Commands;
 using Parcs.HostAPI.Services.Interfaces;
 
-namespace Parcs.HostAPI.Validators
+namespace Parcs.HostAPI.Pipeline.Validators
 {
     public class CreateAsynchronousJobRunCommandValidator : AbstractValidator<CreateAsynchronousJobRunCommand>
     {
