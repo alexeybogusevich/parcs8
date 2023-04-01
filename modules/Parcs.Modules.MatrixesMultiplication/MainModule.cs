@@ -8,16 +8,17 @@ namespace Parcs.Modules.MatrixesMultiplication
     {
         public string Name => "Main Matrixes Multiplication Module";
 
-        public async Task RunAsync(IHostInfo hostInfo, IInputReader inputReader, IOutputWriter outputWriter)
+        public async Task RunAsync(IReadOnlyDictionary<string, string> arguments, IHostInfo hostInfo, CancellationToken cancellationToken = default)
         {
             Matrix a, b;
 
-            var files = inputReader.GetFilenames().ToList();
+            _ = arguments.TryGetValue("first-file", out var filenameA);
+            _ = arguments.TryGetValue("second-file", out var filenameB);
 
             try
             {
-                a = Matrix.LoadFromStream(inputReader.GetFileStreamForFile(files[0]));
-                b = Matrix.LoadFromStream(inputReader.GetFileStreamForFile(files[1]));
+                a = Matrix.LoadFromStream(hostInfo.GetInputReader().GetFileStreamForFile(filenameA));
+                b = Matrix.LoadFromStream(hostInfo.GetInputReader().GetFileStreamForFile(filenameB));
             }
             catch (FileNotFoundException ex)
             {
@@ -113,7 +114,7 @@ namespace Parcs.Modules.MatrixesMultiplication
                     return;
             }
 
-            await SaveMatrixAsync(resMatrix, outputWriter);
+            await SaveMatrixAsync(resMatrix, hostInfo.GetOutputWriter());
 
             for (int i = 0; i < pointsNumber; ++i)
             {

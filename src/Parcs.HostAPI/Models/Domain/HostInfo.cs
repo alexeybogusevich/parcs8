@@ -9,16 +9,29 @@ namespace Parcs.HostAPI.Models.Domain
     {
         private readonly Job _job;
         private readonly string _workerModulesPath;
+        private readonly IInputReader _inputReader;
+        private readonly IOutputWriter _outputWriter;
         private readonly Queue<Daemon> _availableDaemons;
 
-        public HostInfo(Job job, IEnumerable<Daemon> availableDaemons, string workerModulesPath)
+        public HostInfo(
+            Job job,
+            IEnumerable<Daemon> availableDaemons,
+            string workerModulesPath,
+            IInputReader inputReader,
+            IOutputWriter outputWriter)
         {
             _job = job;
             _workerModulesPath = workerModulesPath;
+            _inputReader = inputReader;
+            _outputWriter = outputWriter;
             _availableDaemons = new Queue<Daemon>(availableDaemons);
         }
 
         public int AvailablePointsNumber => _availableDaemons.Count;
+
+        public IInputReader GetInputReader() => _inputReader;
+
+        public IOutputWriter GetOutputWriter() => _outputWriter;
 
         public async Task<IPoint> CreatePointAsync()
         {

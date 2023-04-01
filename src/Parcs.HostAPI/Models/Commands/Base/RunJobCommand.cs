@@ -1,6 +1,4 @@
-﻿using Parcs.Shared.Models;
-
-namespace Parcs.HostAPI.Models.Commands.Base
+﻿namespace Parcs.HostAPI.Models.Commands.Base
 {
     public class RunJobCommand
     {
@@ -8,14 +6,17 @@ namespace Parcs.HostAPI.Models.Commands.Base
         {
         }
 
-        public RunJobCommand(Guid jobId, IEnumerable<Daemon> daemons)
+        public RunJobCommand(Guid jobId, string argumentsJsonDictionary, int? numberOfDaemons)
         {
             JobId = jobId;
-            Daemons = daemons;
+            ArgumentsJsonDictionary = argumentsJsonDictionary;
+            NumberOfDaemons = numberOfDaemons;
         }
 
         public Guid JobId { get; set; }
 
-        public IEnumerable<Daemon> Daemons { get; set; }
+        public string ArgumentsJsonDictionary { get; set; }
+
+        public int? NumberOfDaemons { get; set; }
     }
 }

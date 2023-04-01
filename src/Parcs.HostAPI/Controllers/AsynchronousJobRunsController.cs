@@ -25,7 +25,7 @@ namespace Parcs.HostAPI.Controllers
             var createJobCommand = new CreateJobCommand(command);
             var createJobCommandResponse = await _mediator.Send(createJobCommand, cancellationToken);
 
-            var runJobCommand = new RunJobCommand(createJobCommandResponse.JobId, command.Daemons);
+            var runJobCommand = new RunJobCommand(createJobCommandResponse.JobId, command.ArgumentsJsonDictionary, command.NumberOfDaemons);
             var runJobAsynchronouslyCommand = new RunJobAsynchronouslyCommand(runJobCommand, command.CallbackUri);
             await _mediator.Send(runJobAsynchronouslyCommand, cancellationToken);
 

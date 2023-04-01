@@ -8,47 +8,45 @@ namespace Parcs.HostAPI.Handlers
     public class RunJobSynchronouslyCommandHandler : IRequestHandler<RunJobSynchronouslyCommand, RunJobSynchronouslyCommandResponse>
     {
         private readonly IHostInfoFactory _hostInfoFactory;
-        private readonly IInputOutputFactory _inputOutputFactory;
         private readonly IMainModuleLoader _mainModuleLoader;
         private readonly IJobManager _jobManager;
         private readonly IDaemonSelector _daemonSelector;
+        private readonly IJsonDictionaryParser _jsonDictionaryParser;
 
         public RunJobSynchronouslyCommandHandler(
             IHostInfoFactory hostInfoFactory,
-            IInputOutputFactory inputOutputFactory,
             IMainModuleLoader mainModuleLoader,
             IJobManager jobManager,
-            IDaemonSelector daemonSelector)
+            IDaemonSelector daemonSelector,
+            IJsonDictionaryParser jsonDictionaryParser)
         {
             _hostInfoFactory = hostInfoFactory;
-            _inputOutputFactory = inputOutputFactory;
             _mainModuleLoader = mainModuleLoader;
             _jobManager = jobManager;
             _daemonSelector = daemonSelector;
+            _jsonDictionaryParser = jsonDictionaryParser;
         }
 
-        public async Task<RunJobSynchronouslyCommandResponse> Handle(RunJobSynchronouslyCommand request, CancellationToken cancellationToken)
+        public async Task<RunJobSynchronouslyCommandResponse> Handle(RunJobSynchronouslyCommand command, CancellationToken cancellationToken)
         {
-            if (!_jobManager.TryGet(request.JobId, out var job))
+            if (!_jobManager.TryGet(command.JobId, out var job))
             {
-                throw new ArgumentException($"Job not found: {request.JobId}");
+                throw new ArgumentException($"Job not found: {command.JobId}");
             }
 
-            var availableDaemons = _daemonSelector.Select(request.Daemons);
-            
+            var arguments = _jsonDictionaryParser.Parse(command.ArgumentsJsonDictionary);
+            var availableDaemons = _daemonSelector.Select(command.NumberOfDaemons);
             var hostInfo = _hostInfoFactory.Create(job, availableDaemons);
-            var inputReader = _inputOutputFactory.CreateReader(job);
-            var outputWriter = _inputOutputFactory.CreateWriter(job);
 
             try
             {
                 var mainModule = job.MainModule ?? _mainModuleLoader.Load(job.ModuleId, job.AssemblyName, job.ClassName);
 
                 job.Start();
-                await mainModule.RunAsync(hostInfo, inputReader, outputWriter);
+                await mainModule.RunAsync(arguments, hostInfo, job.CancellationToken);
                 job.Finish();
             }
-            catch (Exception ex) when (ex is not OperationCanceledException)
+            catch (Exception ex) when (ex is not TaskCanceledException)
             {
                 job.Fail(ex.Message);
             }

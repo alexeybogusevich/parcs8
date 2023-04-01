@@ -1,6 +1,4 @@
-﻿using Parcs.Shared.Models;
-
-namespace Parcs.HostAPI.Models.Commands.Base
+﻿namespace Parcs.HostAPI.Models.Commands.Base
 {
     public class CreateJobRunCommand
     {
@@ -13,13 +11,15 @@ namespace Parcs.HostAPI.Models.Commands.Base
             string assemblyName,
             string className,
             IEnumerable<IFormFile> inputFiles,
-            IEnumerable<Daemon> daemons)
+            string argumentsJsonDictionary,
+            int? numberOfDaemons)
         {
             ModuleId = moduleId;
             MainModuleAssemblyName = assemblyName;
             MainModuleClassName = className;
             InputFiles = inputFiles;
-            Daemons = daemons;
+            ArgumentsJsonDictionary = argumentsJsonDictionary;
+            NumberOfDaemons = numberOfDaemons;
         }
 
         public Guid ModuleId { get; set; }
@@ -30,6 +30,8 @@ namespace Parcs.HostAPI.Models.Commands.Base
 
         public IEnumerable<IFormFile> InputFiles { get; set; }
 
-        public IEnumerable<Daemon> Daemons { get; set; }
+        public string ArgumentsJsonDictionary { get; set; }
+
+        public int? NumberOfDaemons { get; set; }
     }
 }

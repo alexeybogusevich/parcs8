@@ -2,6 +2,6 @@
 {
     public interface IMainModule : IModule
     {
-        Task RunAsync(IHostInfo hostInfo, IInputReader inputReader, IOutputWriter outputWriter);
+        Task RunAsync(IReadOnlyDictionary<string, string> arguments, IHostInfo hostInfo, CancellationToken cancellationToken = default);
     }
 }

@@ -7,28 +7,25 @@ namespace Parcs.HostAPI.Services
 {
     public sealed class DaemonSelector : IDaemonSelector
     {
-        private readonly DefaultDaemonConfiguration _defaultDaemonConfiguration;
+        private readonly DaemonsConfiguration _daemonsConfiguration;
 
-        public DaemonSelector(IOptions<DefaultDaemonConfiguration> options)
+        public DaemonSelector(IOptions<DaemonsConfiguration> options)
         {
-            _defaultDaemonConfiguration = options.Value;
+            _daemonsConfiguration = options.Value;
         }
 
-        public IEnumerable<Daemon> Select(IEnumerable<Daemon> suppliedDaemons = null)
+        public IEnumerable<Daemon> Select(int? requestedNumber)
         {
-            if (suppliedDaemons != null && suppliedDaemons.Any())
+            requestedNumber ??= 1;
+
+            var actualNumber = _daemonsConfiguration.PreconfiguredInstances.Count();
+
+            if (requestedNumber > actualNumber)
             {
-                return suppliedDaemons;
+                throw new ArgumentException($"Not enough daemons ({actualNumber}) to satisfy the request {requestedNumber}.");
             }
 
-            return new List<Daemon>
-            {
-                new Daemon
-                {
-                    HostUrl = _defaultDaemonConfiguration.HostUrl,
-                    Port = _defaultDaemonConfiguration.Port,
-                }
-            };
+            return _daemonsConfiguration.PreconfiguredInstances;
         }
     }
 }

@@ -7,7 +7,7 @@ namespace Parcs.Modules.Sample
     {
         public string Name => "Sample worker module";
 
-        public async Task RunAsync(IChannel channel)
+        public async Task RunAsync(IChannel channel, CancellationToken cancellationToken = default)
         {
             Console.WriteLine(await channel.ReadDoubleAsync());
             Console.WriteLine(await channel.ReadBooleanAsync());

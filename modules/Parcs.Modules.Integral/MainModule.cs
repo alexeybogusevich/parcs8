@@ -6,7 +6,7 @@ namespace Parcs.Modules.Integral
     {
         public string Name => "Main Integral Module";
 
-        public async Task RunAsync(IHostInfo hostInfo, IInputReader inputReader, IOutputWriter outputWriter)
+        public async Task RunAsync(IReadOnlyDictionary<string, string> arguments, IHostInfo hostInfo, CancellationToken cancellationToken = default)
         {
             double a = 0;
             double b = Math.PI / 2;
@@ -43,7 +43,7 @@ namespace Parcs.Modules.Integral
 
             Console.WriteLine("Result found: res = {0}, time = {1}", result, Math.Round((DateTime.Now - time).TotalSeconds, 3));
 
-            await outputWriter.WriteToFileAsync(BitConverter.GetBytes(result), "result.txt");
+            await hostInfo.GetOutputWriter().WriteToFileAsync(BitConverter.GetBytes(result), "result.txt");
 
             for (int i = 0; i < pointsNumber; ++i)
             {

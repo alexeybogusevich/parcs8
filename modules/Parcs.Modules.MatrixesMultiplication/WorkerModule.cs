@@ -7,12 +7,12 @@ namespace Parcs.Modules.MatrixesMultiplication
     {
         public string Name => "Worker Matrixes Multiplication Module";
 
-        public async Task RunAsync(IChannel channel)
+        public async Task RunAsync(IChannel channel, CancellationToken cancellationToken = default)
         {
             var matrixA = await channel.ReadObjectAsync<Matrix>();
             var matrixB = await channel.ReadObjectAsync<Matrix>();
 
-            var matrixAB = matrixA.MultiplyBy(matrixB);
+            var matrixAB = matrixA.MultiplyBy(matrixB, cancellationToken);
 
             await channel.WriteObjectAsync(matrixAB);
         }

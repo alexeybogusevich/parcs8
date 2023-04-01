@@ -31,7 +31,7 @@ namespace Parcs.HostAPI.Extensions
                 .Configure<JobsConfiguration>(configuration.GetSection(JobsConfiguration.SectionName))
                 .Configure<JobOutputConfiguration>(configuration.GetSection(JobOutputConfiguration.SectionName))
                 .Configure<FileSystemConfiguration>(configuration.GetSection(FileSystemConfiguration.SectionName))
-                .Configure<DefaultDaemonConfiguration>(configuration.GetSection(DefaultDaemonConfiguration.SectionName));
+                .Configure<DaemonsConfiguration>(configuration.GetSection(DaemonsConfiguration.SectionName));
         }
 
         public static IServiceCollection AddApplicationServices(this IServiceCollection services)
@@ -44,6 +44,7 @@ namespace Parcs.HostAPI.Extensions
                 .AddScoped<IJobCompletionNotifier, JobCompletionNotifier>()
                 .AddScoped(typeof(ITypeLoader<>), typeof(TypeLoader<>))
                 .AddScoped<IMainModuleLoader, MainModuleLoader>()
+                .AddScoped<IJsonDictionaryParser, JsonDictionaryParser>()
                 .AddSingleton<IJobDirectoryPathBuilder, JobDirectoryPathBuilder>()
                 .AddSingleton<IModuleDirectoryPathBuilder, ModuleDirectoryPathBuilder>()
                 .AddSingleton<IFileArchiver, FileArchiver>()

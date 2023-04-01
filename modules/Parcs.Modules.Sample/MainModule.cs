@@ -8,13 +8,20 @@ namespace Parcs.Modules.Sample
     {
         public string Name => "Sample main module";
 
-        public async Task RunAsync(IHostInfo hostInfo, IInputReader inputReader, IOutputWriter outputWriter)
+        public async Task RunAsync(IReadOnlyDictionary<string, string> arguments, IHostInfo hostInfo, CancellationToken cancellationToken = default)
         {
+            if (arguments.TryGetValue("sample-argument", out var sampleArgument))
+            {
+                Console.WriteLine(sampleArgument);
+            }
+
+            var inputReader = hostInfo.GetInputReader();
+
             foreach (var filename in inputReader.GetFilenames())
             {
                 await using var fileStream = inputReader.GetFileStreamForFile(filename);
                 using var streamReader = new StreamReader(fileStream);
-                Console.WriteLine(await streamReader.ReadToEndAsync());
+                Console.WriteLine(await streamReader.ReadToEndAsync(cancellationToken));
             }
 
             var pointsNumber = hostInfo.AvailablePointsNumber;
@@ -45,6 +52,7 @@ namespace Parcs.Modules.Sample
                 result += await channels[i].ReadDoubleAsync();
             }
 
+            var outputWriter = hostInfo.GetOutputWriter();
             await outputWriter.WriteToFileAsync(Encoding.UTF8.GetBytes("Hello world!"), "test.txt");
 
             for (int i = 0; i < pointsNumber; ++i)
