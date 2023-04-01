@@ -120,7 +120,7 @@ namespace Parcs.Shared.Models
                 .AppendLine($"Finished: {EndDateUtc}")
                 .AppendLine($"Execution time: {ExecutionTime}")
                 .AppendLine($"Execution nodes number: {ExecutedOnDaemons.Count}")
-                .AppendLine($"Error message: {ErrorMessage}")
+                .AppendLine(ErrorMessage is null ? null : $"Error message: {ErrorMessage}")
                 .ToString();
         }
 

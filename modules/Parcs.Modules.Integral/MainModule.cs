@@ -43,6 +43,8 @@ namespace Parcs.Modules.Integral
 
             Console.WriteLine("Result found: res = {0}, time = {1}", result, Math.Round((DateTime.Now - time).TotalSeconds, 3));
 
+            await outputWriter.WriteToFileAsync(BitConverter.GetBytes(result), "result.txt", cancellationToken);
+
             for (int i = 0; i < pointsNumber; ++i)
             {
                 await points[i].DeleteAsync();

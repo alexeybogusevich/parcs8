@@ -9,12 +9,12 @@ namespace Parcs.Modules.MatrixesMultiplication
 
         public async Task RunAsync(IChannel channel, CancellationToken cancellationToken = default)
         {
-            var matrixA = await channel.ReadObjectAsync<Matrix>();
-            var matrixB = await channel.ReadObjectAsync<Matrix>();
+            var matrixA = await channel.ReadObjectAsync<Matrix>(cancellationToken);
+            var matrixB = await channel.ReadObjectAsync<Matrix>(cancellationToken);
 
             var matrixAB = matrixA.MultiplyBy(matrixB, cancellationToken);
 
-            await channel.WriteObjectAsync(matrixAB);
+            await channel.WriteObjectAsync(matrixAB, cancellationToken);
         }
     }
 }

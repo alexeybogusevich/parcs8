@@ -8,15 +8,15 @@ namespace Parcs.Modules.Integral
 
         public async Task RunAsync(IChannel channel, CancellationToken cancellationToken = default)
         {
-            double a = await channel.ReadDoubleAsync();
-            double b = await channel.ReadDoubleAsync();
-            double h = await channel.ReadDoubleAsync();
+            double a = await channel.ReadDoubleAsync(cancellationToken);
+            double b = await channel.ReadDoubleAsync(cancellationToken);
+            double h = await channel.ReadDoubleAsync(cancellationToken);
 
             var func = new Func<double, double>(Math.Cos);
 
             double result = Integral(a, b, h, func);
 
-            await channel.WriteDataAsync(result);
+            await channel.WriteDataAsync(result, cancellationToken);
         }
 
         private static double Integral(double a, double b, double h, Func<double, double> func)
