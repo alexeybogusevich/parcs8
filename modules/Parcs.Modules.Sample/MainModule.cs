@@ -1,9 +1,10 @@
-﻿using Parcs.Net;
+﻿using Parcs.Modules.Sample.Models;
+using Parcs.Net;
 using System.Text;
 
-namespace Parcs.Modules.Sample.Main
+namespace Parcs.Modules.Sample
 {
-    public class SampleMainModule : IMainModule
+    public class MainModule : IMainModule
     {
         public string Name => "Sample main module";
 
@@ -23,8 +24,8 @@ namespace Parcs.Modules.Sample.Main
             for (int i = 0; i < pointsNumber; ++i)
             {
                 points[i] = await hostInfo.CreatePointAsync();
-                channels[i] = await points[i].CreateChannelAsync();
-                await channels[i].ExecuteClassAsync("Parcs.Modules.Sample", "SampleWorkerModule");
+                channels[i] = await points[i].CreateChannelAsync(cancellationToken);
+                await points[i].ExecuteClassAsync<WorkerModule>();
             }
 
             for (int i = 0; i < pointsNumber; ++i)
@@ -35,6 +36,7 @@ namespace Parcs.Modules.Sample.Main
                 await channels[i].WriteDataAsync((byte)1, cancellationToken);
                 await channels[i].WriteDataAsync(123L, cancellationToken);
                 await channels[i].WriteDataAsync(22, cancellationToken);
+                await channels[i].WriteObjectAsync(new SampleClass { Id = Guid.NewGuid(), Name = "Test" }, cancellationToken);
             }
 
             double result = 0;

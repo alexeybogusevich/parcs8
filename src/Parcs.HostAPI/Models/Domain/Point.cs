@@ -30,10 +30,22 @@ namespace Parcs.TCP.Host.Models
             _createdChannel = new Channel(networkStream);
 
             await _createdChannel.WriteSignalAsync(Signal.InitializeJob, cancellationToken);
-            await _createdChannel.WriteDataAsync(_jobId, cancellationToken);
-            await _createdChannel.WriteDataAsync(_workerModulesPath, cancellationToken);
+            await _createdChannel.WriteDataAsync(_jobId, CancellationToken.None);
+            await _createdChannel.WriteDataAsync(_workerModulesPath, CancellationToken.None);
 
             return _createdChannel;
+        }
+
+        public async Task ExecuteClassAsync(string assemblyName, string className, CancellationToken cancellationToken = default)
+        {
+            if (_createdChannel is null)
+            {
+                throw new ArgumentException("No channel has been created.");
+            }
+
+            await _createdChannel.WriteSignalAsync(Signal.ExecuteClass, cancellationToken);
+            await _createdChannel.WriteDataAsync(assemblyName, CancellationToken.None);
+            await _createdChannel.WriteDataAsync(className, CancellationToken.None);
         }
 
         public async Task DeleteAsync()

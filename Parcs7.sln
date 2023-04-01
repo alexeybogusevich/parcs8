@@ -23,6 +23,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Parcs.Shared", "src\Parcs.S
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Parcs.Modules.Sample", "modules\Parcs.Modules.Sample\Parcs.Modules.Sample.csproj", "{CDAEAD10-AEA7-42CD-99A1-42401D48CFF5}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Parcs.Modules.Integral", "modules\Parcs.Modules.Integral\Parcs.Modules.Integral.csproj", "{09F004C3-AEA1-4631-A290-6EA0E73B30C5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Parcs.Modules.MatrixesMultiplication", "modules\Parcs.Modules.MatrixesMultiplication\Parcs.Modules.MatrixesMultiplication.csproj", "{1CE107DB-19DF-4232-98A7-F463629D81BD}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -57,6 +61,14 @@ Global
 		{CDAEAD10-AEA7-42CD-99A1-42401D48CFF5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CDAEAD10-AEA7-42CD-99A1-42401D48CFF5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{CDAEAD10-AEA7-42CD-99A1-42401D48CFF5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{09F004C3-AEA1-4631-A290-6EA0E73B30C5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{09F004C3-AEA1-4631-A290-6EA0E73B30C5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{09F004C3-AEA1-4631-A290-6EA0E73B30C5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{09F004C3-AEA1-4631-A290-6EA0E73B30C5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1CE107DB-19DF-4232-98A7-F463629D81BD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1CE107DB-19DF-4232-98A7-F463629D81BD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1CE107DB-19DF-4232-98A7-F463629D81BD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1CE107DB-19DF-4232-98A7-F463629D81BD}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -69,6 +81,8 @@ Global
 		{3F197760-B990-4D68-B2F8-D3C8BD00A036} = {6E753C81-CC3C-4A85-BC67-B7D2F4F28881}
 		{EEAC1D5F-F691-460D-9867-4D4BF9297D17} = {6E753C81-CC3C-4A85-BC67-B7D2F4F28881}
 		{CDAEAD10-AEA7-42CD-99A1-42401D48CFF5} = {D4150577-5F2D-4343-821C-6DA8FCA60239}
+		{09F004C3-AEA1-4631-A290-6EA0E73B30C5} = {D4150577-5F2D-4343-821C-6DA8FCA60239}
+		{1CE107DB-19DF-4232-98A7-F463629D81BD} = {D4150577-5F2D-4343-821C-6DA8FCA60239}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {A7E44F1B-D2FC-4A94-B95F-0558B70A9B92}

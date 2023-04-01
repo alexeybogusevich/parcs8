@@ -32,7 +32,7 @@ namespace Parcs.HostAPI.Extensions
                     return context.Response.WriteAsJsonAsync(
                         new ProblemDetails
                         {
-                            Title = "Bad Request",
+                            Title = "One or more validation errors occured.",
                             Type = "https://www.rfc-editor.org/rfc/rfc7231#section-6.5.1",
                             Status = (int)HttpStatusCode.BadRequest,
                             Detail = exception.Message,

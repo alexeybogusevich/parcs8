@@ -1,8 +1,9 @@
-﻿using Parcs.Net;
+﻿using Parcs.Modules.Sample.Models;
+using Parcs.Net;
 
-namespace Parcs.Modules.Sample.Worker
+namespace Parcs.Modules.Sample
 {
-    public class SampleWorkerModule : IWorkerModule
+    public class WorkerModule : IWorkerModule
     {
         public string Name => "Sample worker module";
 
@@ -14,6 +15,11 @@ namespace Parcs.Modules.Sample.Worker
             Console.WriteLine(await channel.ReadByteAsync(cancellationToken));
             Console.WriteLine(await channel.ReadLongAsync(cancellationToken));
             Console.WriteLine(await channel.ReadIntAsync(cancellationToken));
+
+            var sampleClass = await channel.ReadObjectAsync<SampleClass>(cancellationToken);
+
+            Console.WriteLine(sampleClass.Id);
+            Console.WriteLine(sampleClass.Name);
 
             await channel.WriteDataAsync(1111.11D, cancellationToken);
         }

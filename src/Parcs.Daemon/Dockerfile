@@ -6,7 +6,7 @@ WORKDIR /app
 FROM mcr.microsoft.com/dotnet/sdk:7.0 AS build
 WORKDIR /src
 COPY ["Parcs.Daemon/Parcs.Daemon.csproj", "Parcs.Daemon/"]
-COPY ["Parcs.Common/Parcs.Shared.csproj", "Parcs.Common/"]
+COPY ["Parcs.Shared/Parcs.Shared.csproj", "Parcs.Shared/"]
 RUN dotnet restore "Parcs.Daemon/Parcs.Daemon.csproj"
 COPY . .
 WORKDIR "/src/Parcs.Daemon"
