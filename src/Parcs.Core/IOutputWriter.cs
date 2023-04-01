@@ -2,6 +2,6 @@
 {
     public interface IOutputWriter
     {
-        Task WriteToFileAsync(byte[] bytes, string fileName = null, CancellationToken cancellationToken = default);
+        Task WriteToFileAsync(byte[] bytes, string fileName = null);
     }
 }

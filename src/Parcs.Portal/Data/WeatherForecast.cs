@@ -1,4 +1,4 @@
-namespace Parcs.AzurePortal.Data
+namespace Parcs.Portal.Data
 {
     public class WeatherForecast
     {

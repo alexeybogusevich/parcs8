@@ -8,13 +8,13 @@ namespace Parcs.Modules.Sample
     {
         public string Name => "Sample main module";
 
-        public async Task RunAsync(IHostInfo hostInfo, IInputReader inputReader, IOutputWriter outputWriter, CancellationToken cancellationToken = default)
+        public async Task RunAsync(IHostInfo hostInfo, IInputReader inputReader, IOutputWriter outputWriter)
         {
             foreach (var filename in inputReader.GetFilenames())
             {
                 await using var fileStream = inputReader.GetFileStreamForFile(filename);
                 using var streamReader = new StreamReader(fileStream);
-                Console.WriteLine(await streamReader.ReadToEndAsync(cancellationToken));
+                Console.WriteLine(await streamReader.ReadToEndAsync());
             }
 
             var pointsNumber = hostInfo.AvailablePointsNumber;
@@ -24,28 +24,28 @@ namespace Parcs.Modules.Sample
             for (int i = 0; i < pointsNumber; ++i)
             {
                 points[i] = await hostInfo.CreatePointAsync();
-                channels[i] = await points[i].CreateChannelAsync(cancellationToken);
+                channels[i] = await points[i].CreateChannelAsync();
                 await points[i].ExecuteClassAsync<WorkerModule>();
             }
 
             for (int i = 0; i < pointsNumber; ++i)
             {
-                await channels[i].WriteDataAsync(10.1D, cancellationToken);
-                await channels[i].WriteDataAsync(true, cancellationToken);
-                await channels[i].WriteDataAsync("Hello world", cancellationToken);
-                await channels[i].WriteDataAsync((byte)1, cancellationToken);
-                await channels[i].WriteDataAsync(123L, cancellationToken);
-                await channels[i].WriteDataAsync(22, cancellationToken);
-                await channels[i].WriteObjectAsync(new SampleClass { Id = Guid.NewGuid(), Name = "Test" }, cancellationToken);
+                await channels[i].WriteDataAsync(10.1D);
+                await channels[i].WriteDataAsync(true);
+                await channels[i].WriteDataAsync("Hello world");
+                await channels[i].WriteDataAsync((byte)1);
+                await channels[i].WriteDataAsync(123L);
+                await channels[i].WriteDataAsync(22);
+                await channels[i].WriteObjectAsync(new SampleClass { Id = Guid.NewGuid(), Name = "Test" });
             }
 
             double result = 0;
             for (int i = pointsNumber - 1; i >= 0; --i)
             {
-                result += await channels[i].ReadDoubleAsync(cancellationToken);
+                result += await channels[i].ReadDoubleAsync();
             }
 
-            await outputWriter.WriteToFileAsync(Encoding.UTF8.GetBytes("Hello world!"), "test.txt", cancellationToken);
+            await outputWriter.WriteToFileAsync(Encoding.UTF8.GetBytes("Hello world!"), "test.txt");
 
             for (int i = 0; i < pointsNumber; ++i)
             {

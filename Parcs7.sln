@@ -3,8 +3,6 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.5.33424.131
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Parcs.AzurePortal", "src\Parcs.AzurePortal\Parcs.AzurePortal.csproj", "{E7DE7BBE-AC10-47D3-A9E0-A4E54B092C76}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Parcs.Net", "src\Parcs.Core\Parcs.Net.csproj", "{D2E2073C-817F-4DAD-82A5-A313046C1380}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Parcs.Daemon", "src\Parcs.Daemon\Parcs.Daemon.csproj", "{9868AF2C-7537-4215-8102-E68AD0033386}"
@@ -23,9 +21,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Parcs.Shared", "src\Parcs.S
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Parcs.Modules.Sample", "modules\Parcs.Modules.Sample\Parcs.Modules.Sample.csproj", "{CDAEAD10-AEA7-42CD-99A1-42401D48CFF5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Parcs.Modules.Integral", "modules\Parcs.Modules.Integral\Parcs.Modules.Integral.csproj", "{09F004C3-AEA1-4631-A290-6EA0E73B30C5}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Parcs.Modules.Integral", "modules\Parcs.Modules.Integral\Parcs.Modules.Integral.csproj", "{09F004C3-AEA1-4631-A290-6EA0E73B30C5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Parcs.Modules.MatrixesMultiplication", "modules\Parcs.Modules.MatrixesMultiplication\Parcs.Modules.MatrixesMultiplication.csproj", "{1CE107DB-19DF-4232-98A7-F463629D81BD}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Parcs.Modules.MatrixesMultiplication", "modules\Parcs.Modules.MatrixesMultiplication\Parcs.Modules.MatrixesMultiplication.csproj", "{1CE107DB-19DF-4232-98A7-F463629D81BD}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Parcs.Portal", "src\Parcs.Portal\Parcs.Portal.csproj", "{2A3D6E4D-8682-4949-9760-2DA21D2708BC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -33,10 +33,6 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{E7DE7BBE-AC10-47D3-A9E0-A4E54B092C76}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{E7DE7BBE-AC10-47D3-A9E0-A4E54B092C76}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{E7DE7BBE-AC10-47D3-A9E0-A4E54B092C76}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{E7DE7BBE-AC10-47D3-A9E0-A4E54B092C76}.Release|Any CPU.Build.0 = Release|Any CPU
 		{D2E2073C-817F-4DAD-82A5-A313046C1380}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{D2E2073C-817F-4DAD-82A5-A313046C1380}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D2E2073C-817F-4DAD-82A5-A313046C1380}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -69,12 +65,15 @@ Global
 		{1CE107DB-19DF-4232-98A7-F463629D81BD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1CE107DB-19DF-4232-98A7-F463629D81BD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1CE107DB-19DF-4232-98A7-F463629D81BD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2A3D6E4D-8682-4949-9760-2DA21D2708BC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2A3D6E4D-8682-4949-9760-2DA21D2708BC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2A3D6E4D-8682-4949-9760-2DA21D2708BC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2A3D6E4D-8682-4949-9760-2DA21D2708BC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
-		{E7DE7BBE-AC10-47D3-A9E0-A4E54B092C76} = {6E753C81-CC3C-4A85-BC67-B7D2F4F28881}
 		{D2E2073C-817F-4DAD-82A5-A313046C1380} = {6E753C81-CC3C-4A85-BC67-B7D2F4F28881}
 		{9868AF2C-7537-4215-8102-E68AD0033386} = {6E753C81-CC3C-4A85-BC67-B7D2F4F28881}
 		{3E63CE55-2662-4204-9DF7-A0C0B1D84BA8} = {6E753C81-CC3C-4A85-BC67-B7D2F4F28881}
@@ -83,6 +82,7 @@ Global
 		{CDAEAD10-AEA7-42CD-99A1-42401D48CFF5} = {D4150577-5F2D-4343-821C-6DA8FCA60239}
 		{09F004C3-AEA1-4631-A290-6EA0E73B30C5} = {D4150577-5F2D-4343-821C-6DA8FCA60239}
 		{1CE107DB-19DF-4232-98A7-F463629D81BD} = {D4150577-5F2D-4343-821C-6DA8FCA60239}
+		{2A3D6E4D-8682-4949-9760-2DA21D2708BC} = {6E753C81-CC3C-4A85-BC67-B7D2F4F28881}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {A7E44F1B-D2FC-4A94-B95F-0558B70A9B92}

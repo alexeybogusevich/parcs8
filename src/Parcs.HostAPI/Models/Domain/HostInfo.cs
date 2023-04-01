@@ -32,7 +32,7 @@ namespace Parcs.HostAPI.Models.Domain
             var tcpClient = new TcpClient();
             await tcpClient.ConnectAsync(daemon.HostUrl, daemon.Port);
 
-            return new Point(tcpClient, _job.Id, _workerModulesPath);
+            return new Point(tcpClient, _job.Id, _workerModulesPath, _job.CancellationToken);
         }
     }
 }

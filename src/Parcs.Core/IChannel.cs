@@ -2,23 +2,23 @@
 {
     public interface IChannel
     {
-        ValueTask WriteSignalAsync(Signal signal, CancellationToken cancellationToken = default);
-        ValueTask WriteDataAsync(bool data, CancellationToken cancellationToken = default);
-        ValueTask WriteDataAsync(byte data, CancellationToken cancellationToken = default);
-        ValueTask WriteDataAsync(int data, CancellationToken cancellationToken = default);
-        ValueTask WriteDataAsync(long data, CancellationToken cancellationToken = default);
-        ValueTask WriteDataAsync(double data, CancellationToken cancellationToken = default);
-        ValueTask WriteDataAsync(string data, CancellationToken cancellationToken = default);
-        ValueTask WriteDataAsync(Guid data, CancellationToken cancellationToken = default);
-        ValueTask WriteObjectAsync<T>(T @object, CancellationToken cancellationToken = default);
-        Task<Signal> ReadSignalAsync(CancellationToken cancellationToken = default);
-        Task<bool> ReadBooleanAsync(CancellationToken cancellationToken = default);
-        Task<byte> ReadByteAsync(CancellationToken cancellationToken = default);
-        Task<int> ReadIntAsync(CancellationToken cancellationToken = default);
-        Task<long> ReadLongAsync(CancellationToken cancellationToken = default);
-        Task<double> ReadDoubleAsync(CancellationToken cancellationToken = default);
-        Task<string> ReadStringAsync(CancellationToken cancellationToken = default);
-        Task<Guid> ReadGuidAsync(CancellationToken cancellationToken = default);
-        Task<T> ReadObjectAsync<T>(CancellationToken cancellationToken = default);
+        ValueTask WriteSignalAsync(Signal signal);
+        ValueTask WriteDataAsync(bool data);
+        ValueTask WriteDataAsync(byte data);
+        ValueTask WriteDataAsync(int data);
+        ValueTask WriteDataAsync(long data);
+        ValueTask WriteDataAsync(double data);
+        ValueTask WriteDataAsync(string data);
+        ValueTask WriteDataAsync(Guid data);
+        ValueTask WriteObjectAsync<T>(T @object);
+        Task<Signal> ReadSignalAsync();
+        Task<bool> ReadBooleanAsync();
+        Task<byte> ReadByteAsync();
+        Task<int> ReadIntAsync();
+        Task<long> ReadLongAsync();
+        Task<double> ReadDoubleAsync();
+        Task<string> ReadStringAsync();
+        Task<Guid> ReadGuidAsync();
+        Task<T> ReadObjectAsync<T>();
     }
 }

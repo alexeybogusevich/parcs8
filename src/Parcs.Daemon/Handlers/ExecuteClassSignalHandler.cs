@@ -1,6 +1,7 @@
 ﻿using Parcs.Daemon.Handlers.Interfaces;
 using Parcs.Daemon.Services.Interfaces;
 using Parcs.Net;
+using Parcs.Shared.Models.Interfaces;
 using Parcs.Shared.Services.Interfaces;
 
 namespace Parcs.TCP.Daemon.Handlers
@@ -16,23 +17,22 @@ namespace Parcs.TCP.Daemon.Handlers
             _typeLoader = typeLoader;
         }
 
-        public async Task HandleAsync(IChannel channel, CancellationToken cancellationToken = default)
+        public async Task HandleAsync(IManagedChannel managedChannel, CancellationToken cancellationToken = default)
         {
             if (_jobContextAccessor.Current is null)
             {
-                throw new ApplicationException("No job has been initialized.");
+                throw new ArgumentException("No job has been initialized.");
             }
-
-            var workerModulesPath = _jobContextAccessor.Current.WorkerModulesPath;
-            var jobCancellationToken = _jobContextAccessor.Current.CancellationTokenSource.Token;
 
             try
             {
-                var assemblyName = await channel.ReadStringAsync(jobCancellationToken);
-                var className = await channel.ReadStringAsync(jobCancellationToken);
-                var workerModule = _typeLoader.Load(workerModulesPath, assemblyName, className);
+                var assemblyDirectoryPath = _jobContextAccessor.Current.WorkerModulesPath;
+                var assemblyName = await managedChannel.ReadStringAsync();
+                var className = await managedChannel.ReadStringAsync();
 
-                await workerModule.RunAsync(channel, jobCancellationToken);
+                var workerModule = _typeLoader.Load(assemblyDirectoryPath, assemblyName, className);
+
+                await workerModule.RunAsync(managedChannel);
             }
             finally
             {

@@ -1,6 +1,6 @@
 ﻿using Parcs.Daemon.Handlers.Interfaces;
 using Parcs.Daemon.Services.Interfaces;
-using Parcs.Net;
+using Parcs.Shared.Models.Interfaces;
 
 namespace Parcs.Daemon.Handlers
 {
@@ -13,12 +13,15 @@ namespace Parcs.Daemon.Handlers
             _jobContextAccessor = jobContextAccessor;
         }
 
-        public async Task HandleAsync(IChannel channel, CancellationToken cancellationToken = default)
+        public async Task HandleAsync(IManagedChannel managedChannel, CancellationToken cancellationToken = default)
         {
-            var jobId = await channel.ReadGuidAsync(cancellationToken);
-            var workerModulesPath = await channel.ReadStringAsync(cancellationToken);
+            var jobId = await managedChannel.ReadGuidAsync();
+            var workerModulesPath = await managedChannel.ReadStringAsync();
+
             _jobContextAccessor.Current?.CancellationTokenSource.Cancel();
             _jobContextAccessor.Set(jobId, workerModulesPath);
+
+            managedChannel.SetCancellation(_jobContextAccessor.Current.CancellationTokenSource.Token);
         }
     }
 }

@@ -5,10 +5,12 @@ namespace Parcs.HostAPI.Services
     public sealed class OutputWriter : IOutputWriter
     {
         private readonly string _basePath;
+        private readonly CancellationToken _cancellationToken;
 
-        public OutputWriter(string basePath)
+        public OutputWriter(string basePath, CancellationToken cancellationToken)
         {
             _basePath = basePath;
+            _cancellationToken = cancellationToken;
 
             if (!Directory.Exists(basePath))
             {
@@ -16,14 +18,14 @@ namespace Parcs.HostAPI.Services
             }
         }
 
-        public async Task WriteToFileAsync(byte[] bytes, string fileName = null, CancellationToken cancellationToken = default)
+        public async Task WriteToFileAsync(byte[] bytes, string fileName = null)
         {
             var filePath = Path.Combine(_basePath, fileName ?? Guid.NewGuid().ToString());
 
             using var memoryStream = new MemoryStream(bytes);
             await using var fileStream = new FileStream(filePath, FileMode.Create);
 
-            await memoryStream.CopyToAsync(fileStream, cancellationToken);
+            await memoryStream.CopyToAsync(fileStream, _cancellationToken);
         }
     }
 }

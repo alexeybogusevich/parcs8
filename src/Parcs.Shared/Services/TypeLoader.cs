@@ -7,9 +7,9 @@ namespace Parcs.Shared.Services
     {
         private const string AssemblyExtension = "dll";
 
-        public T Load(string assemblyDirectory, string assemblyName, string className = null)
+        public T Load(string assemblyDirectoryPath, string assemblyName, string className = null)
         {
-            var assemblyPath = Path.Combine(assemblyDirectory, $"{assemblyName}.{AssemblyExtension}");
+            var assemblyPath = Path.Combine(assemblyDirectoryPath, $"{assemblyName}.{AssemblyExtension}");
 
             var loadContext = new IsolatedLoadContext(assemblyPath, new List<string> { typeof(T).Assembly.GetName().Name });
             var assembly = loadContext.LoadFromAssemblyName(AssemblyName.GetAssemblyName(assemblyPath));

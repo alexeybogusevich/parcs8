@@ -1,10 +1,11 @@
 ﻿using Parcs.Net;
+using Parcs.Shared.Models;
 
 namespace Parcs.HostAPI.Services.Interfaces
 {
     public interface IInputOutputFactory
     {
-        IInputReader CreateReader(Guid jobId);
-        IOutputWriter CreateWriter(Guid jobId);
+        IInputReader CreateReader(Job job);
+        IOutputWriter CreateWriter(Job job);
     }
 }

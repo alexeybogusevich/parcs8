@@ -7,21 +7,21 @@ namespace Parcs.Modules.Sample
     {
         public string Name => "Sample worker module";
 
-        public async Task RunAsync(IChannel channel, CancellationToken cancellationToken = default)
+        public async Task RunAsync(IChannel channel)
         {
-            Console.WriteLine(await channel.ReadDoubleAsync(cancellationToken));
-            Console.WriteLine(await channel.ReadBooleanAsync(cancellationToken));
-            Console.WriteLine(await channel.ReadStringAsync(cancellationToken));
-            Console.WriteLine(await channel.ReadByteAsync(cancellationToken));
-            Console.WriteLine(await channel.ReadLongAsync(cancellationToken));
-            Console.WriteLine(await channel.ReadIntAsync(cancellationToken));
+            Console.WriteLine(await channel.ReadDoubleAsync());
+            Console.WriteLine(await channel.ReadBooleanAsync());
+            Console.WriteLine(await channel.ReadStringAsync());
+            Console.WriteLine(await channel.ReadByteAsync());
+            Console.WriteLine(await channel.ReadLongAsync());
+            Console.WriteLine(await channel.ReadIntAsync());
 
-            var sampleClass = await channel.ReadObjectAsync<SampleClass>(cancellationToken);
+            var sampleClass = await channel.ReadObjectAsync<SampleClass>();
 
             Console.WriteLine(sampleClass.Id);
             Console.WriteLine(sampleClass.Name);
 
-            await channel.WriteDataAsync(1111.11D, cancellationToken);
+            await channel.WriteDataAsync(1111.11D);
         }
     }
 }

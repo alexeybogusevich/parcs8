@@ -8,7 +8,7 @@ namespace Parcs.Modules.MatrixesMultiplication
     {
         public string Name => "Main Matrixes Multiplication Module";
 
-        public async Task RunAsync(IHostInfo hostInfo, IInputReader inputReader, IOutputWriter outputWriter, CancellationToken cancellationToken = default)
+        public async Task RunAsync(IHostInfo hostInfo, IInputReader inputReader, IOutputWriter outputWriter)
         {
             Matrix a, b;
 
@@ -165,23 +165,21 @@ namespace Parcs.Modules.MatrixesMultiplication
                     b.Width / 2 + b.Width % 2));
         }
 
-        private static Matrix Join2(Matrix resMatrix, IList<Matrix> matrixes)
+        private static void Join2(Matrix resMatrix, IList<Matrix> matrixes)
         {
             resMatrix.FillSubMatrix(matrixes[0], 0, 0);
             resMatrix.FillSubMatrix(matrixes[1], (resMatrix.Height / 2), 0);
-            return resMatrix;
         }
 
-        private static Matrix Join4(Matrix resMatrix, IList<Matrix> matrixes)
+        private static void Join4(Matrix resMatrix, IList<Matrix> matrixes)
         {
             resMatrix.FillSubMatrix(matrixes[0], 0, 0);
             resMatrix.FillSubMatrix(matrixes[1], 0, resMatrix.Width / 2);
             resMatrix.FillSubMatrix(matrixes[2], resMatrix.Height / 2, 0);
             resMatrix.FillSubMatrix(matrixes[3], resMatrix.Height / 2, resMatrix.Width / 2);
-            return resMatrix;
         }
 
-        private static Matrix Join8(Matrix resMatrix, IList<Matrix> matrixes)
+        private static void Join8(Matrix resMatrix, IList<Matrix> matrixes)
         {
             var parts = new Matrix[2, 2];
 
@@ -197,11 +195,9 @@ namespace Parcs.Modules.MatrixesMultiplication
             parts[1, 1] = matrixes[6];
             parts[1, 1].Add(matrixes[7]);
             resMatrix.FillSubMatrix(parts[1, 1], resMatrix.Height / 2, resMatrix.Width / 2);
-
-            return resMatrix;
         }
 
-        private Task SaveMatrixAsync(Matrix resMatrix, IOutputWriter outputWriter)
+        private static Task SaveMatrixAsync(Matrix resMatrix, IOutputWriter outputWriter)
         {
             return outputWriter.WriteToFileAsync(Encoding.UTF8.GetBytes(resMatrix.ToString()), "Result.txt");
         }

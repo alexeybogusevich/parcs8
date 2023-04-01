@@ -1,6 +1,7 @@
 ﻿using Parcs.HostAPI.Models.Enums;
 using Parcs.HostAPI.Services.Interfaces;
 using Parcs.Net;
+using Parcs.Shared.Models;
 
 namespace Parcs.HostAPI.Services
 {
@@ -13,8 +14,10 @@ namespace Parcs.HostAPI.Services
             _jobDirectoryPathBuilder = jobDirectoryPathBuilder;
         }
 
-        public IInputReader CreateReader(Guid jobId) => new InputReader(_jobDirectoryPathBuilder.Build(jobId, JobDirectoryGroup.Input));
+        public IInputReader CreateReader(Job job) =>
+            new InputReader(_jobDirectoryPathBuilder.Build(job.Id, JobDirectoryGroup.Input));
 
-        public IOutputWriter CreateWriter(Guid jobId) => new OutputWriter(_jobDirectoryPathBuilder.Build(jobId, JobDirectoryGroup.Output));
+        public IOutputWriter CreateWriter(Job job) =>
+            new OutputWriter(_jobDirectoryPathBuilder.Build(job.Id, JobDirectoryGroup.Output), job.CancellationToken);
     }
 }

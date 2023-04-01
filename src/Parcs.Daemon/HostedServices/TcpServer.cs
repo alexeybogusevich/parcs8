@@ -30,7 +30,7 @@ namespace Parcs.Daemon.HostedServices
             _tcpListener.Start();
             _logger.LogInformation("Done!");
 
-            for (;;)
+            while (true)
             {
                 _logger.LogInformation("Waiting for a connection...");
 
@@ -43,11 +43,11 @@ namespace Parcs.Daemon.HostedServices
 
         private async Task HandleConnectionAsync(Channel channel, CancellationToken cancellationToken)
         {
-            for (;;)
+            while (true)
             {
                 try
                 {
-                    var signal = await channel.ReadSignalAsync(cancellationToken);
+                    var signal = await channel.ReadSignalAsync();
 
                     if (signal == Signal.CloseConnection)
                     {
@@ -61,6 +61,7 @@ namespace Parcs.Daemon.HostedServices
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Exception thrown: {Message}.", ex.Message);
+
                     return;
                 }
             }

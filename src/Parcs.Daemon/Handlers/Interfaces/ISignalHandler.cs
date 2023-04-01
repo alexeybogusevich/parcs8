@@ -1,9 +1,9 @@
-﻿using Parcs.Net;
+﻿using Parcs.Shared.Models.Interfaces;
 
 namespace Parcs.Daemon.Handlers.Interfaces
 {
     public interface ISignalHandler
     {
-        Task HandleAsync(IChannel channel, CancellationToken cancellationToken = default);
+        Task HandleAsync(IManagedChannel managedChannel, CancellationToken cancellationToken = default);
     }
 }

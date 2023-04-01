@@ -35,17 +35,17 @@ namespace Parcs.HostAPI.Handlers
             }
 
             var availableDaemons = _daemonSelector.Select(request.Daemons);
+            
             var hostInfo = _hostInfoFactory.Create(job, availableDaemons);
-
-            var inputReader = _inputOutputFactory.CreateReader(job.Id);
-            var outputWriter = _inputOutputFactory.CreateWriter(job.Id);
+            var inputReader = _inputOutputFactory.CreateReader(job);
+            var outputWriter = _inputOutputFactory.CreateWriter(job);
 
             try
             {
                 var mainModule = job.MainModule ?? _mainModuleLoader.Load(job.ModuleId, job.AssemblyName, job.ClassName);
 
                 job.Start();
-                await mainModule.RunAsync(hostInfo, inputReader, outputWriter, job.CancellationToken);
+                await mainModule.RunAsync(hostInfo, inputReader, outputWriter);
                 job.Finish();
             }
             catch (Exception ex) when (ex is not OperationCanceledException)

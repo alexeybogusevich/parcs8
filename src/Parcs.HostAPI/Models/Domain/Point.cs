@@ -11,15 +11,17 @@ namespace Parcs.TCP.Host.Models
 
         private readonly Guid _jobId;
         private readonly string _workerModulesPath;
+        private readonly CancellationToken _cancellationToken;
 
-        public Point(TcpClient tcpClient, Guid jobId, string workerModulesPath)
+        public Point(TcpClient tcpClient, Guid jobId, string workerModulesPath, CancellationToken cancellationToken)
         {
             _tcpClient = tcpClient;
             _jobId = jobId;
             _workerModulesPath = workerModulesPath;
+            _cancellationToken = cancellationToken;
         }
 
-        public async Task<IChannel> CreateChannelAsync(CancellationToken cancellationToken = default)
+        public async Task<IChannel> CreateChannelAsync()
         {
             if (_createdChannel is not null)
             {
@@ -27,25 +29,27 @@ namespace Parcs.TCP.Host.Models
             }
 
             var networkStream = _tcpClient.GetStream();
-            _createdChannel = new Channel(networkStream);
 
-            await _createdChannel.WriteSignalAsync(Signal.InitializeJob, cancellationToken);
-            await _createdChannel.WriteDataAsync(_jobId, CancellationToken.None);
-            await _createdChannel.WriteDataAsync(_workerModulesPath, CancellationToken.None);
+            _createdChannel = new Channel(networkStream);
+            _createdChannel.SetCancellation(_cancellationToken);
+
+            await _createdChannel.WriteSignalAsync(Signal.InitializeJob);
+            await _createdChannel.WriteDataAsync(_jobId);
+            await _createdChannel.WriteDataAsync(_workerModulesPath);
 
             return _createdChannel;
         }
 
-        public async Task ExecuteClassAsync(string assemblyName, string className, CancellationToken cancellationToken = default)
+        public async Task ExecuteClassAsync(string assemblyName, string className)
         {
             if (_createdChannel is null)
             {
                 throw new ArgumentException("No channel has been created.");
             }
 
-            await _createdChannel.WriteSignalAsync(Signal.ExecuteClass, cancellationToken);
-            await _createdChannel.WriteDataAsync(assemblyName, CancellationToken.None);
-            await _createdChannel.WriteDataAsync(className, CancellationToken.None);
+            await _createdChannel.WriteSignalAsync(Signal.ExecuteClass);
+            await _createdChannel.WriteDataAsync(assemblyName);
+            await _createdChannel.WriteDataAsync(className);
         }
 
         public async Task DeleteAsync()

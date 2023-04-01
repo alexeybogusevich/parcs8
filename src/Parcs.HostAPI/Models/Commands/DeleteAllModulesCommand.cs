@@ -4,5 +4,8 @@ namespace Parcs.HostAPI.Models.Commands
 {
     public class DeleteAllModulesCommand : IRequest
     {
+        public DeleteAllModulesCommand()
+        {
+        }
     }
 }

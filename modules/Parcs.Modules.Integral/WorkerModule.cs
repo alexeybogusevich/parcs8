@@ -6,17 +6,17 @@ namespace Parcs.Modules.Integral
     {
         public string Name => "Worker Integral Module";
 
-        public async Task RunAsync(IChannel channel, CancellationToken cancellationToken = default)
+        public async Task RunAsync(IChannel channel)
         {
-            double a = await channel.ReadDoubleAsync(cancellationToken);
-            double b = await channel.ReadDoubleAsync(cancellationToken);
-            double h = await channel.ReadDoubleAsync(cancellationToken);
+            double a = await channel.ReadDoubleAsync();
+            double b = await channel.ReadDoubleAsync();
+            double h = await channel.ReadDoubleAsync();
 
             var func = new Func<double, double>(Math.Cos);
 
             double result = Integral(a, b, h, func);
 
-            await channel.WriteDataAsync(result, cancellationToken);
+            await channel.WriteDataAsync(result);
         }
 
         private static double Integral(double a, double b, double h, Func<double, double> func)

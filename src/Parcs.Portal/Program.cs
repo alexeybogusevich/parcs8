@@ -1,4 +1,4 @@
-using Parcs.AzurePortal.Data;
+using Parcs.Portal.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
