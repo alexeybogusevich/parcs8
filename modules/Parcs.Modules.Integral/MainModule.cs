@@ -1,4 +1,5 @@
 ﻿using Parcs.Net;
+using System.Text;
 
 namespace Parcs.Modules.Integral
 {
@@ -11,6 +12,11 @@ namespace Parcs.Modules.Integral
             double a = 0;
             double b = Math.PI / 2;
             double h = 0.00000001;
+
+            if (arguments.TryGetValue("precision", out var precisionString) && double.TryParse(precisionString, out var precision))
+            {
+                h = precision;
+            }
 
             var pointsNumber = hostInfo.AvailablePointsNumber;
             var points = new IPoint[pointsNumber];
@@ -43,7 +49,7 @@ namespace Parcs.Modules.Integral
 
             Console.WriteLine("Result found: res = {0}, time = {1}", result, Math.Round((DateTime.Now - time).TotalSeconds, 3));
 
-            await hostInfo.GetOutputWriter().WriteToFileAsync(BitConverter.GetBytes(result), "result.txt");
+            await hostInfo.GetOutputWriter().WriteToFileAsync(Encoding.UTF8.GetBytes(result.ToString()), "result.txt");
 
             for (int i = 0; i < pointsNumber; ++i)
             {

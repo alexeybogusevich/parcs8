@@ -1,15 +1,22 @@
 version: '3.4'
 
 services:
+  parcs.daemon:
+    deploy:
+      mode: replicated
+      replicas: 2
+
   parcs.hostapi:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=https://+:443;http://+:80
-      - Daemons__PreconfiguredInstances__0__HostUrl=parcs.daemon
+      - Daemons__PreconfiguredInstances__0__HostUrl=src-parcs.daemon-1
       - Daemons__PreconfiguredInstances__0__Port=1111
+      - Daemons__PreconfiguredInstances__1__HostUrl=src-parcs.daemon-2
+      - Daemons__PreconfiguredInstances__1__Port=1111
     ports:
-      - "80"
-      - "443"
+      - "5000:80"
+      - "5001:443"
     volumes:
       - ${APPDATA}/Microsoft/UserSecrets:/root/.microsoft/usersecrets:ro
       - ${APPDATA}/ASP.NET/Https:/root/.aspnet/https:ro

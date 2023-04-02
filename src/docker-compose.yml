@@ -20,10 +20,6 @@ services:
       - type: volume
         source: parcs.storage
         target: /var/lib/storage
-    environment:
-      Daemons__PreconfiguredInstances__0__HostUrl: parcs.daemon
-      Daemons__PreconfiguredInstances__0__Port: 1111
-      Foo: bar
 
 volumes:
   parcs.storage:
