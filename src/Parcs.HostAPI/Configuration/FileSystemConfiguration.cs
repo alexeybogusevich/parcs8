@@ -1,6 +1,6 @@
 ﻿namespace Parcs.HostAPI.Configuration
 {
-    public class FileSystemConfiguration
+    public sealed class FileSystemConfiguration
     {
         public const string SectionName = "FileSystem";
 

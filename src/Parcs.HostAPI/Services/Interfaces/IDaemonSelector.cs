@@ -4,6 +4,6 @@ namespace Parcs.HostAPI.Services.Interfaces
 {
     public interface IDaemonSelector
     {
-        IEnumerable<Daemon> Select(int? number);
+        IEnumerable<Daemon> Select(int requestedNumber);
     }
 }

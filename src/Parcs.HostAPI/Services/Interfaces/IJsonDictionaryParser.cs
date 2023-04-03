@@ -2,6 +2,6 @@
 {
     public interface IJsonDictionaryParser
     {
-        IReadOnlyDictionary<string, string> Parse(string argumentsJsonDictionary);
+        IDictionary<string, string> Parse(string argumentsJsonDictionary);
     }
 }

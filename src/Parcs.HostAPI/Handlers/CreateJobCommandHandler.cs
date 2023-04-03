@@ -6,7 +6,7 @@ using Parcs.HostAPI.Services.Interfaces;
 
 namespace Parcs.HostAPI.Handlers
 {
-    public class CreateJobCommandHandler : IRequestHandler<CreateJobCommand, CreateJobCommandResponse>
+    public sealed class CreateJobCommandHandler : IRequestHandler<CreateJobCommand, CreateJobCommandResponse>
     {
         private readonly IJobManager _jobManager;
         private readonly IJobDirectoryPathBuilder _jobDirectoryPathBuilder;

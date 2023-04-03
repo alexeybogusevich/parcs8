@@ -1,4 +1,5 @@
-﻿using Parcs.Net;
+﻿using Parcs.Modules.Integral.Configuration;
+using Parcs.Net;
 using System.Text;
 
 namespace Parcs.Modules.Integral
@@ -7,18 +8,15 @@ namespace Parcs.Modules.Integral
     {
         public string Name => "Main Integral Module";
 
-        public async Task RunAsync(IReadOnlyDictionary<string, string> arguments, IHostInfo hostInfo, CancellationToken cancellationToken = default)
+        public async Task RunAsync(IArgumentsProvider argumentsProvider, IHostInfo hostInfo, CancellationToken cancellationToken = default)
         {
+            var moduleConfiguration = argumentsProvider.Bind<ModuleConfiguration>();
+
             double a = 0;
             double b = Math.PI / 2;
-            double h = 0.00000001;
+            double h = moduleConfiguration.Precision ?? 0.00000001;
 
-            if (arguments.TryGetValue("precision", out var precisionString) && double.TryParse(precisionString, out var precision))
-            {
-                h = precision;
-            }
-
-            var pointsNumber = hostInfo.AvailablePointsNumber;
+            var pointsNumber = hostInfo.CanCreatePointsNumber;
             var points = new IPoint[pointsNumber];
             var channels = new IChannel[pointsNumber];
 

@@ -9,7 +9,7 @@ using System.Text;
 
 namespace Parcs.HostAPI.Handlers
 {
-    public class GetJobOutputQueryHandler : IRequestHandler<GetJobOutputQuery, GetJobOutputQueryResponse>
+    public sealed class GetJobOutputQueryHandler : IRequestHandler<GetJobOutputQuery, GetJobOutputQueryResponse>
     {
         private readonly IJobManager _jobManager;
         private readonly IJobDirectoryPathBuilder _jobDirectoryPathBuilder;

@@ -6,7 +6,7 @@ using Parcs.HostAPI.Services.Interfaces;
 
 namespace Parcs.HostAPI.Handlers
 {
-    public class CreateModuleCommandHandler : IRequestHandler<CreateModuleCommand, CreateModuleCommandResponse>
+    public sealed class CreateModuleCommandHandler : IRequestHandler<CreateModuleCommand, CreateModuleCommandResponse>
     {
         private readonly IFileSaver _fileSaver;
         private readonly IModuleDirectoryPathBuilder _moduleDirectoryPathBuilder;

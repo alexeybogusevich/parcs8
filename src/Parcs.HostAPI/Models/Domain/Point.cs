@@ -4,7 +4,7 @@ using System.Net.Sockets;
 
 namespace Parcs.TCP.Host.Models
 {
-    internal sealed class Point : IPoint, IDisposable
+    public sealed class Point : IPoint
     {
         private TcpClient _tcpClient;
         private Channel _createdChannel;
@@ -52,24 +52,21 @@ namespace Parcs.TCP.Host.Models
             await _createdChannel.WriteDataAsync(className);
         }
 
-        public async Task DeleteAsync()
-        {
-            await _createdChannel.WriteSignalAsync(Signal.CloseConnection);
-            Dispose();
-        }
+        public async Task DeleteAsync() => await DisposeAsync();
 
-        public void Dispose()
+        public async ValueTask DisposeAsync()
         {
+            if (_createdChannel is not null)
+            {
+                await _createdChannel.WriteSignalAsync(Signal.CloseConnection);
+                _createdChannel.Dispose();
+                _createdChannel = null;
+            }
+
             if (_tcpClient is not null)
             {
                 _tcpClient.Dispose();
                 _tcpClient = null;
-            }
-
-            if (_createdChannel is not null)
-            {
-                _createdChannel.Dispose();
-                _createdChannel = null;
             }
         }
     }

@@ -8,12 +8,12 @@ namespace Parcs.Modules.MatrixesMultiplication
     {
         public string Name => "Main Matrixes Multiplication Module";
 
-        public async Task RunAsync(IReadOnlyDictionary<string, string> arguments, IHostInfo hostInfo, CancellationToken cancellationToken = default)
+        public async Task RunAsync(IArgumentsProvider argumentsProvider, IHostInfo hostInfo, CancellationToken cancellationToken = default)
         {
             Matrix a, b;
 
-            _ = arguments.TryGetValue("first-file", out var filenameA);
-            _ = arguments.TryGetValue("second-file", out var filenameB);
+            _ = argumentsProvider.TryGet("first-file", out var filenameA);
+            _ = argumentsProvider.TryGet("second-file", out var filenameB);
 
             try
             {
@@ -28,7 +28,7 @@ namespace Parcs.Modules.MatrixesMultiplication
 
             int[] possibleValues = { 1, 2, 4, 8, 16, 32 };
 
-            int pointsNumber = hostInfo.AvailablePointsNumber;
+            int pointsNumber = hostInfo.CanCreatePointsNumber;
 
             if (!possibleValues.Contains(pointsNumber))
             {

@@ -5,13 +5,15 @@ using System.Net.Sockets;
 
 namespace Parcs.HostAPI.Models.Domain
 {
-    internal sealed class HostInfo : IHostInfo
+    public sealed class HostInfo : IHostInfo
     {
         private readonly Job _job;
         private readonly string _workerModulesPath;
         private readonly IInputReader _inputReader;
         private readonly IOutputWriter _outputWriter;
         private readonly Queue<Daemon> _availableDaemons;
+
+        private List<Point> _createdPoints;
 
         public HostInfo(
             Job job,
@@ -25,9 +27,12 @@ namespace Parcs.HostAPI.Models.Domain
             _inputReader = inputReader;
             _outputWriter = outputWriter;
             _availableDaemons = new Queue<Daemon>(availableDaemons);
+            _createdPoints = new List<Point>();
         }
 
         public int AvailablePointsNumber => _availableDaemons.Count;
+
+        public int CanCreatePointsNumber => throw new NotImplementedException();
 
         public IInputReader GetInputReader() => _inputReader;
 
@@ -45,7 +50,25 @@ namespace Parcs.HostAPI.Models.Domain
             var tcpClient = new TcpClient();
             await tcpClient.ConnectAsync(daemon.HostUrl, daemon.Port);
 
-            return new Point(tcpClient, _job.Id, _workerModulesPath, _job.CancellationToken);
+            var point = new Point(tcpClient, _job.Id, _workerModulesPath, _job.CancellationToken);
+            _createdPoints.Add(point);
+
+            return point;
+        }
+
+        public async ValueTask DisposeAsync()
+        {
+            if (_createdPoints is null)
+            {
+                return;
+            }
+
+            foreach (var point in _createdPoints)
+            {
+                await point.DisposeAsync();
+            }
+
+            _createdPoints = null;
         }
     }
 }

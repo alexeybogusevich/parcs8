@@ -1,8 +1,8 @@
 ﻿namespace Parcs.Net
 {
-    public interface IHostInfo
+    public interface IHostInfo : IAsyncDisposable
     {
-        int AvailablePointsNumber { get; }
+        int CanCreatePointsNumber { get; }
         IInputReader GetInputReader();
         IOutputWriter GetOutputWriter();
         Task<IPoint> CreatePointAsync();

@@ -8,9 +8,9 @@ namespace Parcs.Modules.Sample
     {
         public string Name => "Sample main module";
 
-        public async Task RunAsync(IReadOnlyDictionary<string, string> arguments, IHostInfo hostInfo, CancellationToken cancellationToken = default)
+        public async Task RunAsync(IArgumentsProvider argumentsProvider, IHostInfo hostInfo, CancellationToken cancellationToken = default)
         {
-            if (arguments.TryGetValue("sample-argument", out var sampleArgument))
+            if (argumentsProvider.TryGet("sample-argument", out var sampleArgument))
             {
                 Console.WriteLine(sampleArgument);
             }
@@ -24,7 +24,7 @@ namespace Parcs.Modules.Sample
                 Console.WriteLine(await streamReader.ReadToEndAsync(cancellationToken));
             }
 
-            var pointsNumber = hostInfo.AvailablePointsNumber;
+            var pointsNumber = hostInfo.CanCreatePointsNumber;
             var channels = new IChannel[pointsNumber];
             var points = new IPoint[pointsNumber];
 

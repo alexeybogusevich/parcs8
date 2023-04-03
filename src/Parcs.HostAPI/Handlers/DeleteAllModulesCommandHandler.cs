@@ -4,7 +4,7 @@ using Parcs.HostAPI.Services.Interfaces;
 
 namespace Parcs.HostAPI.Handlers
 {
-    public class DeleteAllModulesCommandHandler : IRequestHandler<DeleteAllModulesCommand>
+    public sealed class DeleteAllModulesCommandHandler : IRequestHandler<DeleteAllModulesCommand>
     {
         private readonly IModuleDirectoryPathBuilder _moduleDirectoryPathBuilder;
         private readonly IFileEraser _fileEraser;

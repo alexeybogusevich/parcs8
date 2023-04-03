@@ -5,7 +5,7 @@ using Parcs.HostAPI.Services.Interfaces;
 
 namespace Parcs.HostAPI.Handlers
 {
-    public class GetJobQueryHandler : IRequestHandler<GetJobQuery, GetJobQueryResponse>
+    public sealed class GetJobQueryHandler : IRequestHandler<GetJobQuery, GetJobQueryResponse>
     {
         private readonly IJobManager _jobManager;
 

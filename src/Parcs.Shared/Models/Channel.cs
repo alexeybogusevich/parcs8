@@ -6,7 +6,7 @@ using System.Text.Json;
 
 namespace Parcs.Shared.Models
 {
-    public sealed class Channel : IManagedChannel, IDisposable
+    public sealed class Channel : IManagedChannel
     {
         private NetworkStream _networkStream;
         private CancellationToken _cancellationToken = default;
@@ -158,8 +158,11 @@ namespace Parcs.Shared.Models
 
         public void Dispose()
         {
-            _networkStream.Dispose();
-            _networkStream = null;
+            if (_networkStream is not null)
+            {
+                _networkStream.Dispose();
+                _networkStream = null;
+            }
         }
     }
 }

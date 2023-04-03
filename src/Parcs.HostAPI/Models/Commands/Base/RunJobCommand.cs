@@ -6,17 +6,17 @@
         {
         }
 
-        public RunJobCommand(Guid jobId, string argumentsJsonDictionary, int? numberOfDaemons)
+        public RunJobCommand(Guid jobId, string jsonArgumentsDictionary, int numberOfDaemons)
         {
             JobId = jobId;
-            ArgumentsJsonDictionary = argumentsJsonDictionary;
+            JsonArgumentsDictionary = jsonArgumentsDictionary;
             NumberOfDaemons = numberOfDaemons;
         }
 
         public Guid JobId { get; set; }
 
-        public string ArgumentsJsonDictionary { get; set; }
+        public string JsonArgumentsDictionary { get; set; }
 
-        public int? NumberOfDaemons { get; set; }
+        public int NumberOfDaemons { get; set; }
     }
 }

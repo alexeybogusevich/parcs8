@@ -1,6 +1,6 @@
 ﻿namespace Parcs.Net
 {
-    public interface IChannel
+    public interface IChannel : IDisposable
     {
         ValueTask WriteSignalAsync(Signal signal);
         ValueTask WriteDataAsync(bool data);

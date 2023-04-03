@@ -1,6 +1,6 @@
 ﻿namespace Parcs.HostAPI.Configuration
 {
-    public class JobOutputConfiguration
+    public sealed class JobOutputConfiguration
     {
         public const string SectionName = "JobOutput";
 

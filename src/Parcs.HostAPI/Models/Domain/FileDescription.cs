@@ -1,6 +1,6 @@
 ﻿namespace Parcs.HostAPI.Models.Domain
 {
-    public class FileDescription
+    public sealed class FileDescription
     {
         public byte[] Content { get; init; }
 

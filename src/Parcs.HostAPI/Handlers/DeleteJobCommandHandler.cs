@@ -4,7 +4,7 @@ using Parcs.HostAPI.Services.Interfaces;
 
 namespace Parcs.HostAPI.Handlers
 {
-    public class DeleteJobCommandHandler : IRequestHandler<DeleteJobCommand>
+    public sealed class DeleteJobCommandHandler : IRequestHandler<DeleteJobCommand>
     {
         private readonly IJobManager _jobManager;
         private readonly IJobDirectoryPathBuilder _jobDirectoryPathBuilder;

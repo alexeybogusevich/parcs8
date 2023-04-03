@@ -14,18 +14,13 @@ namespace Parcs.HostAPI.Services
             _daemonsConfiguration = options.Value;
         }
 
-        public IEnumerable<Daemon> Select(int? number)
+        public IEnumerable<Daemon> Select(int requestedNumber)
         {
-            if (number is not int requestedNumber)
-            {
-                requestedNumber = 1;
-            }
-
             var availableNumber = _daemonsConfiguration.PreconfiguredInstances.Count();
 
             if (requestedNumber > availableNumber)
             {
-                throw new ArgumentException($"Not enough daemons ({availableNumber}) to satisfy the request {requestedNumber}.");
+                throw new ArgumentException($"Not enough daemons ({availableNumber}) to satisfy the request ({requestedNumber}).");
             }
 
             return _daemonsConfiguration.PreconfiguredInstances.Take(requestedNumber);

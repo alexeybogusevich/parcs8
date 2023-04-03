@@ -4,7 +4,7 @@ using System.Threading.Channels;
 
 namespace Parcs.HostAPI.Handlers
 {
-    public class RunJobAsynchronouslyCommandHandler : IRequestHandler<RunJobAsynchronouslyCommand>
+    public sealed class RunJobAsynchronouslyCommandHandler : IRequestHandler<RunJobAsynchronouslyCommand>
     {
         private readonly ChannelWriter<RunJobAsynchronouslyCommand> _channelWriter;
 

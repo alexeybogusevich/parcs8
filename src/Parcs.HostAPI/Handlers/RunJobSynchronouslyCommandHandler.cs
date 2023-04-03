@@ -11,20 +11,20 @@ namespace Parcs.HostAPI.Handlers
         private readonly IMainModuleLoader _mainModuleLoader;
         private readonly IJobManager _jobManager;
         private readonly IDaemonSelector _daemonSelector;
-        private readonly IJsonDictionaryParser _jsonDictionaryParser;
+        private readonly IArgumentsProviderFactory _argumentsProviderFactory;
 
         public RunJobSynchronouslyCommandHandler(
             IHostInfoFactory hostInfoFactory,
             IMainModuleLoader mainModuleLoader,
             IJobManager jobManager,
             IDaemonSelector daemonSelector,
-            IJsonDictionaryParser jsonDictionaryParser)
+            IArgumentsProviderFactory argumentsProviderFactory)
         {
             _hostInfoFactory = hostInfoFactory;
             _mainModuleLoader = mainModuleLoader;
             _jobManager = jobManager;
             _daemonSelector = daemonSelector;
-            _jsonDictionaryParser = jsonDictionaryParser;
+            _argumentsProviderFactory = argumentsProviderFactory;
         }
 
         public async Task<RunJobSynchronouslyCommandResponse> Handle(RunJobSynchronouslyCommand command, CancellationToken cancellationToken)
@@ -34,16 +34,16 @@ namespace Parcs.HostAPI.Handlers
                 throw new ArgumentException($"Job not found: {command.JobId}");
             }
 
-            var arguments = _jsonDictionaryParser.Parse(command.ArgumentsJsonDictionary);
+            var argumentsProvider = _argumentsProviderFactory.Create(command.JsonArgumentsDictionary);
             var availableDaemons = _daemonSelector.Select(command.NumberOfDaemons);
-            var hostInfo = _hostInfoFactory.Create(job, availableDaemons);
+            await using var hostInfo = _hostInfoFactory.Create(job, availableDaemons);
 
             try
             {
                 var mainModule = job.MainModule ?? _mainModuleLoader.Load(job.ModuleId, job.AssemblyName, job.ClassName);
 
                 job.Start();
-                await mainModule.RunAsync(arguments, hostInfo, job.CancellationToken);
+                await mainModule.RunAsync(argumentsProvider, hostInfo, job.CancellationToken);
                 job.Finish();
             }
             catch (Exception ex) when (ex is not TaskCanceledException)

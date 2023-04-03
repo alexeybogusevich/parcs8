@@ -2,7 +2,7 @@
 
 namespace Parcs.HostAPI.Configuration
 {
-    public class DaemonsConfiguration
+    public sealed class DaemonsConfiguration
     {
         public const string SectionName = "Daemons";
 

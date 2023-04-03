@@ -37,12 +37,16 @@ namespace Parcs.HostAPI.Validators.Base
                 .Must(c => BeAnExistingClass(c.ModuleId, c.MainModuleAssemblyName, c.MainModuleClassName, moduleDirectoryPathBuilder))
                 .WithMessage("Class not found in the assembly.");
 
-            When(c => !string.IsNullOrWhiteSpace(c.ArgumentsJsonDictionary), () =>
+            When(c => !string.IsNullOrWhiteSpace(c.JsonArgumentsDictionary), () =>
             {
-                RuleFor(c => c.ArgumentsJsonDictionary)
+                RuleFor(c => c.JsonArgumentsDictionary)
                     .Must(BeAValidDictionaryJson)
                     .WithMessage("Invalid JSON: the ArgumentsDictionaryJson field cannot be parsed into a dictionary.");
             });
+
+            RuleFor(c => c.NumberOfDaemons)
+                .GreaterThan(0)
+                .WithMessage("The number of daemons must be greater than zero.");
         }
 
         private static bool BeAValidDictionaryJson(string json)

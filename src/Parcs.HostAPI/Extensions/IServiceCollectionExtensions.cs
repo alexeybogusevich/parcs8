@@ -44,6 +44,7 @@ namespace Parcs.HostAPI.Extensions
                 .AddScoped<IJobCompletionNotifier, JobCompletionNotifier>()
                 .AddScoped(typeof(ITypeLoader<>), typeof(TypeLoader<>))
                 .AddScoped<IMainModuleLoader, MainModuleLoader>()
+                .AddScoped<IArgumentsProviderFactory, ArgumentsProviderFactory>()
                 .AddScoped<IJsonDictionaryParser, JsonDictionaryParser>()
                 .AddSingleton<IJobDirectoryPathBuilder, JobDirectoryPathBuilder>()
                 .AddSingleton<IModuleDirectoryPathBuilder, ModuleDirectoryPathBuilder>()
