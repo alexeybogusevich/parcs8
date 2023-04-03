@@ -27,6 +27,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Parcs.Portal", "src\Parcs.P
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Parcs.Net", "src\Parcs.Net\Parcs.Net.csproj", "{AF997192-7AE6-47C4-A550-99EBBD12E4F7}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Parcs.Modules.FloydWarshall", "modules\Parcs.Modules.FloydWarshall\Parcs.Modules.FloydWarshall.csproj", "{AFA29635-77E5-443B-B9FA-945B97A32A52}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -69,6 +71,10 @@ Global
 		{AF997192-7AE6-47C4-A550-99EBBD12E4F7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AF997192-7AE6-47C4-A550-99EBBD12E4F7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AF997192-7AE6-47C4-A550-99EBBD12E4F7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AFA29635-77E5-443B-B9FA-945B97A32A52}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AFA29635-77E5-443B-B9FA-945B97A32A52}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AFA29635-77E5-443B-B9FA-945B97A32A52}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AFA29635-77E5-443B-B9FA-945B97A32A52}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -83,6 +89,7 @@ Global
 		{1CE107DB-19DF-4232-98A7-F463629D81BD} = {D4150577-5F2D-4343-821C-6DA8FCA60239}
 		{2A3D6E4D-8682-4949-9760-2DA21D2708BC} = {6E753C81-CC3C-4A85-BC67-B7D2F4F28881}
 		{AF997192-7AE6-47C4-A550-99EBBD12E4F7} = {6E753C81-CC3C-4A85-BC67-B7D2F4F28881}
+		{AFA29635-77E5-443B-B9FA-945B97A32A52} = {D4150577-5F2D-4343-821C-6DA8FCA60239}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {A7E44F1B-D2FC-4A94-B95F-0558B70A9B92}
