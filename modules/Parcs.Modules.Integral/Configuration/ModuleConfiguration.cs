@@ -2,6 +2,6 @@
 {
     public class ModuleConfiguration
     {
-        public int? Precision { get; set; }
+        public double? Precision { get; set; }
     }
 }

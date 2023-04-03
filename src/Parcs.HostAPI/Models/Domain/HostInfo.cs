@@ -30,9 +30,7 @@ namespace Parcs.HostAPI.Models.Domain
             _createdPoints = new List<Point>();
         }
 
-        public int AvailablePointsNumber => _availableDaemons.Count;
-
-        public int CanCreatePointsNumber => throw new NotImplementedException();
+        public int CanCreatePointsNumber => _availableDaemons.Count;
 
         public IInputReader GetInputReader() => _inputReader;
 
