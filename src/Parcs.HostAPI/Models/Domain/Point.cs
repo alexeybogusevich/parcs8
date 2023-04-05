@@ -58,7 +58,11 @@ namespace Parcs.TCP.Host.Models
         {
             if (_createdChannel is not null)
             {
-                await _createdChannel.WriteSignalAsync(Signal.CloseConnection);
+                if (_tcpClient.Connected)
+                {
+                    await _createdChannel.WriteSignalAsync(Signal.CloseConnection);
+                }
+
                 _createdChannel.Dispose();
                 _createdChannel = null;
             }

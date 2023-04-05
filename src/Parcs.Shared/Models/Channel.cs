@@ -3,6 +3,7 @@ using Parcs.Shared.Models.Interfaces;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
+using System;
 
 namespace Parcs.Shared.Models
 {
@@ -146,11 +147,25 @@ namespace Parcs.Shared.Models
         {
             var buffer = new byte[size];
 
-            var length = await _networkStream.ReadAsync(buffer.AsMemory(0, size), _cancellationToken);
+            int offset = 0;
+            int count = size;
 
-            if (length != size)
+            while (offset < size)
             {
-                throw new ArgumentException($"Expected to receive {size} bytes, but got {length}.");
+                var bytesRead = await _networkStream.ReadAsync(buffer.AsMemory(offset, count), _cancellationToken);
+
+                if (bytesRead == 0)
+                {
+                    break;
+                }
+
+                offset += bytesRead;
+                count -= bytesRead;
+            }
+
+            if (offset != size)
+            {
+                throw new ArgumentException($"Expected to receive {size} bytes but got {offset}");
             }
 
             return buffer;
