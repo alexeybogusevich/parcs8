@@ -32,7 +32,7 @@ namespace Parcs.TCP.Daemon.Handlers
 
                 var workerModule = _typeLoader.Load(assemblyDirectoryPath, assemblyName, className);
 
-                await workerModule.RunAsync(managedChannel);
+                await workerModule.RunAsync(managedChannel, _jobContextAccessor.Current.CancellationTokenSource.Token);
             }
             finally
             {

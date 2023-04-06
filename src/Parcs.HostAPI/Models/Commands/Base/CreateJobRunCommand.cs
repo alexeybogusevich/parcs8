@@ -11,15 +11,13 @@
             string assemblyName,
             string className,
             IEnumerable<IFormFile> inputFiles,
-            string jsonArgumentsDictionary,
-            int numberOfDaemons)
+            string jsonArgumentsDictionary)
         {
             ModuleId = moduleId;
             MainModuleAssemblyName = assemblyName;
             MainModuleClassName = className;
             InputFiles = inputFiles;
             JsonArgumentsDictionary = jsonArgumentsDictionary;
-            NumberOfDaemons = numberOfDaemons;
         }
 
         public Guid ModuleId { get; set; }
@@ -31,7 +29,5 @@
         public IEnumerable<IFormFile> InputFiles { get; set; }
 
         public string JsonArgumentsDictionary { get; set; }
-
-        public int NumberOfDaemons { get; set; }
     }
 }

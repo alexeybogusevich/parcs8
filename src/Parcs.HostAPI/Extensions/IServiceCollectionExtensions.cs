@@ -28,6 +28,7 @@ namespace Parcs.HostAPI.Extensions
         public static IServiceCollection AddApplicationOptions(this IServiceCollection services, IConfiguration configuration)
         {
             return services
+                .Configure<HostingConfiguration>(configuration.GetSection(HostingConfiguration.SectionName))
                 .Configure<JobsConfiguration>(configuration.GetSection(JobsConfiguration.SectionName))
                 .Configure<JobOutputConfiguration>(configuration.GetSection(JobOutputConfiguration.SectionName))
                 .Configure<FileSystemConfiguration>(configuration.GetSection(FileSystemConfiguration.SectionName))
@@ -38,7 +39,10 @@ namespace Parcs.HostAPI.Extensions
         {
             return services
                 .AddScoped<IGuidReference, GuidReference>()
-                .AddScoped<IDaemonSelector, DaemonSelector>()
+                .AddScoped<IDaemonResolver, DeamonResolver>()
+                .AddScoped<IDaemonResolutionStrategyFactory, DaemonResolutionStrategyFactory>()
+                .AddScoped<ConfigurationDaemonResolutionStrategy>()
+                .AddScoped<KubernetesDaemonResolutionStrategy>()
                 .AddScoped<IHostInfoFactory, HostInfoFactory>()
                 .AddScoped<IInputOutputFactory, InputOutputFactory>()
                 .AddScoped<IJobCompletionNotifier, JobCompletionNotifier>()

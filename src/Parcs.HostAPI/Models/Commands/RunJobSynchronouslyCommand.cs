@@ -11,7 +11,7 @@ namespace Parcs.HostAPI.Models.Commands
         }
 
         public RunJobSynchronouslyCommand(RunJobCommand baseCommand)
-            : base(baseCommand.JobId, baseCommand.JsonArgumentsDictionary, baseCommand.NumberOfDaemons)
+            : base(baseCommand.JobId, baseCommand.JsonArgumentsDictionary)
         {
         }
     }

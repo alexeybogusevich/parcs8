@@ -74,8 +74,6 @@ namespace Parcs.Modules.FloydWarshall
 
         static async Task SaveMatrixAsync(string filename, int[][] m, IHostInfo hostInfo)
         {
-            using var file = File.CreateText(filename);
-
             var stringBuilder = new StringBuilder();
 
             for (int i = 0; i < m.Length; i++)
@@ -85,7 +83,7 @@ namespace Parcs.Modules.FloydWarshall
                     stringBuilder.Append(m[i][j]);
                     if (j != m.Length - 1)
                     {
-                        stringBuilder.Append(" ");
+                        stringBuilder.Append(' ');
                     }
                 }
 

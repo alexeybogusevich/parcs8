@@ -43,10 +43,6 @@ namespace Parcs.HostAPI.Validators.Base
                     .Must(BeAValidDictionaryJson)
                     .WithMessage("Invalid JSON: the ArgumentsDictionaryJson field cannot be parsed into a dictionary.");
             });
-
-            RuleFor(c => c.NumberOfDaemons)
-                .GreaterThan(0)
-                .WithMessage("The number of daemons must be greater than zero.");
         }
 
         private static bool BeAValidDictionaryJson(string json)
