@@ -1,0 +1,125 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: parcs-storage
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: /mnt/data
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: parcs-storage-claim
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 500Mi
+  selector:
+    matchLabels:
+      app: parcs
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: parcs-daemon-headless
+  labels:
+    app: parcs-daemon
+spec:
+  ports:
+  - name: daemon
+    port: 1111
+    targetPort: 1111
+  selector:
+    app: parcs-daemon
+  clusterIP: None
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: parcs-daemon
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: parcs-daemon
+  template:
+    metadata:
+      labels:
+        app: parcs-daemon
+    spec:
+      containers:
+      - name: parcs-daemon
+        image: oleksiibohusevych/parcsdaemon
+        ports:
+        - containerPort: 1111
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        volumeMounts:
+        - name: parcs-storage
+          mountPath: /var/lib/storage
+      volumes:
+      - name: parcs-storage
+        persistentVolumeClaim:
+          claimName: parcs-storage-claim
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: parcs-hostapi
+  labels:
+    app: parcs-hostapi
+spec:
+  ports:
+  - name: https
+    port: 443
+    targetPort: 80
+  selector:
+    app: parcs-hostapi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: parcs-hostapi
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: parcs-hostapi
+  template:
+    metadata:
+      labels:
+        app: parcs-hostapi
+    spec:
+      containers:
+      - name: parcs-hostapi
+        image: oleksiibohusevych/parcshost
+        ports:
+        - containerPort: 80
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        env:
+        - name: PARCS_DAEMON_ENDPOINTS
+          value: parcs-daemon-headless.parcs.svc.cluster.local
+        volumeMounts:
+        - name: parcs-storage
+          mountPath: /var/lib/storage
+      volumes:
+      - name: parcs-storage
+        persistentVolumeClaim:
+          claimName: parcs-storage-claim

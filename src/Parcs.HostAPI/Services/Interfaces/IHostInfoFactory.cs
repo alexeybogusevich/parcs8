@@ -5,6 +5,6 @@ namespace Parcs.HostAPI.Services.Interfaces
 {
     public interface IHostInfoFactory
     {
-        IHostInfo Create(Job job);
+        Task<IHostInfo> CreateAsync(Job job);
     }
 }

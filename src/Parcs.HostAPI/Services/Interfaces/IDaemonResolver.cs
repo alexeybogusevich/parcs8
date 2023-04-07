@@ -4,6 +4,6 @@ namespace Parcs.HostAPI.Services.Interfaces
 {
     public interface IDaemonResolver
     {
-        IEnumerable<Daemon> GetAvailableDaemons();
+        Task<IEnumerable<Daemon>> GetAvailableDaemonsAsync();
     }
 }

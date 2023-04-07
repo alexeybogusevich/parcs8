@@ -27,7 +27,12 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Parcs.Portal", "src\Parcs.P
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Parcs.Net", "src\Parcs.Net\Parcs.Net.csproj", "{AF997192-7AE6-47C4-A550-99EBBD12E4F7}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Parcs.Modules.FloydWarshall", "modules\Parcs.Modules.FloydWarshall\Parcs.Modules.FloydWarshall.csproj", "{AFA29635-77E5-443B-B9FA-945B97A32A52}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Parcs.Modules.FloydWarshall", "modules\Parcs.Modules.FloydWarshall\Parcs.Modules.FloydWarshall.csproj", "{AFA29635-77E5-443B-B9FA-945B97A32A52}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{2B8E7431-D6A7-451F-BF4E-D70ADE561EC2}"
+	ProjectSection(SolutionItems) = preProject
+		kube\deployment.yaml = kube\deployment.yaml
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

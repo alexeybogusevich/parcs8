@@ -31,7 +31,7 @@ namespace Parcs.HostAPI.Handlers
             ArgumentNullException.ThrowIfNull(job.MainModule);
 
             var argumentsProvider = _argumentsProviderFactory.Create(command.JsonArgumentsDictionary);
-            await using var hostInfo = _hostInfoFactory.Create(job);
+            await using var hostInfo = await _hostInfoFactory.CreateAsync(job);
 
             try
             {

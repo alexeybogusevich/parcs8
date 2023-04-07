@@ -20,12 +20,12 @@ namespace Parcs.HostAPI.Services
             _inputOutputFactory = inputOutputFactory;
         }
 
-        public IHostInfo Create(Job job)
+        public async Task<IHostInfo> CreateAsync(Job job)
         {
             var workerModulesPath = _moduleDirectoryPathBuilder.Build(job.ModuleId, ModuleDirectoryGroup.Worker);
             var inputReader = _inputOutputFactory.CreateReader(job);
             var outputWriter = _inputOutputFactory.CreateWriter(job);
-            var daemons = _daemonResolver.GetAvailableDaemons();
+            var daemons = await _daemonResolver.GetAvailableDaemonsAsync();
             return new HostInfo(job, daemons, workerModulesPath, inputReader, outputWriter);
         }
     }

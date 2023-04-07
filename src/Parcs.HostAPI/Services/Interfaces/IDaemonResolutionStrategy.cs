@@ -4,6 +4,6 @@ namespace Parcs.HostAPI.Services.Interfaces
 {
     public interface IDaemonResolutionStrategy
     {
-        IEnumerable<Daemon> Resolve();
+        Task<IEnumerable<Daemon>> ResolveAsync();
     }
 }
