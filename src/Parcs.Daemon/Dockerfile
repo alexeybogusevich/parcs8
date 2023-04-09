@@ -5,11 +5,11 @@ WORKDIR /app
 
 FROM mcr.microsoft.com/dotnet/sdk:7.0 AS build
 WORKDIR /src
-COPY ["Parcs.Daemon/Parcs.Daemon.csproj", "Parcs.Daemon/"]
-COPY ["Parcs.Shared/Parcs.Shared.csproj", "Parcs.Shared/"]
-RUN dotnet restore "Parcs.Daemon/Parcs.Daemon.csproj"
+COPY ["src/Parcs.Daemon/Parcs.Daemon.csproj", "src/Parcs.Daemon/"]
+COPY ["src/Parcs.Shared/Parcs.Shared.csproj", "src/Parcs.Shared/"]
+RUN dotnet restore "src/Parcs.Daemon/Parcs.Daemon.csproj"
 COPY . .
-WORKDIR "/src/Parcs.Daemon"
+WORKDIR "/src/src/Parcs.Daemon"
 RUN dotnet build "Parcs.Daemon.csproj" -c Release -o /app/build
 
 FROM build AS publish

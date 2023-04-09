@@ -32,7 +32,8 @@ namespace Parcs.HostAPI.Extensions
                 .Configure<JobsConfiguration>(configuration.GetSection(JobsConfiguration.SectionName))
                 .Configure<JobOutputConfiguration>(configuration.GetSection(JobOutputConfiguration.SectionName))
                 .Configure<FileSystemConfiguration>(configuration.GetSection(FileSystemConfiguration.SectionName))
-                .Configure<DaemonsConfiguration>(configuration.GetSection(DaemonsConfiguration.SectionName));
+                .Configure<DaemonsConfiguration>(configuration.GetSection(DaemonsConfiguration.SectionName))
+                .Configure<KubernetesConfiguration>(configuration.GetSection(KubernetesConfiguration.SectionName));
         }
 
         public static IServiceCollection AddApplicationServices(this IServiceCollection services)

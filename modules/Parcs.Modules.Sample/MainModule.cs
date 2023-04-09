@@ -10,10 +10,7 @@ namespace Parcs.Modules.Sample
 
         public async Task RunAsync(IArgumentsProvider argumentsProvider, IHostInfo hostInfo, CancellationToken cancellationToken = default)
         {
-            if (argumentsProvider.TryGet("sample-argument", out var sampleArgument))
-            {
-                Console.WriteLine(sampleArgument);
-            }
+            var moduleOptions = argumentsProvider.Bind<ModuleOptions>();
 
             var inputReader = hostInfo.GetInputReader();
 
@@ -24,7 +21,13 @@ namespace Parcs.Modules.Sample
                 Console.WriteLine(await streamReader.ReadToEndAsync(cancellationToken));
             }
 
-            var pointsNumber = hostInfo.CanCreatePointsNumber;
+            var pointsNumber = moduleOptions.PointsCount;
+
+            if (pointsNumber > hostInfo.CanCreatePointsNumber)
+            {
+                throw new ArgumentException($"More points ({pointsNumber}) than allowed ({hostInfo.CanCreatePointsNumber}).");
+            }
+
             var channels = new IChannel[pointsNumber];
             var points = new IPoint[pointsNumber];
 
