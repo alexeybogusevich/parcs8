@@ -1,8 +1,6 @@
-﻿using Parcs.Net;
-
-namespace Parcs.Modules.Integral
+﻿namespace Parcs.Modules.Integral
 {
-    public class ModuleOptions : ArgumentsBase
+    public class ModuleOptions
     {
         public double? Precision { get; set; }
     }

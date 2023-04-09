@@ -13,7 +13,13 @@ namespace Parcs.Modules.Integral
             double b = Math.PI / 2;
             double h = moduleOptions.Precision ?? 0.00000001;
 
-            var pointsNumber = hostInfo.CanCreatePointsNumber;
+            var pointsNumber = argumentsProvider.GetBase().PointsNumber;
+
+            if (pointsNumber > hostInfo.CanCreatePointsNumber)
+            {
+                throw new ArgumentException($"More points ({pointsNumber}) than allowed ({hostInfo.CanCreatePointsNumber}).");
+            }
+
             var points = new IPoint[pointsNumber];
             var channels = new IChannel[pointsNumber];
 

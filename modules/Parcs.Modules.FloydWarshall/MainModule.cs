@@ -7,42 +7,40 @@ namespace Parcs.Modules.FloydWarshall
     internal class MainModule : IMainModule
     {
         private IChannel[] _channels;
-        private IPoint[] _points;
         private int[][] _matrix;
-        private ModuleOptions _options;
 
         public async Task RunAsync(IArgumentsProvider argumentsProvider, IHostInfo hostInfo, CancellationToken cancellationToken = default)
         {
-            _options = argumentsProvider.Bind<ModuleOptions>();
+            var options = argumentsProvider.Bind<ModuleOptions>();
 
-            int pointsNum = _options.PointsNumber;
-            _matrix = GetMatrix(_options.InputFile, hostInfo);
+            int pointsNumber = argumentsProvider.GetBase().PointsNumber;
+            _matrix = GetMatrix(options.InputFile, hostInfo);
 
-            if (_matrix.Length % pointsNum != 0)
+            if (_matrix.Length % pointsNumber != 0)
             {
-                throw new ArgumentException($"Matrix size (now {_matrix.Length}) should be divided by {pointsNum}!");
+                throw new ArgumentException($"Matrix size (now {_matrix.Length}) should be divided by {pointsNumber}!");
             }
 
-            _channels = new IChannel[pointsNum];
-            _points = new IPoint[pointsNum];
+            _channels = new IChannel[pointsNumber];
+            var points = new IPoint[pointsNumber];
 
-            for (int i = 0; i < pointsNum; ++i)
+            for (int i = 0; i < pointsNumber; ++i)
             {
-                _points[i] = await hostInfo.CreatePointAsync();
-                _channels[i] = await _points[i].CreateChannelAsync();
-                await _points[i].ExecuteClassAsync<WorkerModule>();
+                points[i] = await hostInfo.CreatePointAsync();
+                _channels[i] = await points[i].CreateChannelAsync();
+                await points[i].ExecuteClassAsync<WorkerModule>();
             }
 
-            await DistributeAllDataAsync();
+            await DistributeAllDataAsync(pointsNumber);
 
             Stopwatch sw = new();
             sw.Start();
-            await RunParallelFloydAsync();
+            await RunParallelFloydAsync(pointsNumber);
             sw.Stop();
 
-            int[][] result = await GatherAllDataAsync();
+            int[][] result = await GatherAllDataAsync(pointsNumber);
 
-            await SaveMatrixAsync(_options.OutputFile, result, hostInfo);
+            await SaveMatrixAsync(options.OutputFile, result, hostInfo);
             Console.WriteLine("Done");
             Console.WriteLine($"Total time {sw.ElapsedMilliseconds} ms ({sw.ElapsedTicks} ticks)");
 
@@ -106,9 +104,9 @@ namespace Parcs.Modules.FloydWarshall
             }
         }
 
-        private async Task<int[][]> GatherAllDataAsync()
+        private async Task<int[][]> GatherAllDataAsync(int pointsNumber)
         {
-            int chunkSize = _matrix.Length / _options.PointsNumber;
+            int chunkSize = _matrix.Length / pointsNumber;
 
             int[][] result = new int[_matrix.Length][];
 
@@ -124,9 +122,9 @@ namespace Parcs.Modules.FloydWarshall
             return result;
         }
 
-        private async Task RunParallelFloydAsync()
+        private async Task RunParallelFloydAsync(int pointsNumber)
         {
-            int chunkSize = _matrix.Length / _options.PointsNumber;
+            int chunkSize = _matrix.Length / pointsNumber;
 
             for (int k = 0; k < _matrix.Length; k++)
             {
@@ -143,13 +141,13 @@ namespace Parcs.Modules.FloydWarshall
             }
         }
 
-        private async Task DistributeAllDataAsync()
+        private async Task DistributeAllDataAsync(int pointsNumber)
         {
             for (int i = 0; i < _channels.Length; i++)
             {
                 Console.WriteLine($"Sent to channel: {i}");
                 await _channels[i].WriteDataAsync(i);
-                int chunkSize = _matrix.Length / _options.PointsNumber;
+                int chunkSize = _matrix.Length / pointsNumber;
 
                 int[][] chunk = new int[chunkSize][];
 

@@ -25,7 +25,12 @@ namespace Parcs.Modules.MatrixesMultiplication
 
             int[] possibleValues = { 1, 2, 4, 8, 16, 32 };
 
-            int pointsNumber = hostInfo.CanCreatePointsNumber;
+            int pointsNumber = argumentsProvider.GetBase().PointsNumber;
+
+            if (pointsNumber > hostInfo.CanCreatePointsNumber)
+            {
+                throw new ArgumentException($"More points ({pointsNumber}) than allowed ({hostInfo.CanCreatePointsNumber}).");
+            }
 
             if (!possibleValues.Contains(pointsNumber))
             {

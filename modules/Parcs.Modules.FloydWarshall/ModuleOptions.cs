@@ -1,8 +1,6 @@
-﻿using Parcs.Net;
-
-namespace Parcs.Modules.FloydWarshall
+﻿namespace Parcs.Modules.FloydWarshall
 {
-    public class ModuleOptions : ArgumentsBase
+    public class ModuleOptions
     {
         public string InputFile { get; set; }
 

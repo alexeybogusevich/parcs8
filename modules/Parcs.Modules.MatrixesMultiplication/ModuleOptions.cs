@@ -1,8 +1,6 @@
-﻿using Parcs.Net;
-
-namespace Parcs.Modules.MatrixesMultiplication
+﻿namespace Parcs.Modules.MatrixesMultiplication
 {
-    public class ModuleOptions : ArgumentsBase
+    public class ModuleOptions
     {
         public string MatrixAFileName { get; set; }
 
