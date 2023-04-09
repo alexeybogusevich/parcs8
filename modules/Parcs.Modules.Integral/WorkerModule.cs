@@ -4,8 +4,6 @@ namespace Parcs.Modules.Integral
 {
     public class WorkerModule : IWorkerModule
     {
-        public string Name => "Worker Integral Module";
-
         public async Task RunAsync(IChannel channel, CancellationToken cancellationToken = default)
         {
             double a = await channel.ReadDoubleAsync();

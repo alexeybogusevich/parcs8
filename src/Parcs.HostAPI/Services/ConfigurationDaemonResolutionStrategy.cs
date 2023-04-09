@@ -14,6 +14,6 @@ namespace Parcs.HostAPI.Services
             _daemonsConfiguration = options.Value;
         }
 
-        public Task<IEnumerable<Daemon>> ResolveAsync() => Task.FromResult(_daemonsConfiguration.PreconfiguredInstances);
+        public IEnumerable<Daemon> Resolve() => _daemonsConfiguration.PreconfiguredInstances;
     }
 }

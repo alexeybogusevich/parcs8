@@ -17,10 +17,10 @@ namespace Parcs.HostAPI.Services
             _daemonResolutionStrategyFactory = daemonResolutionStrategyFactory;
         }
 
-        public Task<IEnumerable<Daemon>> GetAvailableDaemonsAsync()
+        public IEnumerable<Daemon> GetAvailableDaemons()
         {
             var resolutionStrategy = _daemonResolutionStrategyFactory.Create(_hostingConfiguration.Environment);
-            return resolutionStrategy.ResolveAsync();
+            return resolutionStrategy.Resolve();
         }
     }
 }

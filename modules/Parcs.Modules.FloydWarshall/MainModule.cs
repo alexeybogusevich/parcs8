@@ -11,13 +11,11 @@ namespace Parcs.Modules.FloydWarshall
         private int[][] _matrix;
         private ModuleOptions _options;
 
-        public string Name => "Floyd-Warshall Algorithm";
-
         public async Task RunAsync(IArgumentsProvider argumentsProvider, IHostInfo hostInfo, CancellationToken cancellationToken = default)
         {
             _options = argumentsProvider.Bind<ModuleOptions>();
 
-            int pointsNum = _options.PointsCount;
+            int pointsNum = _options.PointsNumber;
             _matrix = GetMatrix(_options.InputFile, hostInfo);
 
             if (_matrix.Length % pointsNum != 0)
@@ -110,7 +108,7 @@ namespace Parcs.Modules.FloydWarshall
 
         private async Task<int[][]> GatherAllDataAsync()
         {
-            int chunkSize = _matrix.Length / _options.PointsCount;
+            int chunkSize = _matrix.Length / _options.PointsNumber;
 
             int[][] result = new int[_matrix.Length][];
 
@@ -128,7 +126,7 @@ namespace Parcs.Modules.FloydWarshall
 
         private async Task RunParallelFloydAsync()
         {
-            int chunkSize = _matrix.Length / _options.PointsCount;
+            int chunkSize = _matrix.Length / _options.PointsNumber;
 
             for (int k = 0; k < _matrix.Length; k++)
             {
@@ -151,7 +149,7 @@ namespace Parcs.Modules.FloydWarshall
             {
                 Console.WriteLine($"Sent to channel: {i}");
                 await _channels[i].WriteDataAsync(i);
-                int chunkSize = _matrix.Length / _options.PointsCount;
+                int chunkSize = _matrix.Length / _options.PointsNumber;
 
                 int[][] chunk = new int[chunkSize][];
 

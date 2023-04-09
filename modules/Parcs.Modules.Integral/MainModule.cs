@@ -1,20 +1,17 @@
-﻿using Parcs.Modules.Integral.Configuration;
-using Parcs.Net;
+﻿using Parcs.Net;
 using System.Text;
 
 namespace Parcs.Modules.Integral
 {
     public class MainModule : IMainModule
     {
-        public string Name => "Main Integral Module";
-
         public async Task RunAsync(IArgumentsProvider argumentsProvider, IHostInfo hostInfo, CancellationToken cancellationToken = default)
         {
-            var moduleConfiguration = argumentsProvider.Bind<ModuleConfiguration>();
+            var moduleOptions = argumentsProvider.Bind<ModuleOptions>();
 
             double a = 0;
             double b = Math.PI / 2;
-            double h = moduleConfiguration.Precision ?? 0.00000001;
+            double h = moduleOptions.Precision ?? 0.00000001;
 
             var pointsNumber = hostInfo.CanCreatePointsNumber;
             var points = new IPoint[pointsNumber];

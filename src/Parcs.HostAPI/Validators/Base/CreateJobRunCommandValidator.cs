@@ -21,7 +21,15 @@ namespace Parcs.HostAPI.Validators.Base
                 .NotEmpty()
                 .WithMessage("Module Id is required.")
                 .Must(moduleId => BeAnExistingModule(moduleId, moduleDirectoryPathBuilder))
-                .WithMessage("Module does not exist.");
+                .WithMessage("Module does not exist.")
+                .DependentRules(() =>
+                {
+                    RuleFor(c => c)
+                        .Must(c => BeAnExistingAssembly(c.ModuleId, c.MainModuleAssemblyName, moduleDirectoryPathBuilder))
+                        .WithMessage("Assembly not found.")
+                        .Must(c => BeAnExistingClass(c.ModuleId, c.MainModuleAssemblyName, c.MainModuleClassName, moduleDirectoryPathBuilder))
+                        .WithMessage("Class not found in the assembly.");
+                });
 
             RuleFor(c => c.MainModuleAssemblyName)
                 .NotEmpty()
@@ -31,15 +39,13 @@ namespace Parcs.HostAPI.Validators.Base
                 .NotEmpty()
                 .WithMessage("Main module's class name is required.");
 
-            RuleFor(c => c)
-                .Must(c => BeAnExistingAssembly(c.ModuleId, c.MainModuleAssemblyName, moduleDirectoryPathBuilder))
-                .WithMessage("Assembly not found.")
-                .Must(c => BeAnExistingClass(c.ModuleId, c.MainModuleAssemblyName, c.MainModuleClassName, moduleDirectoryPathBuilder))
-                .WithMessage("Class not found in the assembly.");
+            RuleFor(c => c.PointsNumber)
+                .GreaterThan(0)
+                .WithMessage("The number of points must be greater than zero.");
 
-            When(c => !string.IsNullOrWhiteSpace(c.JsonArgumentsDictionary), () =>
+            When(c => !string.IsNullOrWhiteSpace(c.RawArgumentsDictionary), () =>
             {
-                RuleFor(c => c.JsonArgumentsDictionary)
+                RuleFor(c => c.RawArgumentsDictionary)
                     .Must(BeAValidDictionaryJson)
                     .WithMessage("Invalid JSON: the ArgumentsDictionaryJson field cannot be parsed into a dictionary.");
             });

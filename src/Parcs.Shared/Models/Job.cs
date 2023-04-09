@@ -26,8 +26,6 @@ namespace Parcs.Shared.Models
 
         public Guid ModuleId { get; private set; }
 
-        public string ModuleName { get; private set; }
-
         public string AssemblyName { get; private set; }
 
         public string ClassName { get; private set; }
@@ -103,7 +101,6 @@ namespace Parcs.Shared.Models
         public void SetMainModule(IMainModule mainModule)
         {
             MainModule = mainModule;
-            ModuleName = mainModule.Name;
         }
 
         public override string ToString()
@@ -111,7 +108,6 @@ namespace Parcs.Shared.Models
             return new StringBuilder()
                 .AppendLine($"Job Id: {Id}")
                 .AppendLine($"Module Id: {ModuleId}")
-                .AppendLine($"Main module name: {ModuleName}")
                 .AppendLine($"Main module assembly: {AssemblyName}")
                 .AppendLine($"Main module class: {ClassName}")
                 .AppendLine($"Status: {Status}")

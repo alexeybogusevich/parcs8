@@ -6,14 +6,17 @@
         {
         }
 
-        public RunJobCommand(Guid jobId, string jsonArgumentsDictionary)
+        public RunJobCommand(Guid jobId, int pointsNumber, string rawArgumentsDictionary)
         {
             JobId = jobId;
-            JsonArgumentsDictionary = jsonArgumentsDictionary;
+            PointsNumber = pointsNumber;
+            RawArgumentsDictionary = rawArgumentsDictionary;
         }
 
         public Guid JobId { get; set; }
 
-        public string JsonArgumentsDictionary { get; set; }
+        public int PointsNumber { get; set; }
+
+        public string RawArgumentsDictionary { get; set; }
     }
 }

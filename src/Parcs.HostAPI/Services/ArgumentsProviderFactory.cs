@@ -12,10 +12,10 @@ namespace Parcs.HostAPI.Services
             _jsonDictionaryParser = jsonDictionaryParser;
         }
 
-        public IArgumentsProvider Create(string jsonArgumentsDictionary)
+        public IArgumentsProvider Create(int pointsNumber, string rawArgumentsDictionary)
         {
-            var arguments = _jsonDictionaryParser.Parse(jsonArgumentsDictionary);
-            return new ArgumentsProvider(arguments);
+            var parsedArguments = _jsonDictionaryParser.Parse(rawArgumentsDictionary);
+            return new ArgumentsProvider(pointsNumber, parsedArguments);
         }
     }
 }

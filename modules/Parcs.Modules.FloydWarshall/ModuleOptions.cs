@@ -1,13 +1,11 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Parcs.Net;
 
 namespace Parcs.Modules.FloydWarshall
 {
-    public class ModuleOptions
+    public class ModuleOptions : ArgumentsBase
     {
         public string InputFile { get; set; }
 
         public string OutputFile { get; set; }
-
-        public int PointsCount { get; set; }
     }
 }

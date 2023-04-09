@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Parcs.HostAPI.Models.Commands;
 using Parcs.HostAPI.Models.Commands.Base;
+using Parcs.HostAPI.Models.Domain;
 using Parcs.HostAPI.Models.Responses;
 using System.Net;
 
@@ -25,7 +26,7 @@ namespace Parcs.HostAPI.Controllers
             var createJobCommand = new CreateJobCommand(command);
             var createJobCommandResponse = await _mediator.Send(createJobCommand, cancellationToken);
 
-            var runJobCommand = new RunJobCommand(createJobCommandResponse.JobId, command.JsonArgumentsDictionary);
+            var runJobCommand = new RunJobCommand(createJobCommandResponse.JobId, command.PointsNumber, command.RawArgumentsDictionary);
             var runJobAsynchronouslyCommand = new RunJobAsynchronouslyCommand(runJobCommand, command.CallbackUri);
             await _mediator.Send(runJobAsynchronouslyCommand, cancellationToken);
 

@@ -1,8 +1,8 @@
 ﻿using System.ComponentModel;
 
-namespace Parcs.HostAPI.Extensions.Functional
+namespace Parcs.Net
 {
-    public static class StringExtensions
+    internal static class StringExtensions
     {
         public static object ToObject(this string value, Type type)
         {

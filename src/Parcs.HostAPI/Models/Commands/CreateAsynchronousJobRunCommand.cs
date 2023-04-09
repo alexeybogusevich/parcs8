@@ -10,7 +10,7 @@ namespace Parcs.HostAPI.Models.Commands
         }
 
         public CreateAsynchronousJobRunCommand(CreateJobRunCommand baseCommand, string callbackUrl)
-            : base(baseCommand.ModuleId, baseCommand.MainModuleAssemblyName, baseCommand.MainModuleClassName, baseCommand.InputFiles, baseCommand.JsonArgumentsDictionary)
+            : base(baseCommand.ModuleId, baseCommand.MainModuleAssemblyName, baseCommand.MainModuleClassName, baseCommand.InputFiles, baseCommand.PointsNumber, baseCommand.RawArgumentsDictionary)
         {
             CallbackUri = callbackUrl;
         }

@@ -1,5 +1,6 @@
 ﻿using MediatR;
 using Parcs.HostAPI.Models.Commands;
+using Parcs.HostAPI.Models.Commands.Base;
 using Parcs.HostAPI.Models.Domain;
 using Parcs.HostAPI.Services.Interfaces;
 using System.Threading.Channels;
@@ -47,7 +48,8 @@ namespace Parcs.HostAPI.Background
 
             try
             {
-                var synchronousJobCommand = new RunJobSynchronouslyCommand(command);
+                var runJobCommand = new RunJobCommand(command.JobId, command.PointsNumber, command.RawArgumentsDictionary);
+                var synchronousJobCommand = new RunJobSynchronouslyCommand(runJobCommand);
                 _ = await mediator.Send(synchronousJobCommand, stoppingToken);
             }
             catch (Exception e)

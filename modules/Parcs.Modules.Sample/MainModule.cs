@@ -6,12 +6,8 @@ namespace Parcs.Modules.Sample
 {
     public class MainModule : IMainModule
     {
-        public string Name => "Sample main module";
-
         public async Task RunAsync(IArgumentsProvider argumentsProvider, IHostInfo hostInfo, CancellationToken cancellationToken = default)
         {
-            var moduleOptions = argumentsProvider.Bind<ModuleOptions>();
-
             var inputReader = hostInfo.GetInputReader();
 
             foreach (var filename in inputReader.GetFilenames())
@@ -21,7 +17,7 @@ namespace Parcs.Modules.Sample
                 Console.WriteLine(await streamReader.ReadToEndAsync(cancellationToken));
             }
 
-            var pointsNumber = moduleOptions.PointsCount;
+            var pointsNumber = argumentsProvider.GetBase().PointsNumber;
 
             if (pointsNumber > hostInfo.CanCreatePointsNumber)
             {

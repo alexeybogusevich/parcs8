@@ -4,8 +4,6 @@ namespace Parcs.Modules.FloydWarshall
 {
     public class WorkerModule : IWorkerModule
     {
-        public string Name => "Worker module";
-
         public async Task RunAsync(IChannel channel, CancellationToken cancellationToken = default)
         {
             var number = await channel.ReadIntAsync();

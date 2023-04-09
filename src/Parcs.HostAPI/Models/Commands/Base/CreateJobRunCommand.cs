@@ -11,13 +11,15 @@
             string assemblyName,
             string className,
             IEnumerable<IFormFile> inputFiles,
-            string jsonArgumentsDictionary)
+            int pointsNumber,
+            string rawArgumentsDictionary)
         {
             ModuleId = moduleId;
             MainModuleAssemblyName = assemblyName;
             MainModuleClassName = className;
             InputFiles = inputFiles;
-            JsonArgumentsDictionary = jsonArgumentsDictionary;
+            PointsNumber = pointsNumber;
+            RawArgumentsDictionary = rawArgumentsDictionary;
         }
 
         public Guid ModuleId { get; set; }
@@ -28,6 +30,8 @@
 
         public IEnumerable<IFormFile> InputFiles { get; set; }
 
-        public string JsonArgumentsDictionary { get; set; }
+        public int PointsNumber { get; set; }
+
+        public string RawArgumentsDictionary { get; set; }
     }
 }

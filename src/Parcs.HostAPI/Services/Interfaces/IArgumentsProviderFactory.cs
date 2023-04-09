@@ -4,6 +4,6 @@ namespace Parcs.HostAPI.Services.Interfaces
 {
     public interface IArgumentsProviderFactory
     {
-        IArgumentsProvider Create(string jsonArgumentsDictionary);
+        IArgumentsProvider Create(int pointsNumber, string rawArgumentsDictionary);
     }
 }

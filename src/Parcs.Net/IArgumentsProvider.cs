@@ -2,8 +2,8 @@
 {
     public interface IArgumentsProvider
     {
-        T Bind<T>() where T : class, new();
+        ArgumentsBase GetBase();
 
-        bool TryGet(string key, out string value);
+        IDictionary<string, string> GetRaw();
     }
 }

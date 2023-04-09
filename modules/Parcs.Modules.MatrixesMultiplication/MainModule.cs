@@ -6,19 +6,16 @@ namespace Parcs.Modules.MatrixesMultiplication
 {
     public class MainModule : IMainModule
     {
-        public string Name => "Main Matrixes Multiplication Module";
-
         public async Task RunAsync(IArgumentsProvider argumentsProvider, IHostInfo hostInfo, CancellationToken cancellationToken = default)
         {
             Matrix a, b;
 
-            _ = argumentsProvider.TryGet("first-file", out var filenameA);
-            _ = argumentsProvider.TryGet("second-file", out var filenameB);
+            var moduleOptions = argumentsProvider.Bind<ModuleOptions>();
 
             try
             {
-                a = Matrix.LoadFromStream(hostInfo.GetInputReader().GetFileStreamForFile(filenameA));
-                b = Matrix.LoadFromStream(hostInfo.GetInputReader().GetFileStreamForFile(filenameB));
+                a = Matrix.LoadFromStream(hostInfo.GetInputReader().GetFileStreamForFile(moduleOptions.MatrixAFileName));
+                b = Matrix.LoadFromStream(hostInfo.GetInputReader().GetFileStreamForFile(moduleOptions.MatrixBFileName));
             }
             catch (FileNotFoundException ex)
             {
