@@ -6,7 +6,7 @@
   </PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Parcs.Net" Version="0.2.2">
+		<PackageReference Include="Parcs.Net" Version="0.2.3">
 			<ExcludeAssets>runtime</ExcludeAssets>
 		</PackageReference>
 	</ItemGroup>

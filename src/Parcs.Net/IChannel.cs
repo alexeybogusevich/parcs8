@@ -5,6 +5,7 @@
         ValueTask WriteSignalAsync(Signal signal);
         ValueTask WriteDataAsync(bool data);
         ValueTask WriteDataAsync(byte data);
+        ValueTask WriteDataAsync(byte[] data);
         ValueTask WriteDataAsync(int data);
         ValueTask WriteDataAsync(long data);
         ValueTask WriteDataAsync(double data);
@@ -14,6 +15,7 @@
         Task<Signal> ReadSignalAsync();
         Task<bool> ReadBooleanAsync();
         Task<byte> ReadByteAsync();
+        Task<byte[]> ReadBytesAsync();
         Task<int> ReadIntAsync();
         Task<long> ReadLongAsync();
         Task<double> ReadDoubleAsync();

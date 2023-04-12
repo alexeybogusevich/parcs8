@@ -2,7 +2,7 @@
 {
     public enum HostingEnvironment
     {
-        Custom = 0,
+        Any = 0,
         Kubernetes = 1,
     }
 }

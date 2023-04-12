@@ -1,0 +1,226 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.16.2.56959",
+      "templateHash": "1633382784095562381"
+    }
+  },
+  "parameters": {
+    "resourceGroupLocation": {
+      "type": "string",
+      "defaultValue": "eastus",
+      "metadata": {
+        "description": "The location of the resourceGroup."
+      },
+      "allowedValues": [
+        "eastus",
+        "eastus2",
+        "centralus",
+        "westus",
+        "westus2",
+        "northcentralus",
+        "southcentralus",
+        "westcentralus",
+        "canadacentral",
+        "canadaeast",
+        "brazilsouth",
+        "northeurope",
+        "westeurope",
+        "uksouth",
+        "ukwest",
+        "francecentral",
+        "germanywestcentral",
+        "norwayeast",
+        "switzerlandnorth",
+        "switzerlandwest",
+        "norwaywest",
+        "australiasoutheast",
+        "australiaeast",
+        "australiacentral",
+        "australiacentral2",
+        "japaneast",
+        "japanwest",
+        "koreacentral",
+        "koreasouth",
+        "southeastasia",
+        "eastasia",
+        "centralindia",
+        "southindia",
+        "westindia",
+        "uaenorth",
+        "uaecentral",
+        "southafricanorth",
+        "southafricawest"
+      ]
+    },
+    "resourceGroupName": {
+      "type": "string",
+      "metadata": {
+        "description": "The name of the resource group."
+      }
+    },
+    "aksClusterName": {
+      "type": "string",
+      "metadata": {
+        "description": "The name of the AKS cluster."
+      }
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Resources/resourceGroups",
+      "apiVersion": "2022-09-01",
+      "name": "[parameters('resourceGroupName')]",
+      "location": "[parameters('resourceGroupLocation')]"
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "resources",
+      "resourceGroup": "[parameters('resourceGroupName')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "resourceGroupLocation": {
+            "value": "[parameters('resourceGroupLocation')]"
+          },
+          "aksClusterName": {
+            "value": "[parameters('aksClusterName')]"
+          },
+          "resourceGroupName": {
+            "value": "[parameters('resourceGroupName')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.16.2.56959",
+              "templateHash": "781862693880222221"
+            }
+          },
+          "parameters": {
+            "resourceGroupLocation": {
+              "type": "string",
+              "defaultValue": "eastus",
+              "metadata": {
+                "description": "The location of the resourceGroup."
+              },
+              "allowedValues": [
+                "eastus",
+                "eastus2",
+                "centralus",
+                "westus",
+                "westus2",
+                "northcentralus",
+                "southcentralus",
+                "westcentralus",
+                "canadacentral",
+                "canadaeast",
+                "brazilsouth",
+                "northeurope",
+                "westeurope",
+                "uksouth",
+                "ukwest",
+                "francecentral",
+                "germanywestcentral",
+                "norwayeast",
+                "switzerlandnorth",
+                "switzerlandwest",
+                "norwaywest",
+                "australiasoutheast",
+                "australiaeast",
+                "australiacentral",
+                "australiacentral2",
+                "japaneast",
+                "japanwest",
+                "koreacentral",
+                "koreasouth",
+                "southeastasia",
+                "eastasia",
+                "centralindia",
+                "southindia",
+                "westindia",
+                "uaenorth",
+                "uaecentral",
+                "southafricanorth",
+                "southafricawest"
+              ]
+            },
+            "aksClusterName": {
+              "type": "string",
+              "metadata": {
+                "description": "The name of the AKS cluster."
+              }
+            },
+            "resourceGroupName": {
+              "type": "string",
+              "metadata": {
+                "description": "The name of the resource group."
+              }
+            }
+          },
+          "variables": {
+            "agentCount": 3,
+            "aksEngineVersion": "v0.60.0",
+            "aksEngineDownloadUrl": "https://github.com/Azure/aks-engine/releases/download/",
+            "aksEngineDownloadPath": "/aks-engine-v0.60.0-linux-amd64.tar.gz",
+            "kubeConfigFileName": "kubeconfig.json"
+          },
+          "resources": [
+            {
+              "type": "Microsoft.ContainerService/managedClusters",
+              "apiVersion": "2023-01-02-preview",
+              "name": "[parameters('aksClusterName')]",
+              "location": "[parameters('resourceGroupLocation')]",
+              "properties": {
+                "kubernetesVersion": "1.25.2",
+                "enableRBAC": true,
+                "agentPoolProfiles": [
+                  {
+                    "name": "agentpool",
+                    "count": "[variables('agentCount')]",
+                    "vmSize": "Standard_B2s"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "Microsoft.Compute/virtualMachines/extensions",
+              "apiVersion": "2022-11-01",
+              "name": "[format('{0}/aksengine', parameters('aksClusterName'))]",
+              "location": "[parameters('resourceGroupLocation')]",
+              "properties": {
+                "publisher": "Microsoft.OSTCExtensions",
+                "type": "CustomScriptForLinux",
+                "typeHandlerVersion": "1.9",
+                "autoUpgradeMinorVersion": true,
+                "settings": {
+                  "fileUris": [
+                    "[format('{0}{1}{2}', variables('aksEngineDownloadUrl'), variables('aksEngineVersion'), variables('aksEngineDownloadPath'))]",
+                    "https://raw.githubusercontent.com/alexeybogusevich/parcs7/master/kube/deployment.yaml"
+                  ],
+                  "commandToExecute": "[format('bash aks-engine-deploy.sh -g {0} -c {1} -f {2}', parameters('resourceGroupName'), parameters('aksClusterName'), variables('kubeConfigFileName'))]"
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.ContainerService/managedClusters', parameters('aksClusterName'))]"
+              ]
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', parameters('resourceGroupName'))]"
+      ]
+    }
+  ]
+}

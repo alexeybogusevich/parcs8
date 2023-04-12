@@ -30,8 +30,18 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Parcs.Modules.FloydWarshall", "modules\Parcs.Modules.FloydWarshall\Parcs.Modules.FloydWarshall.csproj", "{AFA29635-77E5-443B-B9FA-945B97A32A52}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{2B8E7431-D6A7-451F-BF4E-D70ADE561EC2}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "kube", "kube", "{9A51C28B-99DB-421A-879D-F3F12BAE0A4C}"
 	ProjectSection(SolutionItems) = preProject
 		kube\deployment.yaml = kube\deployment.yaml
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "infra", "infra", "{1B4570A7-808B-4C44-B2A0-D9AB7A6D9501}"
+	ProjectSection(SolutionItems) = preProject
+		infra\azuredeploy.json = infra\azuredeploy.json
+		infra\azuredeploy.parameters.json = infra\azuredeploy.parameters.json
+		infra\main.bicep = infra\main.bicep
+		infra\resources.bicep = infra\resources.bicep
 	EndProjectSection
 EndProject
 Global
@@ -95,6 +105,8 @@ Global
 		{2A3D6E4D-8682-4949-9760-2DA21D2708BC} = {6E753C81-CC3C-4A85-BC67-B7D2F4F28881}
 		{AF997192-7AE6-47C4-A550-99EBBD12E4F7} = {6E753C81-CC3C-4A85-BC67-B7D2F4F28881}
 		{AFA29635-77E5-443B-B9FA-945B97A32A52} = {D4150577-5F2D-4343-821C-6DA8FCA60239}
+		{9A51C28B-99DB-421A-879D-F3F12BAE0A4C} = {2B8E7431-D6A7-451F-BF4E-D70ADE561EC2}
+		{1B4570A7-808B-4C44-B2A0-D9AB7A6D9501} = {2B8E7431-D6A7-451F-BF4E-D70ADE561EC2}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {A7E44F1B-D2FC-4A94-B95F-0558B70A9B92}

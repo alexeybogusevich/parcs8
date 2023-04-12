@@ -11,6 +11,7 @@ namespace Parcs.Modules.Sample
             Console.WriteLine(await channel.ReadBooleanAsync());
             Console.WriteLine(await channel.ReadStringAsync());
             Console.WriteLine(await channel.ReadByteAsync());
+            Console.WriteLine(string.Join(' ', await channel.ReadBytesAsync()));
             Console.WriteLine(await channel.ReadLongAsync());
             Console.WriteLine(await channel.ReadIntAsync());
 

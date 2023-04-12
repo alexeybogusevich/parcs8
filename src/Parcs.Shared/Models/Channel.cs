@@ -42,6 +42,12 @@ namespace Parcs.Shared.Models
             return buffer[0];
         }
 
+        public async Task<byte[]> ReadBytesAsync()
+        {
+            var size = await ReadIntAsync();
+            return await TryReceiveAsync(size);
+        }
+
         public async Task<double> ReadDoubleAsync()
         {
             var size = sizeof(double);
@@ -101,6 +107,12 @@ namespace Parcs.Shared.Models
         {
             var bytes = new byte[] { data };
             return _networkStream.WriteAsync(bytes, _cancellationToken);
+        }
+
+        public async ValueTask WriteDataAsync(byte[] data)
+        {
+            await WriteDataAsync(data.Length);
+            await _networkStream.WriteAsync(data, _cancellationToken);
         }
 
         public ValueTask WriteDataAsync(int data)

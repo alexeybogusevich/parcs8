@@ -16,7 +16,7 @@ namespace Parcs.HostAPI.Services
         {
             return hostingEnvironment switch
             {
-                HostingEnvironment.Custom => _serviceProvider.GetRequiredService<ConfigurationDaemonResolutionStrategy>(),
+                HostingEnvironment.Any => _serviceProvider.GetRequiredService<ConfigurationDaemonResolutionStrategy>(),
                 HostingEnvironment.Kubernetes => _serviceProvider.GetRequiredService<KubernetesDaemonResolutionStrategy>(),
                 _ => throw new NotImplementedException(),
             };
