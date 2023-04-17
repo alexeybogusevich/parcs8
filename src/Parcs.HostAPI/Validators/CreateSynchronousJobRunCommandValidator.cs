@@ -1,6 +1,6 @@
 ﻿using Parcs.HostAPI.Models.Commands;
 using Parcs.HostAPI.Validators.Base;
-using Parcs.Shared.Services.Interfaces;
+using Parcs.Core.Services.Interfaces;
 
 namespace Parcs.HostAPI.Validators
 {

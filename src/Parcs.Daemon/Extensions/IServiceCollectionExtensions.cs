@@ -2,8 +2,8 @@
 using Parcs.Daemon.Handlers;
 using Parcs.Daemon.Services;
 using Parcs.Daemon.Services.Interfaces;
-using Parcs.Shared.Services.Interfaces;
-using Parcs.Shared.Services;
+using Parcs.Core.Services.Interfaces;
+using Parcs.Core.Services;
 using Parcs.TCP.Daemon.Handlers;
 using Microsoft.Extensions.Configuration;
 using Parcs.Daemon.Configuration;

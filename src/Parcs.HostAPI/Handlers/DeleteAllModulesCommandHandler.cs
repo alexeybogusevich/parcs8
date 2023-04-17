@@ -1,7 +1,7 @@
 ﻿using MediatR;
 using Parcs.HostAPI.Models.Commands;
 using Parcs.HostAPI.Services.Interfaces;
-using Parcs.Shared.Services.Interfaces;
+using Parcs.Core.Services.Interfaces;
 
 namespace Parcs.HostAPI.Handlers
 {

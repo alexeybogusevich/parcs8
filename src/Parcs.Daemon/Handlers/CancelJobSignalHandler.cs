@@ -1,6 +1,6 @@
 ﻿using Parcs.Daemon.Handlers.Interfaces;
 using Parcs.Daemon.Services.Interfaces;
-using Parcs.Shared.Models.Interfaces;
+using Parcs.Core.Models.Interfaces;
 
 namespace Parcs.Daemon.Handlers
 {

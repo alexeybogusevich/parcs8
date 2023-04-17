@@ -4,7 +4,7 @@ using Microsoft.Extensions.Options;
 using Parcs.Daemon.Configuration;
 using System.Net.Sockets;
 using System.Net;
-using Parcs.Shared.Models;
+using Parcs.Core.Models;
 using Parcs.Daemon.Services.Interfaces;
 using Parcs.Net;
 

@@ -1,6 +1,6 @@
 ﻿using FluentValidation;
 using Parcs.HostAPI.Models.Commands.Base;
-using Parcs.Shared.Services.Interfaces;
+using Parcs.Core.Services.Interfaces;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text.Json;

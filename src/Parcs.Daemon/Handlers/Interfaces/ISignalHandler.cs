@@ -1,4 +1,4 @@
-﻿using Parcs.Shared.Models.Interfaces;
+﻿using Parcs.Core.Models.Interfaces;
 
 namespace Parcs.Daemon.Handlers.Interfaces
 {

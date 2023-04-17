@@ -1,8 +1,8 @@
 ﻿using Parcs.Daemon.Extensions;
 using Parcs.Daemon.Handlers.Interfaces;
 using Parcs.Daemon.Services.Interfaces;
-using Parcs.Shared.Models.Interfaces;
-using Parcs.Shared.Services.Interfaces;
+using Parcs.Core.Models.Interfaces;
+using Parcs.Core.Services.Interfaces;
 
 namespace Parcs.TCP.Daemon.Handlers
 {

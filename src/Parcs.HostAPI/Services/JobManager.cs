@@ -1,8 +1,8 @@
 ﻿using Microsoft.Extensions.Options;
 using Parcs.HostAPI.Configuration;
 using Parcs.HostAPI.Services.Interfaces;
-using Parcs.Shared.Models;
-using Parcs.Shared.Services.Interfaces;
+using Parcs.Core.Models;
+using Parcs.Core.Services.Interfaces;
 using System.Collections.Concurrent;
 
 namespace Parcs.HostAPI.Services

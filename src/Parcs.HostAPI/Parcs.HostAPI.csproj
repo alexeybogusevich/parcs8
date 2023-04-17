@@ -23,7 +23,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Parcs.Shared\Parcs.Shared.csproj" />
+    <ProjectReference Include="..\Parcs.Core\Parcs.Core.csproj" />
   </ItemGroup>
 
 </Project>

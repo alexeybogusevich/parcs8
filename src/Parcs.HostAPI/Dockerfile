@@ -8,7 +8,7 @@ EXPOSE 443
 FROM mcr.microsoft.com/dotnet/sdk:7.0 AS build
 WORKDIR /src
 COPY ["src/Parcs.HostAPI/Parcs.HostAPI.csproj", "src/Parcs.HostAPI/"]
-COPY ["src/Parcs.Shared/Parcs.Shared.csproj", "src/Parcs.Shared/"]
+COPY ["src/Parcs.Core/Parcs.Core.csproj", "src/Parcs.Core/"]
 RUN dotnet restore "src/Parcs.HostAPI/Parcs.HostAPI.csproj"
 COPY . .
 WORKDIR "/src/src/Parcs.HostAPI"

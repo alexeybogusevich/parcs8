@@ -4,8 +4,8 @@ using Parcs.HostAPI.Configuration;
 using Parcs.HostAPI.Models.Queries;
 using Parcs.HostAPI.Models.Responses;
 using Parcs.HostAPI.Services.Interfaces;
-using Parcs.Shared.Models.Enums;
-using Parcs.Shared.Services.Interfaces;
+using Parcs.Core.Models.Enums;
+using Parcs.Core.Services.Interfaces;
 using System.Text;
 
 namespace Parcs.HostAPI.Handlers

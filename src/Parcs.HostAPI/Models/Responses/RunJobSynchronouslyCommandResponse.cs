@@ -1,4 +1,4 @@
-﻿using Parcs.Shared.Models;
+﻿using Parcs.Core.Models;
 
 namespace Parcs.HostAPI.Models.Responses
 {
