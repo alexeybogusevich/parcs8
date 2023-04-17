@@ -16,10 +16,13 @@ namespace Parcs.Daemon.Handlers
         public async Task HandleAsync(IManagedChannel managedChannel, CancellationToken cancellationToken = default)
         {
             var jobId = await managedChannel.ReadGuidAsync();
-            var workerModulesPath = await managedChannel.ReadStringAsync();
+            var moduleId = await managedChannel.ReadGuidAsync();
+
+            var pointsNumber = await managedChannel.ReadIntAsync();
+            var arguments = await managedChannel.ReadObjectAsync<IDictionary<string, string>>();
 
             _jobContextAccessor.Current?.CancellationTokenSource.Cancel();
-            _jobContextAccessor.Set(jobId, workerModulesPath);
+            _jobContextAccessor.Set(jobId, moduleId, pointsNumber, arguments);
 
             managedChannel.SetCancellation(_jobContextAccessor.Current.CancellationTokenSource.Token);
         }

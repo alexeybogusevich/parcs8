@@ -1,7 +1,7 @@
 ﻿using FluentValidation;
 using Parcs.HostAPI.Models.Commands;
-using Parcs.HostAPI.Services.Interfaces;
 using Parcs.HostAPI.Validators.Base;
+using Parcs.Shared.Services.Interfaces;
 
 namespace Parcs.HostAPI.Validators
 {

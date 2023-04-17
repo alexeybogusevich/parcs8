@@ -2,13 +2,13 @@
 
 namespace Parcs.Modules.FloydWarshall
 {
-    public class WorkerModule : IWorkerModule
+    public class WorkerModule : IModule
     {
-        public async Task RunAsync(IChannel channel, CancellationToken cancellationToken = default)
+        public async Task RunAsync(IModuleInfo moduleInfo, CancellationToken cancellationToken = default)
         {
-            var number = await channel.ReadIntAsync();
+            var number = await moduleInfo.Parent.ReadIntAsync();
             Console.WriteLine($"Current number {number}");
-            var chunk = await channel.ReadObjectAsync<int[][]>();
+            var chunk = await moduleInfo.Parent.ReadObjectAsync<int[][]>();
 
             int n = chunk[0].Length; //width
             int c = chunk.Length; //height
@@ -21,11 +21,11 @@ namespace Parcs.Modules.FloydWarshall
                 if (k >= number * c && k < number * c + c)
                 {
                     currentRow = chunk[k % c]; // iterate through all chunk rows
-                    await channel.WriteObjectAsync(chunk[k % c]);
+                    await moduleInfo.Parent.WriteObjectAsync(chunk[k % c]);
                 }
                 else
                 {
-                    currentRow = await channel.ReadObjectAsync<int[]>();
+                    currentRow = await moduleInfo.Parent.ReadObjectAsync<int[]>();
                 }
 
                 for (int i = 0; i < c; i++)
@@ -37,7 +37,7 @@ namespace Parcs.Modules.FloydWarshall
                 }
             }
 
-            await channel.WriteObjectAsync(chunk);
+            await moduleInfo.Parent.WriteObjectAsync(chunk);
             Console.WriteLine("Done!");
         }
 

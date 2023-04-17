@@ -3,16 +3,16 @@ using Parcs.Net;
 
 namespace Parcs.Modules.MatrixesMultiplication
 {
-    public class WorkerModule : IWorkerModule
+    public class WorkerModule : IModule
     {
-        public async Task RunAsync(IChannel channel, CancellationToken cancellationToken = default)
+        public async Task RunAsync(IModuleInfo moduleInfo, CancellationToken cancellationToken = default)
         {
-            var matrixA = await channel.ReadObjectAsync<Matrix>();
-            var matrixB = await channel.ReadObjectAsync<Matrix>();
+            var matrixA = await moduleInfo.Parent.ReadObjectAsync<Matrix>();
+            var matrixB = await moduleInfo.Parent.ReadObjectAsync<Matrix>();
 
             var matrixAB = matrixA.MultiplyBy(matrixB, cancellationToken);
 
-            await channel.WriteObjectAsync(matrixAB);
+            await moduleInfo.Parent.WriteObjectAsync(matrixAB);
         }
     }
 }

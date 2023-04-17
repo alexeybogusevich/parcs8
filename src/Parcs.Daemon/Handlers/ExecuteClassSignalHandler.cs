@@ -1,6 +1,6 @@
-﻿using Parcs.Daemon.Handlers.Interfaces;
+﻿using Parcs.Daemon.Extensions;
+using Parcs.Daemon.Handlers.Interfaces;
 using Parcs.Daemon.Services.Interfaces;
-using Parcs.Net;
 using Parcs.Shared.Models.Interfaces;
 using Parcs.Shared.Services.Interfaces;
 
@@ -9,12 +9,15 @@ namespace Parcs.TCP.Daemon.Handlers
     public sealed class ExecuteClassSignalHandler : ISignalHandler
     {
         private readonly IJobContextAccessor _jobContextAccessor;
-        private readonly ITypeLoader<IWorkerModule> _typeLoader;
+        private readonly IModuleLoader _moduleLoader;
+        private readonly IModuleInfoFactory _moduleInfoFactory;
 
-        public ExecuteClassSignalHandler(IJobContextAccessor jobContextAccessor, ITypeLoader<IWorkerModule> typeLoader)
+        public ExecuteClassSignalHandler(
+            IJobContextAccessor jobContextAccessor, IModuleLoader moduleLoader, IModuleInfoFactory moduleInfoFactory)
         {
             _jobContextAccessor = jobContextAccessor;
-            _typeLoader = typeLoader;
+            _moduleLoader = moduleLoader;
+            _moduleInfoFactory = moduleInfoFactory;
         }
 
         public async Task HandleAsync(IManagedChannel managedChannel, CancellationToken cancellationToken = default)
@@ -24,15 +27,21 @@ namespace Parcs.TCP.Daemon.Handlers
                 throw new ArgumentException("No job has been initialized.");
             }
 
+            var (jobId, moduleId, pointsNumber, arguments, jobCancellationToken) = _jobContextAccessor.Current;
+
             try
             {
-                var assemblyDirectoryPath = _jobContextAccessor.Current.WorkerModulesPath;
                 var assemblyName = await managedChannel.ReadStringAsync();
                 var className = await managedChannel.ReadStringAsync();
 
-                var workerModule = _typeLoader.Load(assemblyDirectoryPath, assemblyName, className);
+                var module = _moduleLoader.Load(moduleId, assemblyName, className);
+                var moduleInfo = _moduleInfoFactory.Create(jobId, moduleId, pointsNumber, arguments, managedChannel, jobCancellationToken);
 
-                await workerModule.RunAsync(managedChannel, _jobContextAccessor.Current.CancellationTokenSource.Token);
+                await module.RunAsync(moduleInfo, jobCancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _jobContextAccessor.Current.TrackException(ex);
             }
             finally
             {

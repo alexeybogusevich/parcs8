@@ -6,7 +6,7 @@ namespace Parcs.Daemon.Services.Interfaces
     {
         JobContext Current { get; }
 
-        void Set(Guid jobId, string workerModulesPath);
+        void Set(Guid jobId, Guid moduleId, int pointsNumber, IDictionary<string, string> arguments);
 
         void Reset();
     }

@@ -1,8 +1,8 @@
 ﻿using MediatR;
 using Parcs.HostAPI.Models.Commands;
-using Parcs.HostAPI.Models.Enums;
 using Parcs.HostAPI.Models.Responses;
 using Parcs.HostAPI.Services.Interfaces;
+using Parcs.Shared.Services.Interfaces;
 
 namespace Parcs.HostAPI.Handlers
 {
@@ -26,11 +26,8 @@ namespace Parcs.HostAPI.Handlers
         {
             var moduleId = _guidReference.NewGuid();
 
-            var hostBinariesDirectoryPath = _moduleDirectoryPathBuilder.Build(moduleId, ModuleDirectoryGroup.Main);
-            var workerBinariesDirectoryPath = _moduleDirectoryPathBuilder.Build(moduleId, ModuleDirectoryGroup.Worker);
-
-            await _fileSaver.SaveAsync(request.HostBinaryFiles, hostBinariesDirectoryPath, cancellationToken);
-            await _fileSaver.SaveAsync(request.WorkerBinaryFiles, workerBinariesDirectoryPath, cancellationToken);
+            var moduleBinariesDirectoryPath = _moduleDirectoryPathBuilder.Build(moduleId);
+            await _fileSaver.SaveAsync(request.BinaryFiles, moduleBinariesDirectoryPath, cancellationToken);
 
             return new CreateModuleCommandResponse(moduleId);
         }

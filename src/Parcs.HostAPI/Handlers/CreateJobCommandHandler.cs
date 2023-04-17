@@ -1,8 +1,9 @@
 ﻿using MediatR;
 using Parcs.HostAPI.Models.Commands;
-using Parcs.HostAPI.Models.Enums;
 using Parcs.HostAPI.Models.Responses;
 using Parcs.HostAPI.Services.Interfaces;
+using Parcs.Shared.Models.Enums;
+using Parcs.Shared.Services.Interfaces;
 
 namespace Parcs.HostAPI.Handlers
 {
@@ -11,18 +12,18 @@ namespace Parcs.HostAPI.Handlers
         private readonly IJobManager _jobManager;
         private readonly IJobDirectoryPathBuilder _jobDirectoryPathBuilder;
         private readonly IFileSaver _fileSaver;
-        private readonly IMainModuleLoader _mainModuleLoader;
+        private readonly IModuleLoader _moduleLoader;
 
         public CreateJobCommandHandler(
             IJobManager jobManager,
             IJobDirectoryPathBuilder jobDirectoryPathBuilder,
             IFileSaver fileSaver,
-            IMainModuleLoader mainModuleLoader)
+            IModuleLoader mainModuleLoader)
         {
             _jobManager = jobManager;
             _jobDirectoryPathBuilder = jobDirectoryPathBuilder;
             _fileSaver = fileSaver;
-            _mainModuleLoader = mainModuleLoader;
+            _moduleLoader = mainModuleLoader;
         }
 
         public async Task<CreateJobCommandResponse> Handle(CreateJobCommand request, CancellationToken cancellationToken)
@@ -31,8 +32,8 @@ namespace Parcs.HostAPI.Handlers
 
             try
             {
-                var mainModule = _mainModuleLoader.Load(request.ModuleId, request.AssemblyName, request.ClassName);
-                job.SetMainModule(mainModule);
+                var module = _moduleLoader.Load(request.ModuleId, request.AssemblyName, request.ClassName);
+                job.SetModule(module);
             }
             catch
             {

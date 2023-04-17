@@ -4,18 +4,18 @@ using System.Text;
 
 namespace Parcs.Modules.MatrixesMultiplication
 {
-    public class MainModule : IMainModule
+    public class MainModule : IModule
     {
-        public async Task RunAsync(IArgumentsProvider argumentsProvider, IHostInfo hostInfo, CancellationToken cancellationToken = default)
+        public async Task RunAsync(IModuleInfo moduleInfo, CancellationToken cancellationToken = default)
         {
             Matrix a, b;
 
-            var moduleOptions = argumentsProvider.Bind<ModuleOptions>();
+            var moduleOptions = moduleInfo.ArgumentsProvider.Bind<ModuleOptions>();
 
             try
             {
-                a = Matrix.LoadFromStream(hostInfo.GetInputReader().GetFileStreamForFile(moduleOptions.MatrixAFileName));
-                b = Matrix.LoadFromStream(hostInfo.GetInputReader().GetFileStreamForFile(moduleOptions.MatrixBFileName));
+                a = Matrix.LoadFromStream(moduleInfo.InputReader.GetFileStreamForFile(moduleOptions.MatrixAFileName));
+                b = Matrix.LoadFromStream(moduleInfo.InputReader.GetFileStreamForFile(moduleOptions.MatrixBFileName));
             }
             catch (FileNotFoundException ex)
             {
@@ -25,12 +25,7 @@ namespace Parcs.Modules.MatrixesMultiplication
 
             int[] possibleValues = { 1, 2, 4, 8, 16, 32 };
 
-            int pointsNumber = argumentsProvider.GetBase().PointsNumber;
-
-            if (pointsNumber > hostInfo.CanCreatePointsNumber)
-            {
-                throw new ArgumentException($"More points ({pointsNumber}) than allowed ({hostInfo.CanCreatePointsNumber}).");
-            }
+            int pointsNumber = moduleInfo.ArgumentsProvider.GetBase().PointsNumber;
 
             if (!possibleValues.Contains(pointsNumber))
             {
@@ -44,7 +39,7 @@ namespace Parcs.Modules.MatrixesMultiplication
             var channels = new IChannel[pointsNumber];
             for (int i = 0; i < pointsNumber; ++i)
             {
-                points[i] = await hostInfo.CreatePointAsync();
+                points[i] = await moduleInfo.CreatePointAsync();
                 channels[i] = await points[i].CreateChannelAsync();
                 await points[i].ExecuteClassAsync<WorkerModule>();
             }
@@ -116,7 +111,7 @@ namespace Parcs.Modules.MatrixesMultiplication
                     return;
             }
 
-            await SaveMatrixAsync(resMatrix, hostInfo.GetOutputWriter());
+            await SaveMatrixAsync(resMatrix, moduleInfo.OutputWriter);
 
             for (int i = 0; i < pointsNumber; ++i)
             {

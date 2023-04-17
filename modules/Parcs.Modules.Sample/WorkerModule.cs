@@ -3,24 +3,24 @@ using Parcs.Net;
 
 namespace Parcs.Modules.Sample
 {
-    public class WorkerModule : IWorkerModule
+    public class WorkerModule : IModule
     {
-        public async Task RunAsync(IChannel channel, CancellationToken cancellationToken = default)
+        public async Task RunAsync(IModuleInfo moduleInfo, CancellationToken cancellationToken = default)
         {
-            Console.WriteLine(await channel.ReadDoubleAsync());
-            Console.WriteLine(await channel.ReadBooleanAsync());
-            Console.WriteLine(await channel.ReadStringAsync());
-            Console.WriteLine(await channel.ReadByteAsync());
-            Console.WriteLine(string.Join(' ', await channel.ReadBytesAsync()));
-            Console.WriteLine(await channel.ReadLongAsync());
-            Console.WriteLine(await channel.ReadIntAsync());
+            Console.WriteLine(await moduleInfo.Parent.ReadDoubleAsync());
+            Console.WriteLine(await moduleInfo.Parent.ReadBooleanAsync());
+            Console.WriteLine(await moduleInfo.Parent.ReadStringAsync());
+            Console.WriteLine(await moduleInfo.Parent.ReadByteAsync());
+            Console.WriteLine(string.Join(' ', await moduleInfo.Parent.ReadBytesAsync()));
+            Console.WriteLine(await moduleInfo.Parent.ReadLongAsync());
+            Console.WriteLine(await moduleInfo.Parent.ReadIntAsync());
 
-            var sampleClass = await channel.ReadObjectAsync<SampleClass>();
+            var sampleClass = await moduleInfo.Parent.ReadObjectAsync<SampleClass>();
 
             Console.WriteLine(sampleClass.Id);
             Console.WriteLine(sampleClass.Name);
 
-            await channel.WriteDataAsync(1111.11D);
+            await moduleInfo.Parent.WriteDataAsync(1111.11D);
         }
     }
 }

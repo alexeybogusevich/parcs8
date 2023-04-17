@@ -7,9 +7,9 @@ namespace Parcs.Daemon.Services
     {
         public JobContext Current { get; private set; }
 
-        public void Set(Guid jobId, string workerModulesPath)
+        public void Set(Guid jobId, Guid moduleId, int pointsNumber, IDictionary<string, string> arguments)
         {
-            Current = new JobContext(jobId, workerModulesPath);
+            Current = new JobContext(jobId, moduleId, pointsNumber, arguments);
         }
 
         public void Reset()

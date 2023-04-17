@@ -2,6 +2,7 @@
 using Parcs.HostAPI.Configuration;
 using Parcs.HostAPI.Services.Interfaces;
 using Parcs.Shared.Models;
+using Parcs.Shared.Services.Interfaces;
 using System.Collections.Concurrent;
 
 namespace Parcs.HostAPI.Services
@@ -10,13 +11,18 @@ namespace Parcs.HostAPI.Services
     {
         private readonly JobsConfiguration _jobsConfiguration;
         private readonly ConcurrentDictionary<Guid, Job> _activeJobs = new();
+        private readonly IModuleDirectoryPathBuilder _moduleDirectoryPathBuilder;
         private readonly IJobDirectoryPathBuilder _jobDirectoryPathBuilder;
         private readonly IFileEraser _fileEraser;
 
         public JobManager(
-            IOptions<JobsConfiguration> options, IJobDirectoryPathBuilder jobDirectoryPathBuilder, IFileEraser fileEraser)
+            IOptions<JobsConfiguration> options,
+            IModuleDirectoryPathBuilder moduleDirectoryPathBuilder,
+            IJobDirectoryPathBuilder jobDirectoryPathBuilder,
+            IFileEraser fileEraser)
         {
             _jobsConfiguration = options.Value;
+            _moduleDirectoryPathBuilder = moduleDirectoryPathBuilder;
             _jobDirectoryPathBuilder = jobDirectoryPathBuilder;
             _fileEraser = fileEraser;
         }
@@ -28,7 +34,9 @@ namespace Parcs.HostAPI.Services
                 throw new ArgumentException("Maximum number of active jobs reached. Consider deleting idle jobs.");
             }
 
-            var job = new Job(moduleId, assemblyName, className);
+            var modulePath = _moduleDirectoryPathBuilder.Build(moduleId);
+
+            var job = new Job(moduleId, modulePath, assemblyName, className);
             _ = _activeJobs.TryAdd(job.Id, job);
 
             return job;

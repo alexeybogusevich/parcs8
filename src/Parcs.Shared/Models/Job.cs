@@ -10,12 +10,13 @@ namespace Parcs.Shared.Models
         private readonly CancellationTokenSource _cancellationTokenSource = new();
         private readonly List<Daemon> _executedOnDaemons = new();
 
-        public Job(Guid moduleId, string assemblyName, string className)
+        public Job(Guid moduleId, string modulePath, string assemblyName, string className)
         {
             Id = Guid.NewGuid();
             CreateDateUtc = DateTime.UtcNow;
             Status = JobStatus.New;
             ModuleId = moduleId;
+            ModulePath = modulePath;
             AssemblyName = assemblyName;
             ClassName = className;
             _hasBeenRun = false;
@@ -26,11 +27,13 @@ namespace Parcs.Shared.Models
 
         public Guid ModuleId { get; private set; }
 
+        public string ModulePath { get; private set; }
+
         public string AssemblyName { get; private set; }
 
         public string ClassName { get; private set; }
 
-        public IMainModule MainModule { get; private set; }
+        public IModule Module { get; private set; }
 
         public JobStatus Status { get; private set; }
 
@@ -98,9 +101,9 @@ namespace Parcs.Shared.Models
             _executedOnDaemons.Add(daemon);
         }
 
-        public void SetMainModule(IMainModule mainModule)
+        public void SetModule(IModule module)
         {
-            MainModule = mainModule;
+            Module = module;
         }
 
         public override string ToString()
@@ -124,7 +127,7 @@ namespace Parcs.Shared.Models
         {
             _canBeCancelled = false;
             EndDateUtc = DateTime.UtcNow;
-            MainModule = null;
+            Module = null;
         }
     }
 }

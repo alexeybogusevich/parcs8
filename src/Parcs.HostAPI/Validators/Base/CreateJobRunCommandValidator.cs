@@ -1,7 +1,6 @@
 ﻿using FluentValidation;
 using Parcs.HostAPI.Models.Commands.Base;
-using Parcs.HostAPI.Models.Enums;
-using Parcs.HostAPI.Services.Interfaces;
+using Parcs.Shared.Services.Interfaces;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text.Json;
@@ -71,7 +70,7 @@ namespace Parcs.HostAPI.Validators.Base
 
         private static bool BeAnExistingAssembly(Guid moduleId, string assemblyName, IModuleDirectoryPathBuilder moduleDirectoryPathBuilder)
         {
-            var assemblyDirectoryPath = moduleDirectoryPathBuilder.Build(moduleId, ModuleDirectoryGroup.Main);
+            var assemblyDirectoryPath = moduleDirectoryPathBuilder.Build(moduleId);
             var assemblyPath = Path.Combine(assemblyDirectoryPath, $"{assemblyName}.{AssemblyExtension}");
 
             return File.Exists(assemblyPath);
@@ -79,7 +78,7 @@ namespace Parcs.HostAPI.Validators.Base
 
         private static bool BeAnExistingClass(Guid moduleId, string assemblyName, string className, IModuleDirectoryPathBuilder moduleDirectoryPathBuilder)
         {
-            var assemblyDirectoryPath = moduleDirectoryPathBuilder.Build(moduleId, ModuleDirectoryGroup.Main);
+            var assemblyDirectoryPath = moduleDirectoryPathBuilder.Build(moduleId);
             var assemblyFileName = $"{assemblyName}.{AssemblyExtension}";
             var assemblyPath = Path.Combine(assemblyDirectoryPath, assemblyFileName);
 

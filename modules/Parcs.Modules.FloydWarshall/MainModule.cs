@@ -4,17 +4,17 @@ using System.Text;
 
 namespace Parcs.Modules.FloydWarshall
 {
-    internal class MainModule : IMainModule
+    internal class MainModule : IModule
     {
         private IChannel[] _channels;
         private int[][] _matrix;
 
-        public async Task RunAsync(IArgumentsProvider argumentsProvider, IHostInfo hostInfo, CancellationToken cancellationToken = default)
+        public async Task RunAsync(IModuleInfo moduleInfo, CancellationToken cancellationToken = default)
         {
-            var options = argumentsProvider.Bind<ModuleOptions>();
+            var options = moduleInfo.ArgumentsProvider.Bind<ModuleOptions>();
 
-            int pointsNumber = argumentsProvider.GetBase().PointsNumber;
-            _matrix = GetMatrix(options.InputFile, hostInfo);
+            int pointsNumber = moduleInfo.ArgumentsProvider.GetBase().PointsNumber;
+            _matrix = GetMatrix(options.InputFile, moduleInfo);
 
             if (_matrix.Length % pointsNumber != 0)
             {
@@ -26,7 +26,7 @@ namespace Parcs.Modules.FloydWarshall
 
             for (int i = 0; i < pointsNumber; ++i)
             {
-                points[i] = await hostInfo.CreatePointAsync();
+                points[i] = await moduleInfo.CreatePointAsync();
                 _channels[i] = await points[i].CreateChannelAsync();
                 await points[i].ExecuteClassAsync<WorkerModule>();
             }
@@ -40,16 +40,16 @@ namespace Parcs.Modules.FloydWarshall
 
             int[][] result = await GatherAllDataAsync(pointsNumber);
 
-            await SaveMatrixAsync(options.OutputFile, result, hostInfo);
+            await SaveMatrixAsync(options.OutputFile, result, moduleInfo);
             Console.WriteLine("Done");
             Console.WriteLine($"Total time {sw.ElapsedMilliseconds} ms ({sw.ElapsedTicks} ticks)");
 
             PrintMatrix(result);
         }
 
-        static int[][] GetMatrix(string filename, IHostInfo hostInfo)
+        static int[][] GetMatrix(string filename, IModuleInfo moduleInfo)
         {
-            var inputReader = hostInfo.GetInputReader();
+            var inputReader = moduleInfo.InputReader;
 
             List<string> lines = new ();
 
@@ -68,7 +68,7 @@ namespace Parcs.Modules.FloydWarshall
                    .ToArray();
         }
 
-        static async Task SaveMatrixAsync(string filename, int[][] m, IHostInfo hostInfo)
+        static async Task SaveMatrixAsync(string filename, int[][] m, IModuleInfo moduleInfo)
         {
             var stringBuilder = new StringBuilder();
 
@@ -86,7 +86,7 @@ namespace Parcs.Modules.FloydWarshall
                 stringBuilder.AppendLine();
             }
 
-            await hostInfo.GetOutputWriter().WriteToFileAsync(Encoding.UTF8.GetBytes(stringBuilder.ToString()), filename);
+            await moduleInfo.OutputWriter.WriteToFileAsync(Encoding.UTF8.GetBytes(stringBuilder.ToString()), filename);
         }
 
         private static void PrintMatrix(int[][] m)

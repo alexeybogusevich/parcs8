@@ -6,6 +6,7 @@ using Parcs.HostAPI.Models.Commands;
 using Parcs.HostAPI.Services;
 using Parcs.HostAPI.Services.Interfaces;
 using Parcs.HostAPI.Validators;
+using Parcs.Shared.Configuration;
 using Parcs.Shared.Services;
 using Parcs.Shared.Services.Interfaces;
 using System.Reflection;
@@ -40,17 +41,16 @@ namespace Parcs.HostAPI.Extensions
         {
             return services
                 .AddScoped<IGuidReference, GuidReference>()
-                .AddScoped<IDaemonResolver, DeamonResolver>()
+                .AddScoped<IDaemonsResolver, DaemonResolver>()
                 .AddScoped<IDaemonResolutionStrategyFactory, DaemonResolutionStrategyFactory>()
                 .AddScoped<ConfigurationDaemonResolutionStrategy>()
                 .AddScoped<KubernetesDaemonResolutionStrategy>()
-                .AddScoped<IHostInfoFactory, HostInfoFactory>()
+                .AddScoped<IModuleInfoFactory, ModuleInfoFactory>()
                 .AddScoped<IInputOutputFactory, InputOutputFactory>()
                 .AddScoped<IJobCompletionNotifier, JobCompletionNotifier>()
                 .AddScoped(typeof(ITypeLoader<>), typeof(TypeLoader<>))
-                .AddScoped<IMainModuleLoader, MainModuleLoader>()
+                .AddScoped<IModuleLoader, ModuleLoader>()
                 .AddScoped<IArgumentsProviderFactory, ArgumentsProviderFactory>()
-                .AddScoped<IJsonDictionaryParser, JsonDictionaryParser>()
                 .AddSingleton<IJobDirectoryPathBuilder, JobDirectoryPathBuilder>()
                 .AddSingleton<IModuleDirectoryPathBuilder, ModuleDirectoryPathBuilder>()
                 .AddSingleton<IFileArchiver, FileArchiver>()

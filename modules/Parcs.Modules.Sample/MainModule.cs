@@ -4,32 +4,24 @@ using System.Text;
 
 namespace Parcs.Modules.Sample
 {
-    public class MainModule : IMainModule
+    public class MainModule : IModule
     {
-        public async Task RunAsync(IArgumentsProvider argumentsProvider, IHostInfo hostInfo, CancellationToken cancellationToken = default)
+        public async Task RunAsync(IModuleInfo moduleInfo, CancellationToken cancellationToken = default)
         {
-            var inputReader = hostInfo.GetInputReader();
-
-            foreach (var filename in inputReader.GetFilenames())
+            foreach (var filename in moduleInfo.InputReader.GetFilenames())
             {
-                await using var fileStream = inputReader.GetFileStreamForFile(filename);
+                await using var fileStream = moduleInfo.InputReader.GetFileStreamForFile(filename);
                 using var streamReader = new StreamReader(fileStream);
                 Console.WriteLine(await streamReader.ReadToEndAsync(cancellationToken));
             }
 
-            var pointsNumber = argumentsProvider.GetBase().PointsNumber;
-
-            if (pointsNumber > hostInfo.CanCreatePointsNumber)
-            {
-                throw new ArgumentException($"More points ({pointsNumber}) than allowed ({hostInfo.CanCreatePointsNumber}).");
-            }
-
+            var pointsNumber = moduleInfo.ArgumentsProvider.GetBase().PointsNumber;
             var channels = new IChannel[pointsNumber];
             var points = new IPoint[pointsNumber];
 
             for (int i = 0; i < pointsNumber; ++i)
             {
-                points[i] = await hostInfo.CreatePointAsync();
+                points[i] = await moduleInfo.CreatePointAsync();
                 channels[i] = await points[i].CreateChannelAsync();
                 await points[i].ExecuteClassAsync<WorkerModule>();
             }
@@ -52,8 +44,7 @@ namespace Parcs.Modules.Sample
                 result += await channels[i].ReadDoubleAsync();
             }
 
-            var outputWriter = hostInfo.GetOutputWriter();
-            await outputWriter.WriteToFileAsync(Encoding.UTF8.GetBytes("Hello world!"), "test.txt");
+            await moduleInfo.OutputWriter.WriteToFileAsync(Encoding.UTF8.GetBytes("Hello world!"), "test.txt");
 
             for (int i = 0; i < pointsNumber; ++i)
             {

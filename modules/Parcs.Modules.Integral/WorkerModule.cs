@@ -2,19 +2,19 @@
 
 namespace Parcs.Modules.Integral
 {
-    public class WorkerModule : IWorkerModule
+    public class WorkerModule : IModule
     {
-        public async Task RunAsync(IChannel channel, CancellationToken cancellationToken = default)
+        public async Task RunAsync(IModuleInfo moduleInfo, CancellationToken cancellationToken = default)
         {
-            double a = await channel.ReadDoubleAsync();
-            double b = await channel.ReadDoubleAsync();
-            double h = await channel.ReadDoubleAsync();
+            double a = await moduleInfo.Parent.ReadDoubleAsync();
+            double b = await moduleInfo.Parent.ReadDoubleAsync();
+            double h = await moduleInfo.Parent.ReadDoubleAsync();
 
             var function = new Func<double, double>(Math.Cos);
 
             double result = Integral(a, b, h, function);
 
-            await channel.WriteDataAsync(result);
+            await moduleInfo.Parent.WriteDataAsync(result);
         }
 
         private static double Integral(double a, double b, double h, Func<double, double> function)
