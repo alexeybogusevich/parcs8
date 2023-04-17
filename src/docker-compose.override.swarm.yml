@@ -2,6 +2,11 @@ version: '3.4'
 
 services:
   parcs.daemon:
+    environment:
+      - Daemons__PreconfiguredInstances__0__HostUrl=src-parcs.daemon-1
+      - Daemons__PreconfiguredInstances__0__Port=1111
+      - Daemons__PreconfiguredInstances__1__HostUrl=src-parcs.daemon-2
+      - Daemons__PreconfiguredInstances__1__Port=1111
     deploy:
       mode: replicated
       replicas: 2

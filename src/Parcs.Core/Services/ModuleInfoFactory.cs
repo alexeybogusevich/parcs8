@@ -6,12 +6,12 @@ namespace Parcs.Core.Services
 {
     public sealed class ModuleInfoFactory : IModuleInfoFactory
     {
-        private readonly IDaemonsResolver _daemonResolver;
+        private readonly IDaemonResolver _daemonResolver;
         private readonly IInputOutputFactory _inputOutputFactory;
         private readonly IArgumentsProviderFactory _argumentsProviderFactory;
 
         public ModuleInfoFactory(
-            IDaemonsResolver daemonResolver,
+            IDaemonResolver daemonResolver,
             IInputOutputFactory inputOutputFactory,
             IArgumentsProviderFactory argumentsProviderFactory)
         {

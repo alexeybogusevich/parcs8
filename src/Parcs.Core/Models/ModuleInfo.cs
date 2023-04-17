@@ -17,7 +17,7 @@ namespace Parcs.Core.Models
         private readonly IInputReader _inputReader;
         private readonly IOutputWriter _outputWriter;
         private readonly IArgumentsProvider _argumentsProvider;
-        private readonly IDaemonsResolver _daemonsResolver;
+        private readonly IDaemonResolver _daemonResolver;
 
         public ModuleInfo(
             Guid jobId,
@@ -25,7 +25,7 @@ namespace Parcs.Core.Models
             IChannel parentChannel,
             IInputOutputFactory inputOutputFactory,
             IArgumentsProvider argumentsProvider,
-            IDaemonsResolver daemonsResolver,
+            IDaemonResolver daemonResolver,
             CancellationToken cancellationToken)
         {
             _jobId = jobId;
@@ -36,7 +36,7 @@ namespace Parcs.Core.Models
             _inputReader = inputOutputFactory.CreateReader(jobId);
             _outputWriter = inputOutputFactory.CreateWriter(jobId, cancellationToken);
             _argumentsProvider = argumentsProvider;
-            _daemonsResolver = daemonsResolver;
+            _daemonResolver = daemonResolver;
             _cancellationToken = cancellationToken;
         }
 
@@ -63,7 +63,7 @@ namespace Parcs.Core.Models
 
         private Daemon GetNextDaemon()
         {
-            var availableDaemons = _daemonsResolver.GetAvailableDaemons();
+            var availableDaemons = _daemonResolver.GetAvailableDaemons();
 
             if (availableDaemons is null || !availableDaemons.Any())
             {

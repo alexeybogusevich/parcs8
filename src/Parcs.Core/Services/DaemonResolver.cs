@@ -5,7 +5,7 @@ using Parcs.Core.Services.Interfaces;
 
 namespace Parcs.Core.Services
 {
-    public sealed class DaemonResolver : IDaemonsResolver
+    public sealed class DaemonResolver : IDaemonResolver
     {
         private readonly HostingConfiguration _hostingConfiguration;
         private readonly IDaemonResolutionStrategyFactory _daemonResolutionStrategyFactory;

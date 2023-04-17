@@ -2,7 +2,7 @@
 
 namespace Parcs.Core.Services.Interfaces
 {
-    public interface IDaemonsResolver
+    public interface IDaemonResolver
     {
         bool AnyAvailableDaemons();
         IEnumerable<Daemon> GetAvailableDaemons();

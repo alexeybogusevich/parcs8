@@ -1,6 +1,10 @@
 version: '3.4'
 
 services:
+  parcs.daemon:
+    environment:
+      - Daemons__PreconfiguredInstances__0__HostUrl=parcs.daemon
+      - Daemons__PreconfiguredInstances__0__Port=1111
   parcs.hostapi:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development

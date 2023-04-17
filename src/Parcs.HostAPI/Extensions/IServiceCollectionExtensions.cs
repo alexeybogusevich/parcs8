@@ -41,7 +41,7 @@ namespace Parcs.HostAPI.Extensions
         {
             return services
                 .AddScoped<IGuidReference, GuidReference>()
-                .AddScoped<IDaemonsResolver, DaemonResolver>()
+                .AddScoped<IDaemonResolver, DaemonResolver>()
                 .AddScoped<IDaemonResolutionStrategyFactory, DaemonResolutionStrategyFactory>()
                 .AddScoped<ConfigurationDaemonResolutionStrategy>()
                 .AddScoped<KubernetesDaemonResolutionStrategy>()
