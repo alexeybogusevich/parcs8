@@ -33,5 +33,12 @@ namespace Parcs.Core.Services
             return new ModuleInfo(
                 jobId, moduleId, parentChannel, _inputOutputFactory, argumentsProvider, _daemonResolver, cancellationToken);
         }
+
+        public IModuleInfo Create(
+            Guid jobId,
+            Guid moduleId,
+            int pointsNumber,
+            IDictionary<string, string> arguments,
+            CancellationToken cancellationToken = default) => Create(jobId, moduleId, pointsNumber, arguments, null, cancellationToken);
     }
 }

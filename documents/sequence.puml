@@ -1,0 +1,41 @@
+@startuml Sequence-PARCS.NET+
+
+Actor User
+Control Portal
+Control Host
+Control Daemon
+Database PersistentStorage
+
+User --> User : Pull Parcs.NET NuGet
+User --> User : Implement a module
+
+|||
+
+User --> Portal : Submit a module [Binary files]
+Portal --> Host : Create a module (POST api/modules) [Binary files]
+Host --> PersistentStorage : Save binary files [Binary files]
+PersistentStorage --> Host : OK
+Host --> Portal : OK [Module Id]
+Portal --> User : OK
+
+|||
+
+User --> Portal : Run a job [Input files, module arguments, number of points, module Id]
+Portal --> Host : Run a job asynchronously (POST api/asynchronousJobRuns) [Module Id]
+Host --> Host : Create an in-memory job [Module Id]
+Host --> Portal : Job Id
+Host --> Host : Discover connected daemons (via runtime environment)
+Host --> PersistentStorage : Get binaries for the module [Module Id]
+PersistentStorage --> Host : OK [Binaries]
+Host --> Host : Load the binaries via runtime reflection
+Host --> Host : Run the module
+Host --> Daemon : Create the points defined by the module on the connected daemons
+Daemon --> Host : OK
+Host --> Daemon : Run the module
+Daemon --> Host : OK
+Host --> Host : Archive job output
+Host --> Host : Dispose of the job
+Host --> Portal : Webhook [Archived job output]
+Portal --> User : Job finished [Archived job output]
+
+@enduml

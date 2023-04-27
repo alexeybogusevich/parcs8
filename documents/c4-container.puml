@@ -1,0 +1,36 @@
+@startuml C4-Container-PARCS.NET+
+
+left to right direction
+
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+!define DEVICONS https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/master/devicons2
+!define FONTAWESOME https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/master/font-awesome-5
+!include DEVICONS/dotnetcore.puml
+!include DEVICONS/javascript.puml
+!include DEVICONS/postgresql.puml
+!include FONTAWESOME/users.puml
+
+LAYOUT_WITH_LEGEND()
+
+Person(user, "Користувач", "Програмний інженер в сфері паралельних обчислень", $sprite="users")
+System_Boundary(c2, "Середа виконання ПАРКС", $link="https://github.com/plantuml-stdlib/C4-PlantUML") {
+    Container(portal, "Портал управління", "ASP.NET Core Blazor", "Надає графічний інтерфейс для роботи з АМ та задачами.", $sprite="javascript")
+    ContainerDb(portalDb, "БД Порталу", "PostgreSQL", "Зберігає користувацькі метадані.", $sprite="postgresql")
+    Container(host, "Хост", "ASP.NET Core Web API", "Безпосередньо контролює створення АМ і оркестрацію задач.", $sprite="dotnetcore")
+    Container(daemon, "Демон", ".NET Core Generic Host", "Виконує основні обчислення.", $sprite="dotnetcore")
+    ContainerDb(storage, "Сховище", "Persistent Volume", "Зберігає бінарні АМ, вхідні та вихідні файли задач.")
+}
+System_Ext(library, "Parcs.Net", "NuGet", "Бібліотека класів для реалізації АМ.", $sprite="dotnetcore")
+
+Rel(user, portal, "Взаємодіє з графічним інтерфейсом", "HTTPS")
+Rel(user, library, "Посилається на програмний інтерфейс")
+Rel(portal, portalDb, "Записує та зчитує дані", "EF Core")
+Rel(portal, host, "Надсилає програмні запити", "HTTPS/(JSON|Form-Data)")
+Rel(host, daemon, "Надсилає програмні запити", "TCP")
+Rel(host, library, "Посилається на програмний інтерфейс")
+Rel(daemon, library, "Посилається на програмний інтерфейс")
+Rel(host, storage, "Записує та зчитує дані")
+Rel(daemon, storage, "Зчитує дані")
+
+@enduml

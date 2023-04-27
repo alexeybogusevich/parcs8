@@ -27,7 +27,7 @@ namespace Parcs.HostAPI.Handlers
             ArgumentNullException.ThrowIfNull(job.Module);
 
             await using var moduleInfo = _moduleInfoFactory.Create(
-                job.Id, job.ModuleId, command.PointsNumber, command.GetArgumentsDictionary(), cancellationToken: job.CancellationToken);
+                job.Id, job.ModuleId, command.PointsNumber, command.GetArgumentsDictionary(), job.CancellationToken);
 
             try
             {

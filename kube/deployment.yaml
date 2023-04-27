@@ -50,6 +50,9 @@ spec:
   resources:
     requests:
       storage: 500Mi
+  selector:
+    matchLabels:
+      app: parcs
 ---
 apiVersion: v1
 kind: Service
@@ -108,7 +111,7 @@ metadata:
   labels:
     app: parcs-hostapi
 spec:
-  type: LoadBalancer
+  type: NodePort
   ports:
   - name: https
     port: 443

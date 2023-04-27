@@ -11,5 +11,12 @@ namespace Parcs.Core.Services.Interfaces
             IDictionary<string, string> arguments,
             IChannel parentChannel = null,
             CancellationToken cancellationToken = default);
+
+        IModuleInfo Create(
+            Guid jobId,
+            Guid moduleId,
+            int pointsNumber,
+            IDictionary<string, string> arguments,
+            CancellationToken cancellationToken = default);
     }
 }

@@ -13,11 +13,11 @@ namespace Parcs.HostAPI.Validators
 
             RuleFor(c => c.BinaryFiles)
                 .NotEmpty()
-                .WithMessage($"Host binary files are required.")
+                .WithMessage($"Binary files are required.")
                 .Must(files => files.Any())
-                .WithMessage($"Host binary files are required.")
+                .WithMessage($"Binary files are required.")
                 .Must(files => files.Any(f => f.FileName.EndsWith(AssemblyExtension)))
-                .WithMessage($"Host binary files must contain at least one assembly.");
+                .WithMessage($"Binary files must contain at least one assembly.");
         }
     }
 }
