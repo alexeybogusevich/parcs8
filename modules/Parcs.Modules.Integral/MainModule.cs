@@ -13,8 +13,7 @@ namespace Parcs.Modules.Integral
             double b = Math.PI / 2;
             double h = moduleOptions.Precision ?? 0.00000001;
 
-            var pointsNumber = moduleInfo.ArgumentsProvider.GetBase().PointsNumber;
-
+            var pointsNumber = moduleInfo.ArgumentsProvider.GetPointsNumber();
             var points = new IPoint[pointsNumber];
             var channels = new IChannel[pointsNumber];
 
@@ -33,7 +32,6 @@ namespace Parcs.Modules.Integral
                 await channels[i].WriteDataAsync(h);
                 y += (b - a) / pointsNumber;
             }
-
             DateTime time = DateTime.Now;
             Console.WriteLine("Waiting for result...");
 
@@ -45,7 +43,8 @@ namespace Parcs.Modules.Integral
 
             Console.WriteLine("Result found: res = {0}, time = {1}", result, Math.Round((DateTime.Now - time).TotalSeconds, 3));
 
-            await moduleInfo.OutputWriter.WriteToFileAsync(Encoding.UTF8.GetBytes(result.ToString()), "result.txt");
+            var bytes = Encoding.UTF8.GetBytes(result.ToString());
+            await moduleInfo.OutputWriter.WriteToFileAsync(bytes, moduleOptions.OutputFilename);
 
             for (int i = 0; i < pointsNumber; ++i)
             {

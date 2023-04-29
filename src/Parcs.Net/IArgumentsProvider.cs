@@ -2,8 +2,8 @@
 {
     public interface IArgumentsProvider
     {
-        ArgumentsBase GetBase();
+        int GetPointsNumber();
 
-        IDictionary<string, string> GetRaw();
+        IDictionary<string, string> GetArguments();
     }
 }

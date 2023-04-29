@@ -11,7 +11,7 @@ namespace Parcs.Core.Models
 
         private TcpClient _tcpClient;
         private readonly IArgumentsProvider _argumentsProvider;
-        private Channel _createdChannel;
+        private NetworkChannel _createdChannel;
 
         public Point(
             Guid jobId, Guid moduleId, TcpClient tcpClient, IArgumentsProvider argumentsProvider, CancellationToken cancellationToken)
@@ -35,7 +35,7 @@ namespace Parcs.Core.Models
 
             var networkStream = _tcpClient.GetStream();
 
-            _createdChannel = new Channel(networkStream);
+            _createdChannel = new NetworkChannel(networkStream);
             _createdChannel.SetCancellation(_cancellationToken);
 
             await _createdChannel.WriteSignalAsync(Signal.InitializeJob);

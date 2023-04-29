@@ -35,13 +35,13 @@ namespace Parcs.Daemon.HostedServices
                 _logger.LogInformation("Waiting for a connection...");
 
                 using var tcpClient = await _tcpListener.AcceptTcpClientAsync(cancellationToken);
-                using var channel = new Channel(tcpClient.GetStream());
+                using var channel = new NetworkChannel(tcpClient.GetStream());
 
                 await HandleConnectionAsync(channel, cancellationToken);
             }
         }
 
-        private async Task HandleConnectionAsync(Channel channel, CancellationToken cancellationToken)
+        private async Task HandleConnectionAsync(NetworkChannel channel, CancellationToken cancellationToken)
         {
             while (true)
             {

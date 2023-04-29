@@ -10,13 +10,13 @@ namespace Parcs.Net
 
             var objectType = @object.GetType();
 
-            foreach (var item in argumentsProvider.GetRaw())
+            foreach (var argument in argumentsProvider.GetArguments())
             {
-                var itemProperty = objectType.GetProperty(item.Key, BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance);
+                var itemProperty = objectType.GetProperty(argument.Key, BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance);
 
                 if (itemProperty is not null)
                 {
-                    var itemValue = item.Value.ToObject(itemProperty.PropertyType);
+                    var itemValue = argument.Value.ToObject(itemProperty.PropertyType);
                     itemProperty.SetValue(@object, itemValue, null);
                 }
             }

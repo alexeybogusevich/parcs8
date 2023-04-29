@@ -6,12 +6,12 @@ using System.Text.Json;
 
 namespace Parcs.Core.Models
 {
-    public sealed class Channel : IManagedChannel
+    public sealed class NetworkChannel : IManagedChannel
     {
         private NetworkStream _networkStream;
         private CancellationToken _cancellationToken = default;
 
-        public Channel(NetworkStream networkStream)
+        public NetworkChannel(NetworkStream networkStream)
         {
             _networkStream = networkStream;
         }

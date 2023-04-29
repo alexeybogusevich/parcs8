@@ -15,7 +15,7 @@ namespace Parcs.Daemon.Handlers
 
         public Task HandleAsync(IManagedChannel managedChannel, CancellationToken cancellationToken = default)
         {
-            _jobContextAccessor.Current?.CancellationTokenSource.Cancel();
+            _jobContextAccessor.Current?.CancellationTokenSource?.Cancel();
             return Task.CompletedTask;
         }
     }
