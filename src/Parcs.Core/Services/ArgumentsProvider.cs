@@ -4,17 +4,17 @@ namespace Parcs.Core.Services
 {
     public class ArgumentsProvider : IArgumentsProvider
     {
-        private readonly ArgumentsBase _argumentsBase;
+        private readonly int _pointsNumber;
         private readonly IDictionary<string, string> _argumentsDictionary;
 
         public ArgumentsProvider(int pointsNumber, IDictionary<string, string> argumentsDictionary)
         {
-            _argumentsBase = new ArgumentsBase { PointsNumber = pointsNumber };
+            _pointsNumber = pointsNumber;
             _argumentsDictionary = argumentsDictionary;
         }
 
-        public ArgumentsBase GetBase() => _argumentsBase;
+        public int GetPointsNumber() => _pointsNumber;
 
-        public IDictionary<string, string> GetRaw() => _argumentsDictionary;
+        public IDictionary<string, string> GetArguments() => _argumentsDictionary;
     }
 }

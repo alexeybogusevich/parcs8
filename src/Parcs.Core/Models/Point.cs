@@ -41,8 +41,8 @@ namespace Parcs.Core.Models
             await _createdChannel.WriteSignalAsync(Signal.InitializeJob);
             await _createdChannel.WriteDataAsync(_jobId);
             await _createdChannel.WriteDataAsync(_moduleId);
-            await _createdChannel.WriteDataAsync(_argumentsProvider.GetBase().PointsNumber);
-            await _createdChannel.WriteObjectAsync(_argumentsProvider.GetRaw());
+            await _createdChannel.WriteDataAsync(_argumentsProvider.GetPointsNumber());
+            await _createdChannel.WriteObjectAsync(_argumentsProvider.GetArguments());
 
             return _createdChannel;
         }

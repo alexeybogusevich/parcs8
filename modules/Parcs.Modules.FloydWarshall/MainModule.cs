@@ -13,7 +13,7 @@ namespace Parcs.Modules.FloydWarshall
         {
             var options = moduleInfo.ArgumentsProvider.Bind<ModuleOptions>();
 
-            int pointsNumber = moduleInfo.ArgumentsProvider.GetBase().PointsNumber;
+            int pointsNumber = moduleInfo.ArgumentsProvider.GetPointsNumber();
             _matrix = GetMatrix(options.InputFile, moduleInfo);
 
             if (_matrix.Length % pointsNumber != 0)

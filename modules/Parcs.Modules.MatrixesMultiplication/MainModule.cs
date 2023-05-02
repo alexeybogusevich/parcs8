@@ -25,7 +25,7 @@ namespace Parcs.Modules.MatrixesMultiplication
 
             int[] possibleValues = { 1, 2, 4, 8, 16, 32 };
 
-            int pointsNumber = moduleInfo.ArgumentsProvider.GetBase().PointsNumber;
+            int pointsNumber = moduleInfo.ArgumentsProvider.GetPointsNumber();
 
             if (!possibleValues.Contains(pointsNumber))
             {

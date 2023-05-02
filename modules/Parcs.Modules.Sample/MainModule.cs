@@ -15,7 +15,7 @@ namespace Parcs.Modules.Sample
                 Console.WriteLine(await streamReader.ReadToEndAsync(cancellationToken));
             }
 
-            var pointsNumber = moduleInfo.ArgumentsProvider.GetBase().PointsNumber;
+            var pointsNumber = moduleInfo.ArgumentsProvider.GetPointsNumber();
             var channels = new IChannel[pointsNumber];
             var points = new IPoint[pointsNumber];
 

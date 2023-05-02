@@ -85,4 +85,4 @@ resource aksExtension 'Microsoft.Compute/virtualMachines/extensions@2022-11-01' 
       commandToExecute: 'bash aks-engine-deploy.sh -g ${resourceGroupName} -c ${aksCluster.name} -f ${kubeConfigFileName}'
     }
   }
-}ch
+}

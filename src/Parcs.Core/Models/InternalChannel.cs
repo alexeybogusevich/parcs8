@@ -1,15 +1,19 @@
 ﻿using Parcs.Core.Models.Interfaces;
 using Parcs.Net;
+using System.Threading.Channels;
 
 namespace Parcs.Core.Models
 {
     public sealed class InternalChannel : IManagedChannel
     {
         private CancellationToken _cancellationToken = default;
+        private readonly Channel<IInternalChannelData> _channel;
+        private readonly Action _disposeAction;
 
-        public InternalChannel()
+        public InternalChannel(Channel<IInternalChannelData> channel, Action disposeAction)
         {
-            throw new NotImplementedException();
+            _channel = channel;
+            _disposeAction = disposeAction;
         }
 
         public void SetCancellation(CancellationToken cancellationToken)
@@ -19,107 +23,136 @@ namespace Parcs.Core.Models
 
         public ValueTask WriteSignalAsync(Signal signal)
         {
-            throw new NotImplementedException();
+            var internalChannelData = new InternalChannelData<Signal>(signal);
+            return _channel.Writer.WriteAsync(internalChannelData, _cancellationToken);
         }
 
         public ValueTask WriteDataAsync(bool data)
         {
-            throw new NotImplementedException();
+            var internalChannelData = new InternalChannelData<bool>(data);
+            return _channel.Writer.WriteAsync(internalChannelData, _cancellationToken);
         }
 
         public ValueTask WriteDataAsync(byte data)
         {
-            throw new NotImplementedException();
+            var internalChannelData = new InternalChannelData<byte>(data);
+            return _channel.Writer.WriteAsync(internalChannelData, _cancellationToken);
         }
 
         public ValueTask WriteDataAsync(byte[] data)
         {
-            throw new NotImplementedException();
+            var internalChannelData = new InternalChannelData<byte[]>(data);
+            return _channel.Writer.WriteAsync(internalChannelData, _cancellationToken);
         }
 
         public ValueTask WriteDataAsync(int data)
         {
-            throw new NotImplementedException();
+            var internalChannelData = new InternalChannelData<int>(data);
+            return _channel.Writer.WriteAsync(internalChannelData, _cancellationToken);
         }
 
         public ValueTask WriteDataAsync(long data)
         {
-            throw new NotImplementedException();
+            var internalChannelData = new InternalChannelData<long>(data);
+            return _channel.Writer.WriteAsync(internalChannelData, _cancellationToken);
         }
 
         public ValueTask WriteDataAsync(double data)
         {
-            throw new NotImplementedException();
+            var internalChannelData = new InternalChannelData<double>(data);
+            return _channel.Writer.WriteAsync(internalChannelData, _cancellationToken);
         }
 
         public ValueTask WriteDataAsync(string data)
         {
-            throw new NotImplementedException();
+            var internalChannelData = new InternalChannelData<string>(data);
+            return _channel.Writer.WriteAsync(internalChannelData, _cancellationToken);
         }
 
         public ValueTask WriteDataAsync(Guid data)
         {
-            throw new NotImplementedException();
+            var internalChannelData = new InternalChannelData<Guid>(data);
+            return _channel.Writer.WriteAsync(internalChannelData, _cancellationToken);
         }
 
         public ValueTask WriteObjectAsync<T>(T @object)
         {
-            throw new NotImplementedException();
+            var internalChannelData = new InternalChannelData<T>(@object);
+            return _channel.Writer.WriteAsync(internalChannelData, _cancellationToken);
         }
 
-        public Task<Signal> ReadSignalAsync()
+        public async Task<Signal> ReadSignalAsync()
         {
-            throw new NotImplementedException();
+            var internalChannelData = await TryReceiveAsync<Signal>();
+            return internalChannelData.Payload;
         }
 
-        public Task<bool> ReadBooleanAsync()
+        public async Task<bool> ReadBooleanAsync()
         {
-            throw new NotImplementedException();
+            var internalChannelData = await TryReceiveAsync<bool>();
+            return internalChannelData.Payload;
         }
 
-        public Task<byte> ReadByteAsync()
+        public async Task<byte> ReadByteAsync()
         {
-            throw new NotImplementedException();
+            var internalChannelData = await TryReceiveAsync<byte>();
+            return internalChannelData.Payload;
         }
 
-        public Task<byte[]> ReadBytesAsync()
+        public async Task<byte[]> ReadBytesAsync()
         {
-            throw new NotImplementedException();
+            var internalChannelData = await TryReceiveAsync<byte[]>();
+            return internalChannelData.Payload;
         }
 
-        public Task<int> ReadIntAsync()
+        public async Task<int> ReadIntAsync()
         {
-            throw new NotImplementedException();
+            var internalChannelData = await TryReceiveAsync<int>();
+            return internalChannelData.Payload;
         }
 
-        public Task<long> ReadLongAsync()
+        public async Task<long> ReadLongAsync()
         {
-            throw new NotImplementedException();
+            var internalChannelData = await TryReceiveAsync<long>();
+            return internalChannelData.Payload;
         }
 
-        public Task<double> ReadDoubleAsync()
+        public async Task<double> ReadDoubleAsync()
         {
-            throw new NotImplementedException();
+            var internalChannelData = await TryReceiveAsync<double>();
+            return internalChannelData.Payload;
         }
 
-        public Task<string> ReadStringAsync()
+        public async Task<string> ReadStringAsync()
         {
-            throw new NotImplementedException();
+            var internalChannelData = await TryReceiveAsync<string>();
+            return internalChannelData.Payload;
         }
 
-        public Task<Guid> ReadGuidAsync()
+        public async Task<Guid> ReadGuidAsync()
         {
-            throw new NotImplementedException();
+            var internalChannelData = await TryReceiveAsync<Guid>();
+            return internalChannelData.Payload;
         }
 
-        public Task<T> ReadObjectAsync<T>()
+        public async Task<T> ReadObjectAsync<T>()
         {
-            throw new NotImplementedException();
+            var internalChannelData = await TryReceiveAsync<T>();
+            return internalChannelData.Payload;
         }
 
-        public void Dispose()
+        private async Task<InternalChannelData<T>> TryReceiveAsync<T>()
         {
-            throw new NotImplementedException();
+            var internalChannelData = await _channel.Reader.ReadAsync(_cancellationToken);
+
+            if (internalChannelData is not InternalChannelData<T> typedInternalChannelData)
+            {
+                throw new ArgumentException($"Expected to receive {typeof(T).FullName} but got {internalChannelData.GetType().FullName}");
+            }
+
+            return typedInternalChannelData;
         }
+
+        public void Dispose() => _disposeAction.Invoke();
     }
 }
