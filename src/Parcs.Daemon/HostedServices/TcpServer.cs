@@ -7,6 +7,7 @@ using System.Net;
 using Parcs.Core.Models;
 using Parcs.Daemon.Services.Interfaces;
 using Parcs.Net;
+using Parcs.Core.Models.Interfaces;
 
 namespace Parcs.Daemon.HostedServices
 {
@@ -34,18 +35,19 @@ namespace Parcs.Daemon.HostedServices
             {
                 _logger.LogInformation("Waiting for a connection...");
 
-                using var tcpClient = await _tcpListener.AcceptTcpClientAsync(cancellationToken);
-                using var channel = new NetworkChannel(tcpClient.GetStream());
+                var tcpClient = await _tcpListener.AcceptTcpClientAsync(cancellationToken);
 
-                await HandleConnectionAsync(channel, cancellationToken);
+                await Task.Run(async () => await HandleConnectionAsync(tcpClient, cancellationToken), cancellationToken);
             }
         }
 
-        private async Task HandleConnectionAsync(NetworkChannel channel, CancellationToken cancellationToken)
+        private async Task HandleConnectionAsync(TcpClient tcpClient, CancellationToken cancellationToken)
         {
-            while (true)
+            try
             {
-                try
+                using IManagedChannel channel = new NetworkChannel(tcpClient);
+
+                while (true)
                 {
                     var signal = await channel.ReadSignalAsync();
 
@@ -58,12 +60,14 @@ namespace Parcs.Daemon.HostedServices
 
                     await signalHandler.HandleAsync(channel, cancellationToken);
                 }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Exception thrown: {Message}.", ex.Message);
-
-                    return;
-                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Exception thrown: {Message}.", ex.Message);
+            }
+            finally
+            {
+                tcpClient.Dispose();
             }
         }
 

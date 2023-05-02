@@ -1,6 +1,7 @@
 ﻿using Parcs.Net;
 using Parcs.Core.Services.Interfaces;
 using System.Net.Sockets;
+using Parcs.Core.Models.Interfaces;
 
 namespace Parcs.Core.Models
 {
@@ -18,6 +19,8 @@ namespace Parcs.Core.Models
         private readonly IOutputWriter _outputWriter;
         private readonly IArgumentsProvider _argumentsProvider;
         private readonly IDaemonResolver _daemonResolver;
+        private readonly IInternalChannelManager _internalChannelManager;
+        private readonly IAddressResolver _addressResolver;
 
         public ModuleInfo(
             Guid jobId,
@@ -26,6 +29,8 @@ namespace Parcs.Core.Models
             IInputOutputFactory inputOutputFactory,
             IArgumentsProvider argumentsProvider,
             IDaemonResolver daemonResolver,
+            IInternalChannelManager internalChannelManager,
+            IAddressResolver addressResolver,
             CancellationToken cancellationToken)
         {
             _jobId = jobId;
@@ -37,6 +42,8 @@ namespace Parcs.Core.Models
             _outputWriter = inputOutputFactory.CreateWriter(jobId, cancellationToken);
             _argumentsProvider = argumentsProvider;
             _daemonResolver = daemonResolver;
+            _internalChannelManager = internalChannelManager;
+            _addressResolver = addressResolver;
             _cancellationToken = cancellationToken;
         }
 
@@ -55,10 +62,33 @@ namespace Parcs.Core.Models
             var tcpClient = new TcpClient();
             await tcpClient.ConnectAsync(nextDaemon.HostUrl, nextDaemon.Port);
 
-            var point = new Point(_jobId, _moduleId, tcpClient, _argumentsProvider, _cancellationToken);
+            IManagedChannel channel = new NetworkChannel(tcpClient);
+
+            if (_addressResolver.IsSameAddressAsHost(nextDaemon.HostUrl))
+            {
+                var internalChannel = await InitializeInternalAsync(channel);
+                channel.Dispose();
+                channel = internalChannel;
+            }
+
+            channel.SetCancellation(_cancellationToken);
+
+            var point = new Point(_jobId, _moduleId, channel, _argumentsProvider);
             _createdPoints.Add(point);
 
             return point;
+        }
+
+        private async Task<InternalChannel> InitializeInternalAsync(IManagedChannel channel)
+        {
+            var internalChannelId = _internalChannelManager.Create();
+
+            await channel.WriteSignalAsync(Signal.SwitchToLocalCommunication);
+            await channel.WriteDataAsync(internalChannelId);
+
+            _ = _internalChannelManager.TryGet(internalChannelId, out var internalChannel);
+
+            return internalChannel;
         }
 
         private Daemon GetNextDaemon()

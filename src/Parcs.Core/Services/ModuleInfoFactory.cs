@@ -9,15 +9,21 @@ namespace Parcs.Core.Services
         private readonly IDaemonResolver _daemonResolver;
         private readonly IInputOutputFactory _inputOutputFactory;
         private readonly IArgumentsProviderFactory _argumentsProviderFactory;
+        private readonly IInternalChannelManager _internalChannelManager;
+        private readonly IAddressResolver _addressResolver;
 
         public ModuleInfoFactory(
             IDaemonResolver daemonResolver,
             IInputOutputFactory inputOutputFactory,
-            IArgumentsProviderFactory argumentsProviderFactory)
+            IArgumentsProviderFactory argumentsProviderFactory,
+            IInternalChannelManager internalChannelManager,
+            IAddressResolver addressResolver)
         {
             _daemonResolver = daemonResolver;
             _inputOutputFactory = inputOutputFactory;
             _argumentsProviderFactory = argumentsProviderFactory;
+            _internalChannelManager = internalChannelManager;
+            _addressResolver = addressResolver;
         }
 
         public IModuleInfo Create(
@@ -31,7 +37,15 @@ namespace Parcs.Core.Services
             var argumentsProvider = _argumentsProviderFactory.Create(pointsNumber, arguments);
 
             return new ModuleInfo(
-                jobId, moduleId, parentChannel, _inputOutputFactory, argumentsProvider, _daemonResolver, cancellationToken);
+                jobId,
+                moduleId,
+                parentChannel,
+                _inputOutputFactory,
+                argumentsProvider,
+                _daemonResolver,
+                _internalChannelManager,
+                _addressResolver,
+                cancellationToken);
         }
 
         public IModuleInfo Create(

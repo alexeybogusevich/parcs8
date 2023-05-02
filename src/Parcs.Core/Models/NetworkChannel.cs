@@ -8,12 +8,14 @@ namespace Parcs.Core.Models
 {
     public sealed class NetworkChannel : IManagedChannel
     {
+        private TcpClient _tcpClient;
         private NetworkStream _networkStream;
         private CancellationToken _cancellationToken = default;
 
-        public NetworkChannel(NetworkStream networkStream)
+        public NetworkChannel(TcpClient tcpClient)
         {
-            _networkStream = networkStream;
+            _networkStream = tcpClient.GetStream();
+            _tcpClient = tcpClient;
         }
 
         public void SetCancellation(CancellationToken cancellationToken)
@@ -188,6 +190,12 @@ namespace Parcs.Core.Models
             {
                 _networkStream.Dispose();
                 _networkStream = null;
+            }
+
+            if (_tcpClient is not null)
+            {
+                _tcpClient.Dispose();
+                _tcpClient = null;
             }
         }
     }

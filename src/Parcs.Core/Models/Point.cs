@@ -1,5 +1,5 @@
-﻿using Parcs.Net;
-using System.Net.Sockets;
+﻿using Parcs.Core.Models.Interfaces;
+using Parcs.Net;
 
 namespace Parcs.Core.Models
 {
@@ -7,77 +7,57 @@ namespace Parcs.Core.Models
     {
         private readonly Guid _jobId;
         private readonly Guid _moduleId;
-        private readonly CancellationToken _cancellationToken;
-
-        private TcpClient _tcpClient;
         private readonly IArgumentsProvider _argumentsProvider;
-        private NetworkChannel _createdChannel;
+        private IManagedChannel _managedChannel;
 
-        public Point(
-            Guid jobId, Guid moduleId, TcpClient tcpClient, IArgumentsProvider argumentsProvider, CancellationToken cancellationToken)
+        public Point(Guid jobId, Guid moduleId, IManagedChannel managedChannel, IArgumentsProvider argumentsProvider)
         {
-            Id = Guid.NewGuid();
             _jobId = jobId;
             _moduleId = moduleId;
-            _tcpClient = tcpClient;
+            _managedChannel = managedChannel;
             _argumentsProvider = argumentsProvider;
-            _cancellationToken = cancellationToken;
         }
 
-        public Guid Id { get; init; }
+        public Guid Id { get; init; } = Guid.NewGuid();
 
         public async Task<IChannel> CreateChannelAsync()
         {
-            if (_createdChannel is not null)
+            if (_managedChannel is null)
             {
-                return _createdChannel;
+                throw new ArgumentException("Channel can't be created.");
             }
 
-            var networkStream = _tcpClient.GetStream();
+            await _managedChannel.WriteSignalAsync(Signal.InitializeJob);
+            await _managedChannel.WriteDataAsync(_jobId);
+            await _managedChannel.WriteDataAsync(_moduleId);
+            await _managedChannel.WriteDataAsync(_argumentsProvider.GetPointsNumber());
+            await _managedChannel.WriteObjectAsync(_argumentsProvider.GetArguments());
 
-            _createdChannel = new NetworkChannel(networkStream);
-            _createdChannel.SetCancellation(_cancellationToken);
-
-            await _createdChannel.WriteSignalAsync(Signal.InitializeJob);
-            await _createdChannel.WriteDataAsync(_jobId);
-            await _createdChannel.WriteDataAsync(_moduleId);
-            await _createdChannel.WriteDataAsync(_argumentsProvider.GetPointsNumber());
-            await _createdChannel.WriteObjectAsync(_argumentsProvider.GetArguments());
-
-            return _createdChannel;
+            return _managedChannel;
         }
 
         public async Task ExecuteClassAsync(string assemblyName, string className)
         {
-            if (_createdChannel is null)
+            if (_managedChannel is null)
             {
                 throw new ArgumentException("No channel has been created.");
             }
 
-            await _createdChannel.WriteSignalAsync(Signal.ExecuteClass);
-            await _createdChannel.WriteDataAsync(assemblyName);
-            await _createdChannel.WriteDataAsync(className);
+            await _managedChannel.WriteSignalAsync(Signal.ExecuteClass);
+            await _managedChannel.WriteDataAsync(assemblyName);
+            await _managedChannel.WriteDataAsync(className);
         }
 
         public async Task DeleteAsync() => await DisposeAsync();
 
         public async ValueTask DisposeAsync()
         {
-            if (_createdChannel is not null)
+            if (_managedChannel is not null)
             {
-                if (_tcpClient.Connected)
-                {
-                    await _createdChannel.WriteSignalAsync(Signal.CloseConnection);
-                }
+                await _managedChannel.WriteSignalAsync(Signal.CloseConnection);
 
-                _createdChannel.Dispose();
-                _createdChannel = null;
-            }
-
-            if (_tcpClient is not null)
-            {
-                _tcpClient.Dispose();
-                _tcpClient = null;
+                _managedChannel.Dispose();
+                _managedChannel = null;
             }
         }
     }

@@ -40,6 +40,7 @@ namespace Parcs.HostAPI.Extensions
         public static IServiceCollection AddApplicationServices(this IServiceCollection services)
         {
             return services
+                .AddScoped<IAddressResolver, AddressResolver>()
                 .AddScoped<IGuidReference, GuidReference>()
                 .AddScoped<IDaemonResolver, DaemonResolver>()
                 .AddScoped<IDaemonResolutionStrategyFactory, DaemonResolutionStrategyFactory>()
@@ -58,6 +59,7 @@ namespace Parcs.HostAPI.Extensions
                 .AddSingleton<IFileReader, FileReader>()
                 .AddSingleton<IFileEraser, FileEraser>()
                 .AddSingleton<IJobManager, JobManager>()
+                .AddSingleton<IInternalChannelManager, InternalChannelManager>()
                 .AddMediatR(options => options.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
         }
 
