@@ -1,6 +1,7 @@
 ﻿using Parcs.Core.Models.Interfaces;
 using Parcs.Core.Services.Interfaces;
 using Parcs.Daemon.Handlers.Interfaces;
+using Parcs.Net;
 
 namespace Parcs.Daemon.Handlers
 {
@@ -21,6 +22,8 @@ namespace Parcs.Daemon.Handlers
             {
                 throw new ArgumentException($"Couldn't find an internal channel with id {internalChannelId}");
             }
+
+            await managedChannel.WriteSignalAsync(Signal.InternalChannelSwitch);
 
             managedChannel.Dispose();
 

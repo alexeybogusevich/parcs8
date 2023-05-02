@@ -14,7 +14,7 @@ namespace Parcs.Core.Services
 
             socket.Connect("8.8.8.8", 65530);
             var endPoint = socket.LocalEndPoint as IPEndPoint;
-            var localIP = endPoint.Address.ToString();
+            var localIP = endPoint.Address;
 
             return addresses.Any(a => a.Equals(localIP));
         }

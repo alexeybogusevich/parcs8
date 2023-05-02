@@ -83,8 +83,15 @@ namespace Parcs.Core.Models
         {
             var internalChannelId = _internalChannelManager.Create();
 
-            await channel.WriteSignalAsync(Signal.SwitchToLocalCommunication);
+            await channel.WriteSignalAsync(Signal.InternalChannelSwitch);
             await channel.WriteDataAsync(internalChannelId);
+
+            var signal = await channel.ReadSignalAsync();
+
+            if (signal != Signal.InternalChannelSwitch)
+            {
+                throw new ArgumentException($"Protocol switch declined.");
+            }
 
             _ = _internalChannelManager.TryGet(internalChannelId, out var internalChannel);
 

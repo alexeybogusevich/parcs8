@@ -21,6 +21,7 @@ namespace Parcs.Daemon.Extensions
                 .AddSingleton<ConfigurationDaemonResolutionStrategy>()
                 .AddSingleton<DefaultSignalHandler>()
                 .AddSingleton<ExecuteClassSignalHandler>()
+                .AddSingleton<InternalChannelSwitchSignalHandler>()
                 .AddSingleton<IAddressResolver, AddressResolver>()
                 .AddSingleton<IArgumentsProviderFactory, ArgumentsProviderFactory>()
                 .AddSingleton<IDaemonResolutionStrategyFactory, DaemonResolutionStrategyFactory>()
