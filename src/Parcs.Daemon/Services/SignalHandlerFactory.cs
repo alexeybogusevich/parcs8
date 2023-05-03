@@ -23,7 +23,6 @@ namespace Parcs.Daemon.Services
                 Signal.CancelJob => _serviceProvider.GetRequiredService<CancelJobSignalHandler>(),
                 Signal.InitializeJob => _serviceProvider.GetRequiredService<InitializeJobSignalHandler>(),
                 Signal.ExecuteClass => _serviceProvider.GetRequiredService<ExecuteClassSignalHandler>(),
-                Signal.InternalChannelSwitch => _serviceProvider.GetRequiredService<InternalChannelSwitchSignalHandler>(),
                 _ => _serviceProvider.GetRequiredService<DefaultSignalHandler>(),
             };
         }

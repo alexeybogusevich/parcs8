@@ -22,10 +22,15 @@ namespace Parcs.Daemon.Services
 
             try
             {
-                var signal = await managedChannel.ReadSignalAsync();
-
-                while (signal != Signal.CloseConnection)
+                while (true)
                 {
+                    var signal = await managedChannel.ReadSignalAsync();
+
+                    if (signal == Signal.CloseConnection)
+                    {
+                        return;
+                    }
+
                     await _signalHandlerFactory.Create(signal).HandleAsync(managedChannel, cancellationToken);
                 }
             }

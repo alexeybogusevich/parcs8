@@ -12,6 +12,7 @@ using System.Reflection;
 using System.Threading.Channels;
 using Channel = System.Threading.Channels.Channel;
 using Parcs.HostAPI.HostedServices;
+using Parcs.Core.Models;
 
 namespace Parcs.HostAPI.Extensions
 {
@@ -60,6 +61,9 @@ namespace Parcs.HostAPI.Extensions
                 .AddSingleton<IFileEraser, FileEraser>()
                 .AddSingleton<IJobManager, JobManager>()
                 .AddSingleton<IInternalChannelManager, InternalChannelManager>()
+                .AddSingleton(Channel.CreateUnbounded<InternalChannelReference>(new UnboundedChannelOptions() { SingleReader = true }))
+                .AddSingleton(svc => svc.GetRequiredService<Channel<InternalChannelReference>>().Reader)
+                .AddSingleton(svc => svc.GetRequiredService<Channel<InternalChannelReference>>().Writer)
                 .AddMediatR(options => options.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
         }
 

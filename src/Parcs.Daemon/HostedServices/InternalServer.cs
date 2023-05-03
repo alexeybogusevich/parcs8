@@ -24,12 +24,12 @@ namespace Parcs.Daemon.HostedServices
         {
             await foreach (var internalChannelReference in _channelReader.ReadAllAsync(cancellationToken))
             {
-                if (!_internalChannelManager.TryGet(internalChannelReference.Id, out var internalChannel))
+                if (!_internalChannelManager.TryGet(internalChannelReference.Id, out var internalChannelPair))
                 {
                     continue;
                 }
 
-                _ = Task.Run(async () => await _channelOrchestrator.OrchestrateAsync(internalChannel, cancellationToken), cancellationToken);
+                _ = Task.Run(async () => await _channelOrchestrator.OrchestrateAsync(internalChannelPair.Item2, cancellationToken), cancellationToken);
             }
         }
 

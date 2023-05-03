@@ -9,6 +9,7 @@ namespace Parcs.Core.Models
         private readonly Guid _moduleId;
         private readonly IArgumentsProvider _argumentsProvider;
         private IManagedChannel _managedChannel;
+        private bool _managedChannelInitialized = false;
 
         public Point(Guid jobId, Guid moduleId, IManagedChannel managedChannel, IArgumentsProvider argumentsProvider)
         {
@@ -22,9 +23,9 @@ namespace Parcs.Core.Models
 
         public async Task<IChannel> CreateChannelAsync()
         {
-            if (_managedChannel is null)
+            if (_managedChannelInitialized)
             {
-                throw new ArgumentException("Channel can't be created.");
+                return _managedChannel;
             }
 
             await _managedChannel.WriteSignalAsync(Signal.InitializeJob);
@@ -32,6 +33,8 @@ namespace Parcs.Core.Models
             await _managedChannel.WriteDataAsync(_moduleId);
             await _managedChannel.WriteDataAsync(_argumentsProvider.GetPointsNumber());
             await _managedChannel.WriteObjectAsync(_argumentsProvider.GetArguments());
+
+            _managedChannelInitialized = true;
 
             return _managedChannel;
         }

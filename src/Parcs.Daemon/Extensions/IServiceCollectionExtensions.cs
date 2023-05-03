@@ -8,6 +8,8 @@ using Parcs.TCP.Daemon.Handlers;
 using Microsoft.Extensions.Configuration;
 using Parcs.Daemon.Configuration;
 using Parcs.Core.Configuration;
+using System.Threading.Channels;
+using Parcs.Core.Models;
 
 namespace Parcs.Daemon.Extensions
 {
@@ -36,7 +38,10 @@ namespace Parcs.Daemon.Extensions
                 .AddSingleton<IModuleLoader, ModuleLoader>()
                 .AddSingleton<InitializeJobSignalHandler>()
                 .AddSingleton<ISignalHandlerFactory, SignalHandlerFactory>()
-                .AddSingleton<KubernetesDaemonResolutionStrategy>();
+                .AddSingleton<KubernetesDaemonResolutionStrategy>()
+                .AddSingleton(Channel.CreateUnbounded<InternalChannelReference>(new UnboundedChannelOptions() { SingleReader = true }))
+                .AddSingleton(svc => svc.GetRequiredService<Channel<InternalChannelReference>>().Reader)
+                .AddSingleton(svc => svc.GetRequiredService<Channel<InternalChannelReference>>().Writer);
         }
 
         public static IServiceCollection AddApplicationOptions(this IServiceCollection services, IConfiguration configuration)

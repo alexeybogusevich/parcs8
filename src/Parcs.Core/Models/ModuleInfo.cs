@@ -40,6 +40,8 @@ namespace Parcs.Core.Models
             ArgumentsProvider = argumentsProvider;
         }
 
+        public bool IsHost => Parent is null;
+
         public IChannel Parent { get; }
 
         public IInputReader InputReader { get; }
@@ -54,7 +56,7 @@ namespace Parcs.Core.Models
 
             var nextDaemonAddresses = _addressResolver.Resolve(nextDaemon.HostUrl);
 
-            if (nextDaemonAddresses.Any(IPAddress.IsLoopback))
+            if (IsHost is false && nextDaemonAddresses.Any(IPAddress.IsLoopback))
             {
                 return CreateInternalPoint();
             }
@@ -80,10 +82,10 @@ namespace Parcs.Core.Models
         {
             var internalChannelId = _internalChannelManager.Create();
 
-            _ = _internalChannelManager.TryGet(internalChannelId, out var internalChannel);
-            internalChannel.SetCancellation(_cancellationToken);
+            _ = _internalChannelManager.TryGet(internalChannelId, out var internalChannelPair);
+            internalChannelPair.Item1.SetCancellation(_cancellationToken);
 
-            var internalPoint = new Point(_jobId, _moduleId, internalChannel, ArgumentsProvider);
+            var internalPoint = new Point(_jobId, _moduleId, internalChannelPair.Item1, ArgumentsProvider);
             _createdPoints.Add(internalPoint);
 
             return internalPoint;
