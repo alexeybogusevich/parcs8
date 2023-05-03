@@ -1,7 +1,7 @@
 ﻿using Parcs.Net;
 using Parcs.Core.Services.Interfaces;
 using System.Net.Sockets;
-using Parcs.Core.Models.Interfaces;
+using System.Net;
 
 namespace Parcs.Core.Models
 {
@@ -11,13 +11,8 @@ namespace Parcs.Core.Models
         private readonly Guid _moduleId;
         private readonly CancellationToken _cancellationToken;
 
-        private readonly List<Point> _createdPoints;
-        private readonly Dictionary<string, int> _pointsOnDaemons;
-
-        private readonly IChannel _parentChannel;
-        private readonly IInputReader _inputReader;
-        private readonly IOutputWriter _outputWriter;
-        private readonly IArgumentsProvider _argumentsProvider;
+        private readonly List<Point> _createdPoints = new ();
+        private readonly Dictionary<string, int> _pointsOnDaemons = new();
         private readonly IDaemonResolver _daemonResolver;
         private readonly IInternalChannelManager _internalChannelManager;
         private readonly IAddressResolver _addressResolver;
@@ -35,67 +30,63 @@ namespace Parcs.Core.Models
         {
             _jobId = jobId;
             _moduleId = moduleId;
-            _createdPoints = new ();
-            _pointsOnDaemons = new ();
-            _parentChannel = parentChannel;
-            _inputReader = inputOutputFactory.CreateReader(jobId);
-            _outputWriter = inputOutputFactory.CreateWriter(jobId, cancellationToken);
-            _argumentsProvider = argumentsProvider;
             _daemonResolver = daemonResolver;
             _internalChannelManager = internalChannelManager;
             _addressResolver = addressResolver;
             _cancellationToken = cancellationToken;
+            Parent = parentChannel;
+            InputReader = inputOutputFactory.CreateReader(jobId);
+            OutputWriter = inputOutputFactory.CreateWriter(jobId, cancellationToken);
+            ArgumentsProvider = argumentsProvider;
         }
 
-        public IChannel Parent => _parentChannel;
+        public IChannel Parent { get; }
 
-        public IInputReader InputReader => _inputReader;
+        public IInputReader InputReader { get; }
 
-        public IOutputWriter OutputWriter => _outputWriter;
+        public IOutputWriter OutputWriter { get; }
 
-        public IArgumentsProvider ArgumentsProvider => _argumentsProvider;
+        public IArgumentsProvider ArgumentsProvider { get; }
 
         public async Task<IPoint> CreatePointAsync()
         {
             var nextDaemon = GetNextDaemon();
 
-            var tcpClient = new TcpClient();
-            await tcpClient.ConnectAsync(nextDaemon.HostUrl, nextDaemon.Port);
+            var nextDaemonAddresses = _addressResolver.Resolve(nextDaemon.HostUrl);
 
-            IManagedChannel channel = new NetworkChannel(tcpClient);
-
-            if (_addressResolver.IsSameAddressAsHost(nextDaemon.HostUrl))
+            if (nextDaemonAddresses.Any(IPAddress.IsLoopback))
             {
-                var internalChannel = await InitializeInternalAsync(channel);
-                channel.Dispose();
-                channel = internalChannel;
+                return CreateInternalPoint();
             }
 
-            channel.SetCancellation(_cancellationToken);
-
-            var point = new Point(_jobId, _moduleId, channel, _argumentsProvider);
-            _createdPoints.Add(point);
-
-            return point;
+            return await CreateNetworkPointAsync(nextDaemonAddresses, nextDaemon.Port);
         }
 
-        private async Task<InternalChannel> InitializeInternalAsync(IManagedChannel channel)
+        private async Task<IPoint> CreateNetworkPointAsync(IPAddress[] nextDaemonAddresses, int daemonPort)
+        {
+            var tcpClient = new TcpClient();
+            await tcpClient.ConnectAsync(nextDaemonAddresses, daemonPort);
+
+            var networkChannel = new NetworkChannel(tcpClient);
+            networkChannel.SetCancellation(_cancellationToken);
+
+            var networkPoint = new Point(_jobId, _moduleId, networkChannel, ArgumentsProvider);
+            _createdPoints.Add(networkPoint);
+
+            return networkPoint;
+        }
+
+        private IPoint CreateInternalPoint()
         {
             var internalChannelId = _internalChannelManager.Create();
 
-            await channel.WriteSignalAsync(Signal.InternalChannelSwitch);
-            await channel.WriteDataAsync(internalChannelId);
-
-            var signal = await channel.ReadSignalAsync();
-
-            if (signal != Signal.InternalChannelSwitch)
-            {
-                throw new ArgumentException($"Protocol switch declined.");
-            }
-
             _ = _internalChannelManager.TryGet(internalChannelId, out var internalChannel);
+            internalChannel.SetCancellation(_cancellationToken);
 
-            return internalChannel;
+            var internalPoint = new Point(_jobId, _moduleId, internalChannel, ArgumentsProvider);
+            _createdPoints.Add(internalPoint);
+
+            return internalPoint;
         }
 
         private Daemon GetNextDaemon()

@@ -1,7 +1,9 @@
-﻿namespace Parcs.Core.Services.Interfaces
+﻿using System.Net;
+
+namespace Parcs.Core.Services.Interfaces
 {
     public interface IAddressResolver
     {
-        bool IsSameAddressAsHost(string url);
+        IPAddress[] Resolve(string url);
     }
 }

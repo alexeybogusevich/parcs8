@@ -7,6 +7,5 @@
         ExecuteClass = 2,
         CancelJob = 3,
         CloseConnection = 4,
-        InternalChannelSwitch = 5,
     }
 }

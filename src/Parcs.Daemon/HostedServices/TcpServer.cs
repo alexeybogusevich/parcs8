@@ -6,21 +6,19 @@ using System.Net.Sockets;
 using System.Net;
 using Parcs.Core.Models;
 using Parcs.Daemon.Services.Interfaces;
-using Parcs.Net;
-using Parcs.Core.Models.Interfaces;
 
 namespace Parcs.Daemon.HostedServices
 {
     public class TcpServer : IHostedService
     {
         private readonly TcpListener _tcpListener;
-        private readonly ISignalHandlerFactory _signalHandlerFactory;
+        private readonly IChannelOrchestrator _channelOrchestrator;
         private readonly ILogger<TcpServer> _logger;
 
-        public TcpServer(ISignalHandlerFactory signalHandlerFactory, IOptions<NodeConfiguration> nodeOptions, ILogger<TcpServer> logger)
+        public TcpServer(IChannelOrchestrator channelOrchestrator, IOptions<NodeConfiguration> nodeOptions, ILogger<TcpServer> logger)
         {
             _tcpListener = new TcpListener(new IPEndPoint(IPAddress.Any, nodeOptions.Value.Port));
-            _signalHandlerFactory = signalHandlerFactory;
+            _channelOrchestrator = channelOrchestrator;
             _logger = logger;
         }
 
@@ -36,38 +34,9 @@ namespace Parcs.Daemon.HostedServices
                 _logger.LogInformation("Waiting for a connection...");
 
                 var tcpClient = await _tcpListener.AcceptTcpClientAsync(cancellationToken);
+                var networkChannel = new NetworkChannel(tcpClient);
 
-                await Task.Run(async () => await HandleConnectionAsync(tcpClient, cancellationToken), cancellationToken);
-            }
-        }
-
-        private async Task HandleConnectionAsync(TcpClient tcpClient, CancellationToken cancellationToken)
-        {
-            try
-            {
-                using IManagedChannel channel = new NetworkChannel(tcpClient);
-
-                while (true)
-                {
-                    var signal = await channel.ReadSignalAsync();
-
-                    if (signal == Signal.CloseConnection)
-                    {
-                        return;
-                    }
-
-                    var signalHandler = _signalHandlerFactory.Create(signal);
-
-                    await signalHandler.HandleAsync(channel, cancellationToken);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Exception thrown: {Message}.", ex.Message);
-            }
-            finally
-            {
-                tcpClient.Dispose();
+                _ = Task.Run(async () => await _channelOrchestrator.OrchestrateAsync(networkChannel, cancellationToken), cancellationToken);
             }
         }
 

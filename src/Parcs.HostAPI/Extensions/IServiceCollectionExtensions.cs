@@ -1,6 +1,5 @@
 ﻿using FluentValidation;
 using FluentValidation.AspNetCore;
-using Parcs.HostAPI.Background;
 using Parcs.HostAPI.Configuration;
 using Parcs.HostAPI.Models.Commands;
 using Parcs.HostAPI.Services;
@@ -12,6 +11,7 @@ using Parcs.Core.Services.Interfaces;
 using System.Reflection;
 using System.Threading.Channels;
 using Channel = System.Threading.Channels.Channel;
+using Parcs.HostAPI.HostedServices;
 
 namespace Parcs.HostAPI.Extensions
 {

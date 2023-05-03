@@ -6,7 +6,7 @@ namespace Parcs.Core.Services
 {
     public class AddressResolver : IAddressResolver
     {
-        public bool IsSameAddressAsHost(string url)
+        public IPAddress[] Resolve(string url)
         {
             var addresses = Dns.GetHostAddresses(url);
 
@@ -16,7 +16,12 @@ namespace Parcs.Core.Services
             var endPoint = socket.LocalEndPoint as IPEndPoint;
             var localIP = endPoint.Address;
 
-            return addresses.Any(a => a.Equals(localIP));
+            if (addresses.Any(a => a.Equals(localIP)))
+            {
+                return new IPAddress[] { IPAddress.Parse("127.0.0.1") };
+            }
+
+            return addresses;
         }
     }
 }
