@@ -6,8 +6,8 @@ using Parcs.Daemon.HostedServices;
 await Host.CreateDefaultBuilder(args)
     .ConfigureServices((hostContext, services) =>
     {
-        services.AddHostedService<TcpServer>();
         services.AddHostedService<InternalServer>();
+        services.AddHostedService<TcpServer>();
         services.AddApplicationServices();
         services.AddApplicationOptions(hostContext.Configuration);
     })

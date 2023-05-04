@@ -22,9 +22,16 @@ namespace Parcs.Daemon.HostedServices
             _logger = logger;
         }
 
-        public async Task StartAsync(CancellationToken cancellationToken)
+        public Task StartAsync(CancellationToken cancellationToken)
         {
-            _logger.LogInformation("Server starting...");
+            _ = Task.Run(async () => await StartServerAsync(cancellationToken), cancellationToken);
+
+            return Task.CompletedTask;
+        }
+
+        private async Task StartServerAsync(CancellationToken cancellationToken)
+        {
+            _logger.LogInformation("TCP Server starting...");
 
             _tcpListener.Start();
             _logger.LogInformation("Done!");
@@ -42,7 +49,7 @@ namespace Parcs.Daemon.HostedServices
 
         public Task StopAsync(CancellationToken cancellationToken)
         {
-            _logger.LogInformation("Stopping the server...");
+            _logger.LogInformation("Stopping the TCP server...");
 
             _tcpListener.Stop();
             _logger.LogInformation("Done!");

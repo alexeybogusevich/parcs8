@@ -20,7 +20,14 @@ namespace Parcs.Daemon.HostedServices
             _channelOrchestrator = channelOrchestrator;
         }
 
-        public async Task StartAsync(CancellationToken cancellationToken)
+        public Task StartAsync(CancellationToken cancellationToken)
+        {
+            _ = Task.Run(async () => await StartServerAsync(cancellationToken), cancellationToken);
+
+            return Task.CompletedTask;
+        }
+
+        private async Task StartServerAsync(CancellationToken cancellationToken)
         {
             await foreach (var internalChannelReference in _channelReader.ReadAllAsync(cancellationToken))
             {
