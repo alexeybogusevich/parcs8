@@ -8,6 +8,7 @@ namespace Parcs.Modules.Sample
         public async Task RunAsync(IModuleInfo moduleInfo, CancellationToken cancellationToken = default)
         {
             Console.WriteLine(await moduleInfo.Parent.ReadDoubleAsync());
+            Console.WriteLine(await moduleInfo.Parent.ReadBooleanAsync());
             Console.WriteLine(await moduleInfo.Parent.ReadStringAsync());
             Console.WriteLine(await moduleInfo.Parent.ReadByteAsync());
             Console.WriteLine(string.Join(' ', await moduleInfo.Parent.ReadBytesAsync()));

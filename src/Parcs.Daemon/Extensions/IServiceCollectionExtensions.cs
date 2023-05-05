@@ -10,6 +10,8 @@ using Parcs.Daemon.Configuration;
 using Parcs.Core.Configuration;
 using System.Threading.Channels;
 using Parcs.Core.Models;
+using Polly.Extensions.Http;
+using Polly;
 
 namespace Parcs.Daemon.Extensions
 {
@@ -44,6 +46,23 @@ namespace Parcs.Daemon.Extensions
                 .AddSingleton(svc => svc.GetRequiredService<Channel<InternalChannelReference>>().Writer);
         }
 
+        public static IServiceCollection AddHttpClients(this IServiceCollection services, IConfiguration configuration)
+        {
+            var hostApiConfiguration = configuration
+                .GetSection(HostApiConfiguration.SectionName)
+                .Get<HostApiConfiguration>();
+
+            services.AddHttpClient<IHostApiClient, HostApiClient>(client =>
+            {
+                client.BaseAddress = new Uri($"http://{hostApiConfiguration.Uri}:80");
+            });//.AddPolicyHandler(
+              //  HttpPolicyExtensions
+              //      .HandleTransientHttpError()
+              //      .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt))));
+
+            return services;
+        }
+
         public static IServiceCollection AddApplicationOptions(this IServiceCollection services, IConfiguration configuration)
         {
             return services
@@ -51,7 +70,8 @@ namespace Parcs.Daemon.Extensions
                 .Configure<FileSystemConfiguration>(configuration.GetSection(FileSystemConfiguration.SectionName))
                 .Configure<HostingConfiguration>(configuration.GetSection(HostingConfiguration.SectionName))
                 .Configure<KubernetesConfiguration>(configuration.GetSection(KubernetesConfiguration.SectionName))
-                .Configure<NodeConfiguration>(configuration.GetSection(NodeConfiguration.SectionName));
+                .Configure<NodeConfiguration>(configuration.GetSection(NodeConfiguration.SectionName))
+                .Configure<HostApiConfiguration>(configuration.GetSection(HostApiConfiguration.SectionName));
         }
     }
 }

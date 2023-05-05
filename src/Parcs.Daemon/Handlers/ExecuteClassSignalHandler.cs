@@ -11,23 +11,27 @@ namespace Parcs.TCP.Daemon.Handlers
         private readonly IJobContextAccessor _jobContextAccessor;
         private readonly IModuleLoader _moduleLoader;
         private readonly IModuleInfoFactory _moduleInfoFactory;
+        private readonly IHostApiClient _hostApiClient;
 
         public ExecuteClassSignalHandler(
-            IJobContextAccessor jobContextAccessor, IModuleLoader moduleLoader, IModuleInfoFactory moduleInfoFactory)
+            IJobContextAccessor jobContextAccessor, IModuleLoader moduleLoader, IModuleInfoFactory moduleInfoFactory, IHostApiClient hostApiClient)
         {
             _jobContextAccessor = jobContextAccessor;
             _moduleLoader = moduleLoader;
             _moduleInfoFactory = moduleInfoFactory;
+            _hostApiClient = hostApiClient;
         }
 
         public async Task HandleAsync(IManagedChannel managedChannel, CancellationToken cancellationToken = default)
         {
-            if (_jobContextAccessor.Current is null)
+            var jobId = await managedChannel.ReadGuidAsync();
+
+            if (!_jobContextAccessor.TryGet(jobId, out var jobContext))
             {
-                throw new ArgumentException("No job has been initialized.");
+                throw new ArgumentException($"A job with id {jobId} can't be found");
             }
 
-            var (jobId, moduleId, pointsNumber, arguments, jobCancellationToken) = _jobContextAccessor.Current;
+            var (_, moduleId, pointsNumber, arguments, jobCancellationToken) = jobContext;
 
             try
             {
@@ -41,11 +45,9 @@ namespace Parcs.TCP.Daemon.Handlers
             }
             catch (Exception ex)
             {
-                _jobContextAccessor.Current.TrackException(ex);
-            }
-            finally
-            {
-                _jobContextAccessor.Reset();
+                jobContext.TrackException(ex);
+
+                await _hostApiClient.PutCancelJobAsync(jobId, CancellationToken.None);
             }
         }
     }

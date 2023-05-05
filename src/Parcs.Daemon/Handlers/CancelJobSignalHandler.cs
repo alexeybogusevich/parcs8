@@ -13,10 +13,14 @@ namespace Parcs.Daemon.Handlers
             _jobContextAccessor = jobContextAccessor;
         }
 
-        public Task HandleAsync(IManagedChannel managedChannel, CancellationToken cancellationToken = default)
+        public async Task HandleAsync(IManagedChannel managedChannel, CancellationToken cancellationToken = default)
         {
-            _jobContextAccessor.Current?.CancellationTokenSource?.Cancel();
-            return Task.CompletedTask;
+            var jobId = await managedChannel.ReadGuidAsync();
+
+            if (_jobContextAccessor.TryGet(jobId, out var jobContext))
+            {
+                jobContext.CancellationTokenSource.Cancel();
+            }
         }
     }
 }

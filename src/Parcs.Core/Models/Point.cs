@@ -41,12 +41,13 @@ namespace Parcs.Core.Models
 
         public async Task ExecuteClassAsync(string assemblyName, string className)
         {
-            if (_managedChannel is null)
+            if (!_managedChannelInitialized)
             {
                 throw new ArgumentException("No channel has been created.");
             }
 
             await _managedChannel.WriteSignalAsync(Signal.ExecuteClass);
+            await _managedChannel.WriteDataAsync(_jobId);
             await _managedChannel.WriteDataAsync(assemblyName);
             await _managedChannel.WriteDataAsync(className);
         }

@@ -7,6 +7,7 @@ services:
       - Daemons__PreconfiguredInstances__0__Port=1111
       - Daemons__PreconfiguredInstances__1__HostUrl=src-parcs.daemon-2
       - Daemons__PreconfiguredInstances__1__Port=1111
+      - HostApi__Uri=src-parcs.hostapi
     deploy:
       mode: replicated
       replicas: 2

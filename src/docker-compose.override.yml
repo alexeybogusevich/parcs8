@@ -5,6 +5,8 @@ services:
     environment:
       - Daemons__PreconfiguredInstances__0__HostUrl=parcs.daemon
       - Daemons__PreconfiguredInstances__0__Port=1111
+      - HostApi__Uri=parcs.hostapi
+
   parcs.hostapi:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
@@ -12,8 +14,8 @@ services:
       - Daemons__PreconfiguredInstances__0__HostUrl=parcs.daemon
       - Daemons__PreconfiguredInstances__0__Port=1111
     ports:
-      - "80"
-      - "443"
+      - "5000:80"
+      - "5001:443"
     volumes:
       - ${APPDATA}/Microsoft/UserSecrets:/root/.microsoft/usersecrets:ro
       - ${APPDATA}/ASP.NET/Https:/root/.aspnet/https:ro

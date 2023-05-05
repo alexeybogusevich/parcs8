@@ -10,5 +10,6 @@ await Host.CreateDefaultBuilder(args)
         services.AddHostedService<TcpServer>();
         services.AddApplicationServices();
         services.AddApplicationOptions(hostContext.Configuration);
+        services.AddHttpClients(hostContext.Configuration);
     })
     .Build().RunAsync();

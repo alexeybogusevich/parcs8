@@ -29,6 +29,7 @@ namespace Parcs.Modules.Sample
             for (int i = 0; i < pointsNumber; ++i)
             {
                 await channels[i].WriteDataAsync(10.1D);
+                await channels[i].WriteDataAsync(true);
                 await channels[i].WriteDataAsync("Hello world");
                 await channels[i].WriteDataAsync((byte)1);
                 await channels[i].WriteDataAsync(new byte[] { 1, 0, 1 });

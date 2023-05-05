@@ -21,10 +21,10 @@ namespace Parcs.Daemon.Handlers
             var pointsNumber = await managedChannel.ReadIntAsync();
             var arguments = await managedChannel.ReadObjectAsync<IDictionary<string, string>>();
 
-            _jobContextAccessor.Current?.CancellationTokenSource.Cancel();
-            _jobContextAccessor.Set(jobId, moduleId, pointsNumber, arguments);
+            _jobContextAccessor.Add(jobId, moduleId, pointsNumber, arguments);
+            _ = _jobContextAccessor.TryGet(jobId, out var jobContext);
 
-            managedChannel.SetCancellation(_jobContextAccessor.Current.CancellationTokenSource.Token);
+            managedChannel.SetCancellation(jobContext.CancellationTokenSource.Token);
         }
     }
 }

@@ -35,7 +35,7 @@ namespace Parcs.HostAPI.Handlers
                 await job.Module.RunAsync(moduleInfo, job.CancellationToken);
                 job.Finish();
             }
-            catch (Exception ex) when (ex is not TaskCanceledException)
+            catch (Exception ex)
             {
                 job.Fail(ex.Message);
             }

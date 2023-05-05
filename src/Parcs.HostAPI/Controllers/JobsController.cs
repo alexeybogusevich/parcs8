@@ -26,6 +26,14 @@ namespace Parcs.HostAPI.Controllers
             return Ok(response);
         }
 
+        [HttpPut("{JobId}")]
+        [ProducesResponseType((int)HttpStatusCode.NoContent)]
+        public async Task<IActionResult> CancelAsync([FromRoute] CancelJobCommand command, CancellationToken cancellationToken)
+        {
+            await _mediator.Send(command, cancellationToken);
+            return NoContent();
+        }
+
         [HttpDelete("{JobId}")]
         [ProducesResponseType((int)HttpStatusCode.NoContent)]
         public async Task<IActionResult> DeleteAsync([FromRoute] DeleteJobCommand command, CancellationToken cancellationToken)
