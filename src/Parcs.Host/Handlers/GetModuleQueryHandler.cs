@@ -31,11 +31,11 @@ namespace Parcs.Host.Handlers
 
             return new GetModuleQueryResponse
             {
+                Id  = module.Id,
                 Name = module.Name,
-                Jobs = module.Jobs.Select(e => new GetJobQueryResponse
+                Jobs = module.Jobs.Select(e => new JobResponse
                 {
-                    ModuleId = e.ModuleId,
-                    ModuleName = e.Module.Name,
+                    JobId = e.Id,
                     Statuses = e.Statuses.Select(s => new JobStatusResponse((JobStatus)s.Status, s.CreateDateUtc)).ToList(),
                     Failures = e.Failures.Select(f => new JobFailureResponse(f.Message, f.StackTrace, f.CreateDateUtc)).ToList(),
                 }),

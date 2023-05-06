@@ -4,6 +4,6 @@
     {
         public const string SectionName = "JobOutput";
 
-        public string JobInfoFilename { get; set; }
+        public string Filename { get; set; }
     }
 }

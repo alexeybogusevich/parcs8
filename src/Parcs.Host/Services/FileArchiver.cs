@@ -6,14 +6,14 @@ namespace Parcs.Host.Services
 {
     public sealed class FileArchiver : IFileArchiver
     {
-        public async Task<FileDescription> ArchiveDirectoryAsync(string directoryPath, CancellationToken cancellationToken = default)
+        public async Task<FileDescription> ArchiveDirectoryAsync(string directoryPath, string archiveName, CancellationToken cancellationToken = default)
         {
             if (!Directory.Exists(directoryPath))
             {
                 throw new ArgumentException($"Directory not found: {directoryPath}.");
             }
 
-            var zipArchiveName = $"{new DirectoryInfo(directoryPath).Name}.zip"; 
+            var zipArchiveName = $"{archiveName}.zip"; 
 
             await using var memoryStream = new MemoryStream();
             var zipArchive = new ZipArchive(memoryStream, ZipArchiveMode.Create);

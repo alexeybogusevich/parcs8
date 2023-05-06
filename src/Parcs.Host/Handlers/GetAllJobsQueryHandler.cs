@@ -22,6 +22,7 @@ namespace Parcs.Host.Handlers
             return await _parcsDbContext.Jobs.Select(
                 e => new GetJobQueryResponse
                 {
+                    JobId = e.Id,
                     ModuleId = e.ModuleId,
                     ModuleName = e.Module.Name,
                     Statuses = e.Statuses.Select(s => new JobStatusResponse((JobStatus)s.Status, s.CreateDateUtc)).ToList(),

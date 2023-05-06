@@ -27,9 +27,14 @@ namespace Parcs.Host.Handlers
 
         public async Task<RunJobSynchronouslyCommandResponse> Handle(RunJobSynchronouslyCommand command, CancellationToken cancellationToken)
         {
-            var job = await _parcsDbContext.Jobs.FirstOrDefaultAsync(cancellationToken);
-
-            ArgumentNullException.ThrowIfNull(job);
+            var job = await _parcsDbContext.Jobs
+                .Include(e => e.Statuses)
+                .FirstOrDefaultAsync(e => e.Id == command.JobId, cancellationToken) ?? throw new ArgumentException($"Job not found.");
+            
+            if (job.Statuses.LastOrDefault()?.Status != (short)JobStatus.Created)
+            {
+                throw new ArgumentException("The job has already been run.");
+            }
 
             if (!_jobTracker.TryGetCancellationToken(job.Id, out var jobCancellationToken))
             {
@@ -38,13 +43,11 @@ namespace Parcs.Host.Handlers
             }
 
             var jobMetadata = new JobMetadata(job.Id, job.ModuleId);
-            var arguments = command.GetArgumentsDictionary();
-            var pointsNumber = command.PointsNumber;
 
             try
             {
                 var module = _moduleLoader.Load(job.ModuleId, job.AssemblyName, job.ClassName);
-                await using var moduleInfo = _moduleInfoFactory.Create(jobMetadata, pointsNumber, arguments, jobCancellationToken);
+                await using var moduleInfo = _moduleInfoFactory.Create(jobMetadata, command.PointsNumber, command.Arguments, jobCancellationToken);
 
                 await _parcsDbContext.JobStatuses.AddAsync(new(job.Id, (short)JobStatus.Started), CancellationToken.None);
                 await _parcsDbContext.SaveChangesAsync(CancellationToken.None);

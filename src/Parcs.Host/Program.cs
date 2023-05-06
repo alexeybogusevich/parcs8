@@ -2,7 +2,7 @@ using Parcs.Host.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+builder.Services.AddApiControllers();
 builder.Services.AddValidation();
 builder.Services.AddProblemDetails();
 builder.Services.AddEndpointsApiExplorer();

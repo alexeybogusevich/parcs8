@@ -13,10 +13,10 @@ using System.Threading.Channels;
 using Channel = System.Threading.Channels.Channel;
 using Parcs.Host.HostedServices;
 using Parcs.Core.Models;
-using Parcs.Host.Configuration;
 using Microsoft.EntityFrameworkCore;
 using Parcs.Data.Context;
 using System.Text;
+using System.Text.Json.Serialization;
 
 namespace Parcs.Host.Extensions
 {
@@ -86,6 +86,13 @@ namespace Parcs.Host.Extensions
                 .ToString();
 
             return services.AddDbContext<ParcsDbContext>(options => options.UseNpgsql(connectionString));
+        }
+
+        public static IMvcBuilder AddApiControllers(this IServiceCollection services)
+        {
+            return services
+                .AddControllers()
+                .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
         }
 
         public static IServiceCollection AddValidation(this IServiceCollection services)

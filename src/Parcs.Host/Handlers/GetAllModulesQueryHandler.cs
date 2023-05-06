@@ -22,11 +22,11 @@ namespace Parcs.Host.Handlers
             return await _parcsDbContext.Modules
                 .Select(e => new GetModuleQueryResponse
                 {
+                    Id = e.Id,
                     Name = e.Name,
-                    Jobs = e.Jobs.Select(j => new GetJobQueryResponse
+                    Jobs = e.Jobs.Select(j => new JobResponse
                     {
-                        ModuleId = j.ModuleId,
-                        ModuleName = j.Module.Name,
+                        JobId = j.Id,
                         Statuses = j.Statuses.Select(s => new JobStatusResponse((JobStatus)s.Status, s.CreateDateUtc)).ToList(),
                         Failures = j.Failures.Select(f => new JobFailureResponse(f.Message, f.StackTrace, f.CreateDateUtc)).ToList(),
                     })

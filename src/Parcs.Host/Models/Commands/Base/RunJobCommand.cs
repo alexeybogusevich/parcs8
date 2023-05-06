@@ -1,6 +1,4 @@
-﻿using System.Text.Json;
-
-namespace Parcs.Host.Models.Commands.Base
+﻿namespace Parcs.Host.Models.Commands.Base
 {
     public class RunJobCommand
     {
@@ -8,34 +6,17 @@ namespace Parcs.Host.Models.Commands.Base
         {
         }
 
-        public RunJobCommand(long jobId, int pointsNumber, string rawArgumentsDictionary)
+        public RunJobCommand(long jobId, int pointsNumber, Dictionary<string, string> arguments)
         {
             JobId = jobId;
             PointsNumber = pointsNumber;
-            RawArgumentsDictionary = rawArgumentsDictionary;
+            Arguments = arguments;
         }
 
         public long JobId { get; set; }
 
         public int PointsNumber { get; set; }
 
-        public string RawArgumentsDictionary { get; set; }
-
-        public Dictionary<string, string> GetArgumentsDictionary()
-        {
-            if (string.IsNullOrWhiteSpace(RawArgumentsDictionary))
-            {
-                return new Dictionary<string, string>();
-            }
-
-            try
-            {
-                return JsonSerializer.Deserialize<Dictionary<string, string>>(RawArgumentsDictionary);
-            }
-            catch
-            {
-                return new Dictionary<string, string>();
-            }
-        }
+        public Dictionary<string, string> Arguments { get; set; }
     }
 }

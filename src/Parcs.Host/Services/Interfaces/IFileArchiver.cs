@@ -4,6 +4,6 @@ namespace Parcs.Host.Services.Interfaces
 {
     public interface IFileArchiver
     {
-        Task<FileDescription> ArchiveDirectoryAsync(string directoryPath, CancellationToken cancellationToken = default);
+        Task<FileDescription> ArchiveDirectoryAsync(string directoryPath, string archiveName, CancellationToken cancellationToken = default);
     }
 }

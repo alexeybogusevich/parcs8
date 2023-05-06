@@ -38,7 +38,7 @@ namespace Parcs.Host.Handlers
                 ClassName = request.ClassName,
                 Statuses = new List<JobStatusEntity>
                 {
-                    new JobStatusEntity { Status = (short)JobStatus.Created }
+                    new JobStatusEntity { Status = (short)JobStatus.Created },
                 },
             };
 

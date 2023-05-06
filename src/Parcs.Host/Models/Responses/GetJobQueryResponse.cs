@@ -4,6 +4,8 @@ namespace Parcs.Host.Models.Responses
 {
     public class GetJobQueryResponse
     {
+        public long JobId { get; set; }
+
         public long ModuleId { get; set; }
 
         public string ModuleName { get; set; }

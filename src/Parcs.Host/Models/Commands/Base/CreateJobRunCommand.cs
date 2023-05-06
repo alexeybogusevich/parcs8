@@ -12,14 +12,14 @@
             string className,
             IEnumerable<IFormFile> inputFiles,
             int pointsNumber,
-            string rawArgumentsDictionary)
+            Dictionary<string, string> arguments)
         {
             ModuleId = moduleId;
             MainModuleAssemblyName = assemblyName;
             MainModuleClassName = className;
             InputFiles = inputFiles;
             PointsNumber = pointsNumber;
-            RawArgumentsDictionary = rawArgumentsDictionary;
+            Arguments = arguments;
         }
 
         public long ModuleId { get; set; }
@@ -32,6 +32,6 @@
 
         public int PointsNumber { get; set; }
 
-        public string RawArgumentsDictionary { get; set; }
+        public Dictionary<string, string> Arguments { get; set; }
     }
 }

@@ -31,12 +31,14 @@ namespace Parcs.Host.Extensions
                     exceptionType == typeof(ArgumentNullException) ||
                     exceptionType == typeof(ArgumentOutOfRangeException))
                 {
+                    context.Response.StatusCode = StatusCodes.Status400BadRequest;
+
                     return context.Response.WriteAsJsonAsync(
                         new ProblemDetails
                         {
                             Title = "One or more validation errors occured.",
                             Type = "https://www.rfc-editor.org/rfc/rfc7231#section-6.5.1",
-                            Status = (int)HttpStatusCode.BadRequest,
+                            Status = StatusCodes.Status400BadRequest,
                             Detail = exception.Message,
                         });
                 }

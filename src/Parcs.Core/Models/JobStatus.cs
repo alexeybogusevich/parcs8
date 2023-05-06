@@ -2,11 +2,12 @@
 {
     public enum JobStatus
     {
-        Created = 0,
-        Started = 1,
-        Failed = 2,
-        Completed = 3,
-        Cancelled = 4,
-        Retired = 5,
+        Unknown = 0,
+        Created = 1,
+        Started = 2,
+        Failed = 3,
+        Completed = 4,
+        Cancelled = 5,
+        Retired = 6,
     }
 }

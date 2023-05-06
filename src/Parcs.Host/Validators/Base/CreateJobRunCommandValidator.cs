@@ -3,7 +3,6 @@ using Parcs.Host.Models.Commands.Base;
 using Parcs.Core.Services.Interfaces;
 using System.Reflection;
 using System.Runtime.InteropServices;
-using System.Text.Json;
 
 namespace Parcs.Host.Validators.Base
 {
@@ -41,26 +40,6 @@ namespace Parcs.Host.Validators.Base
             RuleFor(c => c.PointsNumber)
                 .GreaterThan(0)
                 .WithMessage("The number of points must be greater than zero.");
-
-            When(c => !string.IsNullOrWhiteSpace(c.RawArgumentsDictionary), () =>
-            {
-                RuleFor(c => c.RawArgumentsDictionary)
-                    .Must(BeAValidDictionaryJson)
-                    .WithMessage("Invalid JSON: the ArgumentsDictionaryJson field cannot be parsed into a dictionary.");
-            });
-        }
-
-        private static bool BeAValidDictionaryJson(string json)
-        {
-            try
-            {
-                _ = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
         }
 
         private static bool BeAnExistingModule(long moduleId, IModuleDirectoryPathBuilder moduleDirectoryPathBuilder)

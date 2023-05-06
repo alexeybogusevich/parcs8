@@ -6,6 +6,8 @@ using Parcs.Core.Models.Enums;
 using Parcs.Core.Services.Interfaces;
 using Parcs.Data.Context;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using Parcs.Host.Configuration;
 
 namespace Parcs.Host.Handlers
 {
@@ -14,18 +16,23 @@ namespace Parcs.Host.Handlers
         private readonly ParcsDbContext _parcsDbContext;
         private readonly IJobDirectoryPathBuilder _jobDirectoryPathBuilder;
         private readonly IFileArchiver _fileArchiver;
+        private readonly JobOutputConfiguration _configuration;
 
         public GetJobOutputQueryHandler(
-            ParcsDbContext parcsDbContext, IJobDirectoryPathBuilder jobDirectoryPathBuilder, IFileArchiver fileArchiver)
+            ParcsDbContext parcsDbContext,
+            IJobDirectoryPathBuilder jobDirectoryPathBuilder,
+            IFileArchiver fileArchiver,
+            IOptions<JobOutputConfiguration> options)
         {
             _parcsDbContext = parcsDbContext;
             _jobDirectoryPathBuilder = jobDirectoryPathBuilder;
             _fileArchiver = fileArchiver;
+            _configuration = options.Value;
         }
 
         public async Task<GetJobOutputQueryResponse> Handle(GetJobOutputQuery request, CancellationToken cancellationToken)
         {
-            var job = await _parcsDbContext.Jobs.FirstOrDefaultAsync(cancellationToken);
+            var job = await _parcsDbContext.Jobs.FirstOrDefaultAsync(e => e.Id == request.JobId, cancellationToken);
 
             if (job is null)
             {
@@ -33,9 +40,11 @@ namespace Parcs.Host.Handlers
             }
             
             var outputDirectoryPath = _jobDirectoryPathBuilder.Build(job.Id, JobDirectoryGroup.Output);
-            var outputDirectoryArchive = await _fileArchiver.ArchiveDirectoryAsync(outputDirectoryPath, cancellationToken);
 
-            return new GetJobOutputQueryResponse(outputDirectoryArchive);
+            var outputArchiveName = string.Format(_configuration.Filename, job.Id);
+            var outputArchive = await _fileArchiver.ArchiveDirectoryAsync(outputDirectoryPath, outputArchiveName, cancellationToken);
+
+            return new GetJobOutputQueryResponse(outputArchive);
         }
     }
 }
