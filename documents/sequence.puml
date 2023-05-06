@@ -1,4 +1,4 @@
-@startuml Sequence-PARCS.NET+
+@startuml Sequence-PARCS-NET-K8
 
 Actor User
 Control Portal

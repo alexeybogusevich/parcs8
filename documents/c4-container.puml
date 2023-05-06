@@ -1,4 +1,4 @@
-@startuml C4-Container-PARCS.NET+
+@startuml C4-Container-PARCS-NET-K8
 
 left to right direction
 
@@ -16,8 +16,8 @@ LAYOUT_WITH_LEGEND()
 Person(user, "Користувач", "Програмний інженер в сфері паралельних обчислень", $sprite="users")
 System_Boundary(c2, "Середа виконання ПАРКС", $link="https://github.com/plantuml-stdlib/C4-PlantUML") {
     Container(portal, "Портал управління", "ASP.NET Core Blazor", "Надає графічний інтерфейс для роботи з АМ та задачами.", $sprite="javascript")
-    ContainerDb(portalDb, "БД Порталу", "PostgreSQL", "Зберігає користувацькі метадані.", $sprite="postgresql")
     Container(host, "Хост", "ASP.NET Core Web API", "Безпосередньо контролює створення АМ і оркестрацію задач.", $sprite="dotnetcore")
+    ContainerDb(hostDb, "БД Хоста", "PostgreSQL", "Зберігає дані про задачі та модулі.", $sprite="postgresql")
     Container(daemon, "Демон", ".NET Core Generic Host", "Виконує основні обчислення.", $sprite="dotnetcore")
     ContainerDb(storage, "Сховище", "Persistent Volume", "Зберігає бінарні АМ, вхідні та вихідні файли задач.")
 }
@@ -25,12 +25,12 @@ System_Ext(library, "Parcs.Net", "NuGet", "Бібліотека класів д�
 
 Rel(user, portal, "Взаємодіє з графічним інтерфейсом", "HTTPS")
 Rel(user, library, "Посилається на програмний інтерфейс")
-Rel(portal, portalDb, "Записує та зчитує дані", "EF Core")
 Rel(portal, host, "Надсилає програмні запити", "HTTPS/(JSON|Form-Data)")
 Rel(host, daemon, "Надсилає програмні запити", "TCP")
+Rel(host, hostDb, "Записує та зчитує дані", "EF Core")
+Rel(host, storage, "Записує та зчитує дані")
 Rel(host, library, "Посилається на програмний інтерфейс")
 Rel(daemon, library, "Посилається на програмний інтерфейс")
-Rel(host, storage, "Записує та зчитує дані")
 Rel(daemon, storage, "Зчитує дані")
 
 @enduml
