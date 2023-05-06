@@ -7,6 +7,8 @@ namespace Parcs.Modules.Sample
     {
         public async Task RunAsync(IModuleInfo moduleInfo, CancellationToken cancellationToken = default)
         {
+            throw new ApplicationException("End of the world");
+
             Console.WriteLine(await moduleInfo.Parent.ReadDoubleAsync());
             Console.WriteLine(await moduleInfo.Parent.ReadBooleanAsync());
             Console.WriteLine(await moduleInfo.Parent.ReadStringAsync());

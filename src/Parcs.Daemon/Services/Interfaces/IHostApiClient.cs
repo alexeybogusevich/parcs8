@@ -1,7 +1,9 @@
-﻿namespace Parcs.Daemon.Services.Interfaces
+﻿using Parcs.Daemon.Models;
+
+namespace Parcs.Daemon.Services.Interfaces
 {
     public interface IHostApiClient
     {
-        Task PutCancelJobAsync(long jobId, CancellationToken cancellationToken = default);
+        Task PostJobFailureAsync(PostJobFailureApiRequest request, CancellationToken cancellationToken = default);
     }
 }

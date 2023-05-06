@@ -48,9 +48,7 @@ namespace Parcs.TCP.Daemon.Handlers
             }
             catch (Exception ex)
             {
-                jobContext.TrackException(ex);
-
-                await _hostApiClient.PutCancelJobAsync(jobId, CancellationToken.None);
+                await _hostApiClient.PostJobFailureAsync(new (jobId, ex.Message, ex.StackTrace), CancellationToken.None);
             }
         }
     }

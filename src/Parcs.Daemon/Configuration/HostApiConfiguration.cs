@@ -6,6 +6,6 @@
 
         public string Uri { get; set; }
 
-        public string JobCancellationPath { get; set; }
+        public string JobFailuresPath { get; set; }
     }
 }

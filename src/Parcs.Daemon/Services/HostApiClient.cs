@@ -1,6 +1,7 @@
 ﻿using Flurl.Http;
 using Microsoft.Extensions.Options;
 using Parcs.Daemon.Configuration;
+using Parcs.Daemon.Models;
 using Parcs.Daemon.Services.Interfaces;
 
 namespace Parcs.Daemon.Services
@@ -16,10 +17,10 @@ namespace Parcs.Daemon.Services
             _configuration = options.Value;
         }
 
-        public Task PutCancelJobAsync(long jobId, CancellationToken cancellationToken = default)
+        public Task PostJobFailureAsync(PostJobFailureApiRequest request, CancellationToken cancellationToken = default)
         {
-            var requestPath = string.Format(_configuration.JobCancellationPath, jobId);
-            return _flurlClient.Request(requestPath).PutAsync(cancellationToken: cancellationToken);
+            var requestPath = string.Format(_configuration.JobFailuresPath);
+            return _flurlClient.Request(requestPath).PostJsonAsync(request, cancellationToken);
         }
     }
 }
