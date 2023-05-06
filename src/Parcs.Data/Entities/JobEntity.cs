@@ -15,5 +15,7 @@
         public ModuleEntity Module { get; set; }
 
         public List<JobStatusEntity> Statuses { get; set; }
+
+        public List<JobFailureEntity> Failures { get; set; }
     }
 }

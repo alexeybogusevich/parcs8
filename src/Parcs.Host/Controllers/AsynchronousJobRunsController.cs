@@ -2,7 +2,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Parcs.HostAPI.Models.Commands;
 using Parcs.HostAPI.Models.Commands.Base;
-using Parcs.HostAPI.Models.Domain;
 using Parcs.HostAPI.Models.Responses;
 using System.Net;
 

@@ -1,55 +1,43 @@
-﻿using Microsoft.Extensions.Options;
-using Parcs.HostAPI.Configuration;
-using Parcs.HostAPI.Services.Interfaces;
-using Parcs.Core.Models;
-using Parcs.Core.Services.Interfaces;
+﻿using Parcs.HostAPI.Services.Interfaces;
 using System.Collections.Concurrent;
 
 namespace Parcs.HostAPI.Services
 {
-    public sealed class JobManager : IJobManager
+    public sealed class JobTracker : IJobTracker
     {
-        private readonly JobsConfiguration _jobsConfiguration;
-        private readonly ConcurrentDictionary<Guid, Job> _activeJobs = new();
-        private readonly IJobDirectoryPathBuilder _jobDirectoryPathBuilder;
-        private readonly IFileEraser _fileEraser;
+        private readonly ConcurrentDictionary<long, CancellationTokenSource> _trackedJobs = new();
 
-        public JobManager(
-            IOptions<JobsConfiguration> options,
-            IJobDirectoryPathBuilder jobDirectoryPathBuilder,
-            IFileEraser fileEraser)
+        public void StartTracking(long jobId)
         {
-            _jobsConfiguration = options.Value;
-            _jobDirectoryPathBuilder = jobDirectoryPathBuilder;
-            _fileEraser = fileEraser;
+            _ = _trackedJobs.TryAdd(jobId, new CancellationTokenSource());
         }
 
-        public Job Create(Guid moduleId, string assemblyName, string className)
+        public bool TryGetCancellationToken(long jobId, out CancellationToken cancellationToken)
         {
-            if (_activeJobs.Count == _jobsConfiguration.MaximumActiveJobs)
+            if (!_trackedJobs.TryGetValue(jobId, out var cancellationTokenSource))
             {
-                throw new ArgumentException("Maximum number of active jobs reached. Consider deleting idle jobs.");
+                cancellationToken = cancellationTokenSource.Token;
+
+                return true;
             }
 
-            var job = new Job(moduleId, assemblyName, className);
-            _ = _activeJobs.TryAdd(job.Id, job);
+            cancellationToken = CancellationToken.None;
 
-            return job;
+            return false;
         }
 
-        public bool TryGet(Guid id, out Job job) => _activeJobs.TryGetValue(id, out job);
-
-        public bool TryRemove(Guid id)
+        public bool CancelAndStopTrackning(long jobId)
         {
-            if (!_activeJobs.TryRemove(id, out _))
+            if (!_trackedJobs.TryGetValue(jobId, out var cancellationTokenSource))
             {
                 return false;
             }
 
-            var jobDirectoryPath = _jobDirectoryPathBuilder.Build(id);
-            _fileEraser.TryDeleteRecursively(jobDirectoryPath);
+            cancellationTokenSource.Cancel();
 
-            return true;
+            return StopTracking(jobId);
         }
+
+        public bool StopTracking(long jobId) => _trackedJobs.TryRemove(jobId, out _);
     }
 }

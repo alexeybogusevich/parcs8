@@ -7,8 +7,8 @@ namespace Parcs.Core.Models
 {
     public sealed class ModuleInfo : IModuleInfo
     {
-        private readonly Guid _jobId;
-        private readonly Guid _moduleId;
+        private readonly long _jobId;
+        private readonly long _moduleId;
 
         private readonly List<Point> _createdPoints = new ();
         private readonly Dictionary<string, int> _pointsOnDaemons = new();

@@ -2,37 +2,42 @@
 using Parcs.HostAPI.Models.Commands;
 using Parcs.HostAPI.Services.Interfaces;
 using Parcs.Core.Services.Interfaces;
+using Parcs.Data.Context;
+using Microsoft.EntityFrameworkCore;
 
 namespace Parcs.HostAPI.Handlers
 {
     public sealed class DeleteJobCommandHandler : IRequestHandler<DeleteJobCommand>
     {
-        private readonly IJobManager _jobManager;
+        private readonly ParcsDbContext _parcsDbContext;
+        private readonly IJobTracker _jobTracker;
         private readonly IJobDirectoryPathBuilder _jobDirectoryPathBuilder;
         private readonly IFileEraser _fileEraser;
 
-        public DeleteJobCommandHandler(IJobManager jobManager, IJobDirectoryPathBuilder jobDirectoryPathBuilder, IFileEraser fileEraser)
+        public DeleteJobCommandHandler(
+            ParcsDbContext parcsDbContext, IJobTracker jobTracker, IJobDirectoryPathBuilder jobDirectoryPathBuilder, IFileEraser fileEraser)
         {
-            _jobManager = jobManager;
+            _parcsDbContext = parcsDbContext;
+            _jobTracker = jobTracker;
             _jobDirectoryPathBuilder = jobDirectoryPathBuilder;
             _fileEraser = fileEraser;
         }
 
-        public Task Handle(DeleteJobCommand request, CancellationToken cancellationToken)
+        public async Task Handle(DeleteJobCommand request, CancellationToken cancellationToken)
         {
-            if (!_jobManager.TryGet(request.JobId, out var job))
+            _ = _jobTracker.CancelAndStopTrackning(request.JobId);
+
+            var job = await _parcsDbContext.Jobs.FirstOrDefaultAsync(CancellationToken.None);
+
+            if (job is null)
             {
-                return Task.CompletedTask;
+                return;
             }
 
-            job.Cancel();
+            _parcsDbContext.Jobs.Remove(job);
+            await _parcsDbContext.SaveChangesAsync(CancellationToken.None);
 
-            var jobDirectoryPath = _jobDirectoryPathBuilder.Build(job.Id);
-            _fileEraser.TryDeleteRecursively(jobDirectoryPath);
-
-            _ = _jobManager.TryRemove(job.Id);
-
-            return Task.CompletedTask;
+            _fileEraser.TryDeleteRecursively(_jobDirectoryPathBuilder.Build(job.Id));
         }
     }
 }

@@ -14,7 +14,7 @@ namespace Parcs.HostAPI.Models.Commands
             ClassName = jobRunCommand.MainModuleClassName;
         }
 
-        public Guid ModuleId { get; set; }
+        public long ModuleId { get; set; }
 
         public IEnumerable<IFormFile> InputFiles { get; set; }
 

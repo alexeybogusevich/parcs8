@@ -16,6 +16,10 @@ namespace Parcs.Data.Context
 
         public DbSet<ModuleEntity> Modules { get; set; }
 
+        public DbSet<JobStatusEntity> JobStatuses { get; set; }
+
+        public DbSet<JobFailureEntity> JobFailures { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());

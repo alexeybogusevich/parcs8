@@ -1,34 +1,42 @@
 ﻿using MediatR;
+using Microsoft.EntityFrameworkCore;
+using Parcs.Core.Models;
+using Parcs.Data.Context;
+using Parcs.Host.Models.Responses.Nested;
 using Parcs.HostAPI.Models.Queries;
 using Parcs.HostAPI.Models.Responses;
-using Parcs.HostAPI.Services.Interfaces;
 
 namespace Parcs.HostAPI.Handlers
 {
     public sealed class GetJobQueryHandler : IRequestHandler<GetJobQuery, GetJobQueryResponse>
     {
-        private readonly IJobManager _jobManager;
+        private readonly ParcsDbContext _parcsDbContext;
 
-        public GetJobQueryHandler(IJobManager jobManager)
+        public GetJobQueryHandler(ParcsDbContext parcsDbContext)
         {
-            _jobManager = jobManager;
+            _parcsDbContext = parcsDbContext;
         }
 
-        public Task<GetJobQueryResponse> Handle(GetJobQuery request, CancellationToken cancellationToken)
+        public async Task<GetJobQueryResponse> Handle(GetJobQuery request, CancellationToken cancellationToken)
         {
-            if (!_jobManager.TryGet(request.JobId, out var job))
+            var job = await _parcsDbContext.Jobs
+                .Include(e => e.Module)
+                .Include(e => e.Statuses)
+                .Include(e => e.Failures)
+                .FirstOrDefaultAsync(e => e.Id == request.JobId, cancellationToken);
+
+            if (job is null)
             {
-                throw new ArgumentException($"Job not found: {request.JobId}.");
+                return null;
             }
 
-            return Task.FromResult(new GetJobQueryResponse
+            return new GetJobQueryResponse
             {
-                JobStatus = job.Status,
-                CreateDateUtc = job.CreateDateUtc,
-                StartDateUtc = job.StartDateUtc,
-                EndDateUtc = job.EndDateUtc,
-                ErrorMessage = job.ErrorMessage,
-            });
+                ModuleId = job.ModuleId,
+                ModuleName = job.Module.Name,
+                Statuses = job.Statuses.Select(s => new JobStatusResponse((JobStatus)s.Status, s.CreateDateUtc)).ToList(),
+                Failures = job.Failures.Select(f => new JobFailureResponse(f.Message, f.StackTrace, f.CreateDateUtc)).ToList(),
+            };
         }
     }
 }

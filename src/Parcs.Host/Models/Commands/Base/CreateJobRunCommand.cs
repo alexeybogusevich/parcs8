@@ -7,7 +7,7 @@
         }
 
         public CreateJobRunCommand(
-            Guid moduleId,
+            long moduleId,
             string assemblyName,
             string className,
             IEnumerable<IFormFile> inputFiles,
@@ -22,7 +22,7 @@
             RawArgumentsDictionary = rawArgumentsDictionary;
         }
 
-        public Guid ModuleId { get; set; }
+        public long ModuleId { get; set; }
 
         public string MainModuleAssemblyName { get; set; }
 

@@ -6,11 +6,11 @@
         {
         }
 
-        public CreateAsynchronousJobRunCommandResponse(Guid jobId)
+        public CreateAsynchronousJobRunCommandResponse(long jobId)
         {
             JobId = jobId;
         }
 
-        public Guid JobId { get; set; }
+        public long JobId { get; set; }
     }
 }

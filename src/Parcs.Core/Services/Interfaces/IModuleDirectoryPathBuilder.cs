@@ -3,6 +3,6 @@
     public interface IModuleDirectoryPathBuilder
     {
         string Build();
-        string Build(Guid moduleId);
+        string Build(long moduleId);
     }
 }

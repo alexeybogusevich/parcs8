@@ -4,10 +4,10 @@ namespace Parcs.Daemon.Services.Interfaces
 {
     public interface IJobContextAccessor
     {
-        bool TryGet(Guid jobId, out JobContext jobContext);
+        bool TryGet(long jobId, out JobContext jobContext);
 
-        void Add(Guid jobId, Guid moduleId, int pointsNumber, IDictionary<string, string> arguments);
+        void Add(long jobId, long moduleId, int pointsNumber, IDictionary<string, string> arguments);
 
-        void Remove(Guid jobId);
+        void Remove(long jobId);
     }
 }

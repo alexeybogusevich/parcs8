@@ -4,6 +4,6 @@ namespace Parcs.Core.Services.Interfaces
 {
     public interface IModuleLoader
     {
-        IModule Load(Guid moduleId, string assemblyName, string className = null);
+        IModule Load(long moduleId, string assemblyName, string className = null);
     }
 }

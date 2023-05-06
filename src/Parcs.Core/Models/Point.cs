@@ -5,13 +5,13 @@ namespace Parcs.Core.Models
 {
     public sealed class Point : IPoint
     {
-        private readonly Guid _jobId;
-        private readonly Guid _moduleId;
+        private readonly long _jobId;
+        private readonly long _moduleId;
         private readonly IArgumentsProvider _argumentsProvider;
         private IManagedChannel _managedChannel;
         private bool _managedChannelInitialized = false;
 
-        public Point(Guid jobId, Guid moduleId, IManagedChannel managedChannel, IArgumentsProvider argumentsProvider)
+        public Point(long jobId, long moduleId, IManagedChannel managedChannel, IArgumentsProvider argumentsProvider)
         {
             _jobId = jobId;
             _moduleId = moduleId;

@@ -2,6 +2,6 @@
 {
     public interface IHostApiClient
     {
-        Task PutCancelJobAsync(Guid jobId, CancellationToken cancellationToken = default);
+        Task PutCancelJobAsync(long jobId, CancellationToken cancellationToken = default);
     }
 }

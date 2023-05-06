@@ -19,7 +19,7 @@ namespace Parcs.Core.Services
             return Path.Combine(_fileSystemConfiguration.BasePath, BaseDirectory.Modules);
         }
 
-        public string Build(Guid moduleId)
+        public string Build(long moduleId)
         {
             return Path.Combine(_fileSystemConfiguration.BasePath, BaseDirectory.Modules, moduleId.ToString());
         }

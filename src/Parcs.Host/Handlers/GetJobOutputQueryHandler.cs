@@ -1,52 +1,33 @@
 ﻿using MediatR;
-using Microsoft.Extensions.Options;
-using Parcs.HostAPI.Configuration;
 using Parcs.HostAPI.Models.Queries;
 using Parcs.HostAPI.Models.Responses;
 using Parcs.HostAPI.Services.Interfaces;
 using Parcs.Core.Models.Enums;
 using Parcs.Core.Services.Interfaces;
-using System.Text;
+using Parcs.Data.Context;
+using Microsoft.EntityFrameworkCore;
 
 namespace Parcs.HostAPI.Handlers
 {
     public sealed class GetJobOutputQueryHandler : IRequestHandler<GetJobOutputQuery, GetJobOutputQueryResponse>
     {
-        private readonly IJobManager _jobManager;
+        private readonly ParcsDbContext _parcsDbContext;
         private readonly IJobDirectoryPathBuilder _jobDirectoryPathBuilder;
-        private readonly IInputOutputFactory _inputOutputFactory;
         private readonly IFileArchiver _fileArchiver;
 
-        private readonly JobOutputConfiguration _configuration;
-
         public GetJobOutputQueryHandler(
-            IJobManager jobManager,
-            IJobDirectoryPathBuilder jobDirectoryPathBuilder,
-            IInputOutputFactory inputOutputFactory,
-            IFileArchiver fileArchiver,
-            IOptions<JobOutputConfiguration> options)
+            ParcsDbContext parcsDbContext, IJobDirectoryPathBuilder jobDirectoryPathBuilder, IFileArchiver fileArchiver)
         {
-            _jobManager = jobManager;
+            _parcsDbContext = parcsDbContext;
             _jobDirectoryPathBuilder = jobDirectoryPathBuilder;
-            _inputOutputFactory = inputOutputFactory;
             _fileArchiver = fileArchiver;
-            _configuration = options.Value;
         }
 
         public async Task<GetJobOutputQueryResponse> Handle(GetJobOutputQuery request, CancellationToken cancellationToken)
         {
-            if (!_jobManager.TryGet(request.JobId, out var job))
-            {
-                throw new ArgumentException($"Job not found: {request.JobId}");
-            }
-
-            var jobSummary = job.ToString();
-            var jobSummaryBytes = Encoding.UTF8.GetBytes(jobSummary);
-
-            await _inputOutputFactory
-                .CreateWriter(job.Id, cancellationToken)
-                .WriteToFileAsync(jobSummaryBytes, _configuration.JobInfoFilename);
-
+            var job = await _parcsDbContext.Jobs.FirstOrDefaultAsync(cancellationToken) 
+                ?? throw new ArgumentException($"Job not found: {request.JobId}");
+            
             var outputDirectoryPath = _jobDirectoryPathBuilder.Build(job.Id, JobDirectoryGroup.Output);
             var outputDirectoryArchive = await _fileArchiver.ArchiveDirectoryAsync(outputDirectoryPath, cancellationToken);
 

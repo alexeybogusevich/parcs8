@@ -1,14 +1,12 @@
-﻿using Parcs.Core.Models;
-
-namespace Parcs.HostAPI.Models.Responses
+﻿namespace Parcs.HostAPI.Models.Responses
 {
     public class CreateJobCommandResponse
     {
-        public CreateJobCommandResponse(Job job)
+        public CreateJobCommandResponse(long jobId)
         {
-            JobId = job.Id;
+            JobId = jobId;
         }
 
-        public Guid JobId { get; set; }
+        public long JobId { get; set; }
     }
 }

@@ -35,7 +35,7 @@ namespace Parcs.HostAPI.Extensions
         {
             return services
                 .Configure<HostingConfiguration>(configuration.GetSection(HostingConfiguration.SectionName))
-                .Configure<JobsConfiguration>(configuration.GetSection(JobsConfiguration.SectionName))
+                .Configure<JobTrackingConfiguration>(configuration.GetSection(JobTrackingConfiguration.SectionName))
                 .Configure<JobOutputConfiguration>(configuration.GetSection(JobOutputConfiguration.SectionName))
                 .Configure<FileSystemConfiguration>(configuration.GetSection(FileSystemConfiguration.SectionName))
                 .Configure<DaemonsConfiguration>(configuration.GetSection(DaemonsConfiguration.SectionName))
@@ -46,7 +46,6 @@ namespace Parcs.HostAPI.Extensions
         {
             return services
                 .AddScoped<IAddressResolver, AddressResolver>()
-                .AddScoped<IGuidReference, GuidReference>()
                 .AddScoped<IDaemonResolver, DaemonResolver>()
                 .AddScoped<IDaemonResolutionStrategyFactory, DaemonResolutionStrategyFactory>()
                 .AddScoped<ConfigurationDaemonResolutionStrategy>()
@@ -63,7 +62,7 @@ namespace Parcs.HostAPI.Extensions
                 .AddSingleton<IFileSaver, FileSaver>()
                 .AddSingleton<IFileReader, FileReader>()
                 .AddSingleton<IFileEraser, FileEraser>()
-                .AddSingleton<IJobManager, JobManager>()
+                .AddSingleton<IJobTracker, JobTracker>()
                 .AddSingleton<IInternalChannelManager, InternalChannelManager>()
                 .AddSingleton<IIsolatedLoadContextProvider, IsolatedLoadContextProvider>()
                 .AddSingleton(Channel.CreateUnbounded<InternalChannelReference>(new UnboundedChannelOptions() { SingleReader = true }))

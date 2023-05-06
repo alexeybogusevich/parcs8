@@ -2,9 +2,9 @@
 {
     public enum JobStatus
     {
-        New = 0,
-        InProgress = 1,
-        Error = 2,
+        Created = 0,
+        Started = 1,
+        Failed = 2,
         Completed = 3,
         Cancelled = 4,
         Retired = 5,

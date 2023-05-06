@@ -63,12 +63,12 @@ namespace Parcs.HostAPI.Validators.Base
             }
         }
 
-        private static bool BeAnExistingModule(Guid moduleId, IModuleDirectoryPathBuilder moduleDirectoryPathBuilder)
+        private static bool BeAnExistingModule(long moduleId, IModuleDirectoryPathBuilder moduleDirectoryPathBuilder)
         {
             return Path.Exists(moduleDirectoryPathBuilder.Build(moduleId));
         }
 
-        private static bool BeAnExistingAssembly(Guid moduleId, string assemblyName, IModuleDirectoryPathBuilder moduleDirectoryPathBuilder)
+        private static bool BeAnExistingAssembly(long moduleId, string assemblyName, IModuleDirectoryPathBuilder moduleDirectoryPathBuilder)
         {
             var assemblyDirectoryPath = moduleDirectoryPathBuilder.Build(moduleId);
             var assemblyPath = Path.Combine(assemblyDirectoryPath, $"{assemblyName}.{AssemblyExtension}");
@@ -76,7 +76,7 @@ namespace Parcs.HostAPI.Validators.Base
             return File.Exists(assemblyPath);
         }
 
-        private static bool BeAnExistingClass(Guid moduleId, string assemblyName, string className, IModuleDirectoryPathBuilder moduleDirectoryPathBuilder)
+        private static bool BeAnExistingClass(long moduleId, string assemblyName, string className, IModuleDirectoryPathBuilder moduleDirectoryPathBuilder)
         {
             var assemblyDirectoryPath = moduleDirectoryPathBuilder.Build(moduleId);
             var assemblyFileName = $"{assemblyName}.{AssemblyExtension}";

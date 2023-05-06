@@ -16,10 +16,10 @@ namespace Parcs.Daemon.Services
             _configuration = options.Value;
         }
 
-        public Task PutCancelJobAsync(Guid jobId, CancellationToken cancellationToken = default)
+        public Task PutCancelJobAsync(long jobId, CancellationToken cancellationToken = default)
         {
             var requestPath = string.Format(_configuration.JobCancellationPath, jobId);
-            return _flurlClient.Request(requestPath).PutAsync();
+            return _flurlClient.Request(requestPath).PutAsync(cancellationToken: cancellationToken);
         }
     }
 }

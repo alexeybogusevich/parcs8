@@ -4,7 +4,7 @@
     {
         private readonly List<Exception> _exceptions;
 
-        public JobContext(Guid jobId, Guid moduleId, int pointsNumber, IDictionary<string, string> arguments)
+        public JobContext(long jobId, long moduleId, int pointsNumber, IDictionary<string, string> arguments)
         {
             JobId = jobId;
             ModuleId = moduleId;
@@ -14,9 +14,9 @@
             _exceptions = new();
         }
 
-        public Guid JobId { get; init; }
+        public long JobId { get; init; }
 
-        public Guid ModuleId { get; init; }
+        public long ModuleId { get; init; }
 
         public int PointsNumber { get; init; }
 

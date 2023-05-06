@@ -23,6 +23,12 @@ namespace Parcs.HostAPI.Controllers
         public async Task<IActionResult> GetAsync([FromRoute] GetJobQuery query, CancellationToken cancellationToken)
         {
             var response = await _mediator.Send(query, cancellationToken);
+
+            if (response is null)
+            {
+                return NotFound();
+            }
+
             return Ok(response);
         }
 

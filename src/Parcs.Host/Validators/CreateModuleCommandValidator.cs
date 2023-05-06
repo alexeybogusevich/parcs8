@@ -11,6 +11,10 @@ namespace Parcs.HostAPI.Validators
         {
             RuleLevelCascadeMode = CascadeMode.Stop;
 
+            RuleFor(c => c.Name)
+                .NotEmpty()
+                .WithMessage("Module name cannot be empty.");
+
             RuleFor(c => c.BinaryFiles)
                 .NotEmpty()
                 .WithMessage($"Binary files are required.")

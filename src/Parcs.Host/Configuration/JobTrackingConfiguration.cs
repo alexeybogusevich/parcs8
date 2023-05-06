@@ -1,8 +1,8 @@
 ﻿namespace Parcs.HostAPI.Configuration
 {
-    public sealed class JobsConfiguration
+    public sealed class JobTrackingConfiguration
     {
-        public const string SectionName = "Jobs";
+        public const string SectionName = "JobTracking";
 
         public int MaximumActiveJobs { get; set; }
     }

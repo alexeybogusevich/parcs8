@@ -6,21 +6,16 @@ namespace Parcs.HostAPI.Handlers
 {
     public class CancelJobCommandHandler : IRequestHandler<CancelJobCommand>
     {
-        private readonly IJobManager _jobManager;
+        private readonly IJobTracker _jobTracker;
 
-        public CancelJobCommandHandler(IJobManager jobManager)
+        public CancelJobCommandHandler(IJobTracker jobTracker)
         {
-            _jobManager = jobManager;
+            _jobTracker = jobTracker;
         }
 
         public Task Handle(CancelJobCommand request, CancellationToken cancellationToken)
         {
-            if (!_jobManager.TryGet(request.JobId, out var job))
-            {
-                return Task.CompletedTask;
-            }
-
-            job.Cancel();
+            _jobTracker.CancelAndStopTrackning(request.JobId);
 
             return Task.CompletedTask;
         }

@@ -6,8 +6,8 @@ namespace Parcs.Daemon.Extensions
     {
         public static void Deconstruct(
             this JobContext jobContext,
-            out Guid jobId,
-            out Guid moduleId,
+            out long jobId,
+            out long moduleId,
             out int pointsNumber,
             out IDictionary<string, string> arguments,
             out CancellationToken cancellationToken)

@@ -14,7 +14,7 @@ namespace Parcs.Core.Services
             _moduleDirectoryPathBuilder = moduleDirectoryPathBuilder;
         }
 
-        public IModule Load(Guid moduleId, string assemblyName, string className = null)
+        public IModule Load(long moduleId, string assemblyName, string className = null)
         {
             var assemblyDirectoryPath = _moduleDirectoryPathBuilder.Build(moduleId);
             return _typeLoader.Load(assemblyDirectoryPath, assemblyName, className);

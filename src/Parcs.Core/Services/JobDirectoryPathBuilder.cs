@@ -15,12 +15,12 @@ namespace Parcs.Core.Services
             _fileSystemConfiguration = options.Value;
         }
 
-        public string Build(Guid jobId)
+        public string Build(long jobId)
         {
             return Path.Combine(_fileSystemConfiguration.BasePath, BaseDirectory.Jobs, jobId.ToString());
         }
 
-        public string Build(Guid jobId, JobDirectoryGroup directoryGroup)
+        public string Build(long jobId, JobDirectoryGroup directoryGroup)
         {
             return Path.Combine(_fileSystemConfiguration.BasePath, BaseDirectory.Jobs, jobId.ToString(), directoryGroup.ToString());
         }

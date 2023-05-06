@@ -15,7 +15,7 @@ namespace Parcs.Daemon.Handlers
 
         public async Task HandleAsync(IManagedChannel managedChannel, CancellationToken cancellationToken = default)
         {
-            var jobId = await managedChannel.ReadGuidAsync();
+            var jobId = await managedChannel.ReadLongAsync();
 
             var isExistingJob = _jobContextAccessor.TryGet(jobId, out _);
             await managedChannel.WriteDataAsync(isExistingJob);
@@ -25,7 +25,7 @@ namespace Parcs.Daemon.Handlers
                 return;
             }
 
-            var moduleId = await managedChannel.ReadGuidAsync();
+            var moduleId = await managedChannel.ReadLongAsync();
             var pointsNumber = await managedChannel.ReadIntAsync();
             var arguments = await managedChannel.ReadObjectAsync<IDictionary<string, string>>();
 

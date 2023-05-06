@@ -1,17 +1,15 @@
-﻿using Parcs.Core.Models;
+﻿using Parcs.Host.Models.Responses.Nested;
 
 namespace Parcs.HostAPI.Models.Responses
 {
     public class GetJobQueryResponse
     {
-        public JobStatus JobStatus { get; set; }
+        public long ModuleId { get; set; }
 
-        public DateTime CreateDateUtc { get; set; }
+        public string ModuleName { get; set; }
 
-        public DateTime? StartDateUtc { get; set; }
+        public IEnumerable<JobStatusResponse> Statuses { get; set; }
 
-        public DateTime? EndDateUtc { get; set; }
-
-        public string ErrorMessage { get; set; }
+        public IEnumerable<JobFailureResponse> Failures { get; set; }
     }
 }

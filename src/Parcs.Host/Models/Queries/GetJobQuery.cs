@@ -9,11 +9,11 @@ namespace Parcs.HostAPI.Models.Queries
         {
         }
 
-        public GetJobQuery(Guid jobId)
+        public GetJobQuery(long jobId)
         {
             JobId = jobId;
         }
 
-        public Guid JobId { get; set; }
+        public long JobId { get; set; }
     }
 }

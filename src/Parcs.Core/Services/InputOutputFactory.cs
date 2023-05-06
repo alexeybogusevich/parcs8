@@ -13,10 +13,10 @@ namespace Parcs.Core.Services
             _jobDirectoryPathBuilder = jobDirectoryPathBuilder;
         }
 
-        public IInputReader CreateReader(Guid jobId) =>
+        public IInputReader CreateReader(long jobId) =>
             new InputReader(_jobDirectoryPathBuilder.Build(jobId, JobDirectoryGroup.Input));
 
-        public IOutputWriter CreateWriter(Guid jobId, CancellationToken cancellationToken) =>
+        public IOutputWriter CreateWriter(long jobId, CancellationToken cancellationToken) =>
             new OutputWriter(_jobDirectoryPathBuilder.Build(jobId, JobDirectoryGroup.Output), cancellationToken);
     }
 }

@@ -2,14 +2,14 @@
 {
     public class JobMetadata
     {
-        public JobMetadata(Guid jobId, Guid moduleId)
+        public JobMetadata(long jobId, long moduleId)
         {
             JobId = jobId;
             ModuleId = moduleId;
         }
 
-        public Guid JobId { get; set; }
+        public long JobId { get; set; }
 
-        public Guid ModuleId { get; set; }
+        public long ModuleId { get; set; }
     }
 }

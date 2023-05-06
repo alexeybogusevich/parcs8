@@ -9,18 +9,15 @@ namespace Parcs.HostAPI.HostedServices
 {
     public class AsynchronousJobRunner : BackgroundService
     {
-        private readonly IJobManager _jobManager;
         private readonly IServiceScopeFactory _serviceScopeFactory;
         private readonly ChannelReader<RunJobAsynchronouslyCommand> _channelReader;
         private readonly ILogger<AsynchronousJobRunner> _logger;
 
         public AsynchronousJobRunner(
-            IJobManager jobManager,
             IServiceScopeFactory serviceScopeFactory,
             ChannelReader<RunJobAsynchronouslyCommand> channelReader,
             ILogger<AsynchronousJobRunner> logger)
         {
-            _jobManager = jobManager;
             _serviceScopeFactory = serviceScopeFactory;
             _channelReader = channelReader;
             _logger = logger;
@@ -41,11 +38,6 @@ namespace Parcs.HostAPI.HostedServices
             var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
             var jobCompletionNotifier = scope.ServiceProvider.GetRequiredService<IJobCompletionNotifier>();
 
-            if (!_jobManager.TryGet(command.JobId, out var job))
-            {
-                throw new ArgumentException($"Job {job.Id} not found.");
-            }
-
             try
             {
                 var runJobCommand = new RunJobCommand(command.JobId, command.PointsNumber, command.RawArgumentsDictionary);
@@ -57,9 +49,7 @@ namespace Parcs.HostAPI.HostedServices
                 _logger.LogError(e, "Exception thrown during scheduled job processing.");
             }
 
-            await jobCompletionNotifier.NotifyAsync(new JobCompletionNotification(job), command.CallbackUrl, stoppingToken);
-
-            await mediator.Send(new DeleteJobCommand(job.Id), CancellationToken.None);
+            await jobCompletionNotifier.NotifyAsync(new JobCompletionNotification(command.JobId), command.CallbackUrl, stoppingToken);
         }
     }
 }

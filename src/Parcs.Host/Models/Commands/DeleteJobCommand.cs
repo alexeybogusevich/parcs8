@@ -8,11 +8,11 @@ namespace Parcs.HostAPI.Models.Commands
         {
         }
 
-        public DeleteJobCommand(Guid jobId)
+        public DeleteJobCommand(long jobId)
         {
             JobId = jobId;
         }
 
-        public Guid JobId { get; set; }
+        public long JobId { get; set; }
     }
 }

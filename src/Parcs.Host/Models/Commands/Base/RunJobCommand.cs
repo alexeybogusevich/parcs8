@@ -8,14 +8,14 @@ namespace Parcs.HostAPI.Models.Commands.Base
         {
         }
 
-        public RunJobCommand(Guid jobId, int pointsNumber, string rawArgumentsDictionary)
+        public RunJobCommand(long jobId, int pointsNumber, string rawArgumentsDictionary)
         {
             JobId = jobId;
             PointsNumber = pointsNumber;
             RawArgumentsDictionary = rawArgumentsDictionary;
         }
 
-        public Guid JobId { get; set; }
+        public long JobId { get; set; }
 
         public int PointsNumber { get; set; }
 

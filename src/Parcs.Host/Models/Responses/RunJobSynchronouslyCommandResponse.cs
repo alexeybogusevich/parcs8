@@ -4,17 +4,14 @@ namespace Parcs.HostAPI.Models.Responses
 {
     public class RunJobSynchronouslyCommandResponse
     {
-        public RunJobSynchronouslyCommandResponse(Job job)
+        public RunJobSynchronouslyCommandResponse(long jobId, JobStatus? jobStatus)
         {
-            ElapsedSeconds = job.ExecutionTime?.Seconds;
-            JobStatus = job.Status;
-            ErrorMessage = job.ErrorMessage;
+            JobId = jobId;
+            JobStatus = jobStatus;
         }
 
-        public double? ElapsedSeconds { get; set; }
+        public long JobId { get; set; }
 
-        public JobStatus JobStatus { get; set; }
-
-        public string ErrorMessage { get; set; }
+        public JobStatus? JobStatus { get; set; }
     }
 }

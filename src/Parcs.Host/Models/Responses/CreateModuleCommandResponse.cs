@@ -2,11 +2,11 @@
 {
     public class CreateModuleCommandResponse
     {
-        public CreateModuleCommandResponse(Guid moduleId)
+        public CreateModuleCommandResponse(long moduleId)
         {
             ModuleId = moduleId;
         }
 
-        public Guid ModuleId { get; set; }
+        public long ModuleId { get; set; }
     }
 }

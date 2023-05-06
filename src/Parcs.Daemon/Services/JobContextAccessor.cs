@@ -6,19 +6,19 @@ namespace Parcs.Daemon.Services
 {
     public class JobContextAccessor : IJobContextAccessor
     {
-        private readonly ConcurrentDictionary<Guid, JobContext> _activeContexts = new();
+        private readonly ConcurrentDictionary<long, JobContext> _activeContexts = new();
 
-        public void Add(Guid jobId, Guid moduleId, int pointsNumber, IDictionary<string, string> arguments)
+        public void Add(long jobId, long moduleId, int pointsNumber, IDictionary<string, string> arguments)
         {
             _ = _activeContexts.TryAdd(jobId, new JobContext(jobId, moduleId, pointsNumber, arguments));
         }
 
-        public bool TryGet(Guid jobId, out JobContext jobContext)
+        public bool TryGet(long jobId, out JobContext jobContext)
         {
             return _activeContexts.TryGetValue(jobId, out jobContext);
         }
 
-        public void Remove(Guid jobId)
+        public void Remove(long jobId)
         {
             _ = _activeContexts.Remove(jobId, out _);
         }
