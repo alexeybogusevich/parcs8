@@ -9,17 +9,17 @@ namespace Parcs.Core.Models
     {
         private readonly Guid _jobId;
         private readonly Guid _moduleId;
-        private readonly CancellationToken _cancellationToken;
 
         private readonly List<Point> _createdPoints = new ();
         private readonly Dictionary<string, int> _pointsOnDaemons = new();
+        private readonly CancellationToken _cancellationToken;
+
         private readonly IDaemonResolver _daemonResolver;
         private readonly IInternalChannelManager _internalChannelManager;
         private readonly IAddressResolver _addressResolver;
 
         public ModuleInfo(
-            Guid jobId,
-            Guid moduleId,
+            JobMetadata jobMetadata,
             IChannel parentChannel,
             IInputOutputFactory inputOutputFactory,
             IArgumentsProvider argumentsProvider,
@@ -28,15 +28,15 @@ namespace Parcs.Core.Models
             IAddressResolver addressResolver,
             CancellationToken cancellationToken)
         {
-            _jobId = jobId;
-            _moduleId = moduleId;
+            _jobId = jobMetadata.JobId;
+            _moduleId = jobMetadata.ModuleId;
             _daemonResolver = daemonResolver;
             _internalChannelManager = internalChannelManager;
             _addressResolver = addressResolver;
             _cancellationToken = cancellationToken;
             Parent = parentChannel;
-            InputReader = inputOutputFactory.CreateReader(jobId);
-            OutputWriter = inputOutputFactory.CreateWriter(jobId, cancellationToken);
+            InputReader = inputOutputFactory.CreateReader(jobMetadata.JobId);
+            OutputWriter = inputOutputFactory.CreateWriter(jobMetadata.JobId, cancellationToken);
             ArgumentsProvider = argumentsProvider;
         }
 

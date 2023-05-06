@@ -3,6 +3,7 @@ using Parcs.HostAPI.Models.Commands;
 using Parcs.HostAPI.Models.Responses;
 using Parcs.HostAPI.Services.Interfaces;
 using Parcs.Core.Services.Interfaces;
+using Parcs.Core.Models;
 
 namespace Parcs.HostAPI.Handlers
 {
@@ -26,11 +27,14 @@ namespace Parcs.HostAPI.Handlers
 
             ArgumentNullException.ThrowIfNull(job.Module);
 
-            await using var moduleInfo = _moduleInfoFactory.Create(
-                job.Id, job.ModuleId, command.PointsNumber, command.GetArgumentsDictionary(), job.CancellationToken);
+            var jobMetadata = new JobMetadata(job.Id, job.ModuleId);
+            var arguments = command.GetArgumentsDictionary();
+            var pointsNumber = command.PointsNumber;
 
             try
             {
+                await using var moduleInfo = _moduleInfoFactory.Create(jobMetadata, pointsNumber, arguments, job.CancellationToken);
+
                 job.Start();
                 await job.Module.RunAsync(moduleInfo, job.CancellationToken);
                 job.Finish();

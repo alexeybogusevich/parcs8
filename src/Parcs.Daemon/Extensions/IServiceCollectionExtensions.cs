@@ -10,8 +10,6 @@ using Parcs.Daemon.Configuration;
 using Parcs.Core.Configuration;
 using System.Threading.Channels;
 using Parcs.Core.Models;
-using Polly.Extensions.Http;
-using Polly;
 
 namespace Parcs.Daemon.Extensions
 {
@@ -55,10 +53,7 @@ namespace Parcs.Daemon.Extensions
             services.AddHttpClient<IHostApiClient, HostApiClient>(client =>
             {
                 client.BaseAddress = new Uri($"http://{hostApiConfiguration.Uri}:80");
-            });//.AddPolicyHandler(
-              //  HttpPolicyExtensions
-              //      .HandleTransientHttpError()
-              //      .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt))));
+            });
 
             return services;
         }

@@ -30,6 +30,16 @@ namespace Parcs.Core.Models
 
             await _managedChannel.WriteSignalAsync(Signal.InitializeJob);
             await _managedChannel.WriteDataAsync(_jobId);
+
+            var isJobInitialized = await _managedChannel.ReadBooleanAsync();
+
+            if (isJobInitialized)
+            {
+                _managedChannelInitialized = true;
+
+                return _managedChannel;
+            }
+
             await _managedChannel.WriteDataAsync(_moduleId);
             await _managedChannel.WriteDataAsync(_argumentsProvider.GetPointsNumber());
             await _managedChannel.WriteObjectAsync(_argumentsProvider.GetArguments());

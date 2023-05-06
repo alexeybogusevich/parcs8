@@ -27,8 +27,7 @@ namespace Parcs.Core.Services
         }
 
         public IModuleInfo Create(
-            Guid jobId,
-            Guid moduleId,
+            JobMetadata jobMetadata,
             int pointsNumber,
             IDictionary<string, string> arguments,
             IChannel parentChannel = null,
@@ -37,8 +36,7 @@ namespace Parcs.Core.Services
             var argumentsProvider = _argumentsProviderFactory.Create(pointsNumber, arguments);
 
             return new ModuleInfo(
-                jobId,
-                moduleId,
+                jobMetadata,
                 parentChannel,
                 _inputOutputFactory,
                 argumentsProvider,
@@ -49,10 +47,9 @@ namespace Parcs.Core.Services
         }
 
         public IModuleInfo Create(
-            Guid jobId,
-            Guid moduleId,
+            JobMetadata jobMetadata,
             int pointsNumber,
             IDictionary<string, string> arguments,
-            CancellationToken cancellationToken = default) => Create(jobId, moduleId, pointsNumber, arguments, null, cancellationToken);
+            CancellationToken cancellationToken = default) => Create(jobMetadata, pointsNumber, arguments, null, cancellationToken);
     }
 }

@@ -3,6 +3,7 @@ using Parcs.Daemon.Handlers.Interfaces;
 using Parcs.Daemon.Services.Interfaces;
 using Parcs.Core.Models.Interfaces;
 using Parcs.Core.Services.Interfaces;
+using Parcs.Core.Models;
 
 namespace Parcs.TCP.Daemon.Handlers
 {
@@ -33,13 +34,15 @@ namespace Parcs.TCP.Daemon.Handlers
 
             var (_, moduleId, pointsNumber, arguments, jobCancellationToken) = jobContext;
 
+            var jobMetadata = new JobMetadata(jobId, moduleId);
+
             try
             {
                 var assemblyName = await managedChannel.ReadStringAsync();
                 var className = await managedChannel.ReadStringAsync();
 
                 var module = _moduleLoader.Load(moduleId, assemblyName, className);
-                var moduleInfo = _moduleInfoFactory.Create(jobId, moduleId, pointsNumber, arguments, managedChannel, jobCancellationToken);
+                var moduleInfo = _moduleInfoFactory.Create(jobMetadata, pointsNumber, arguments, managedChannel, jobCancellationToken);
 
                 await module.RunAsync(moduleInfo, jobCancellationToken);
             }

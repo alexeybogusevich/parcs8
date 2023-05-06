@@ -43,7 +43,7 @@ namespace Parcs.HostAPI.Handlers
             var jobSummary = job.ToString();
             var jobSummaryBytes = Encoding.UTF8.GetBytes(jobSummary);
 
-            await _inputOutputFactory.CreateWriter(job.Id, job.CancellationToken).WriteToFileAsync(jobSummaryBytes, _configuration.JobInfoFilename);
+            await _inputOutputFactory.CreateWriter(job.Id, cancellationToken).WriteToFileAsync(jobSummaryBytes, _configuration.JobInfoFilename);
 
             var outputDirectoryPath = _jobDirectoryPathBuilder.Build(job.Id, JobDirectoryGroup.Output);
             var outputDirectoryArchive = await _fileArchiver.ArchiveDirectoryAsync(outputDirectoryPath, cancellationToken);
