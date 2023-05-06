@@ -17,6 +17,10 @@
     <PackageReference Include="KubernetesClient" Version="10.1.19" />
     <PackageReference Include="KubernetesClient.Models" Version="10.1.19" />
     <PackageReference Include="MediatR" Version="12.0.1" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="7.0.5">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.17.2" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
     <PackageReference Include="System.Reflection.MetadataLoadContext" Version="7.0.0" />
@@ -24,6 +28,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Parcs.Core\Parcs.Core.csproj" />
+    <ProjectReference Include="..\Parcs.Data\Parcs.Data.csproj" />
   </ItemGroup>
 
 </Project>

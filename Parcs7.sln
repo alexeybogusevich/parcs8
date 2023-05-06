@@ -44,6 +44,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Parcs.Core", "src\Parcs.Cor
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Parcs.Host", "src\Parcs.Host\Parcs.Host.csproj", "{DF9A2B32-C703-47D3-A7D4-30726F7D3D69}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Parcs.Data", "src\Parcs.Data\Parcs.Data.csproj", "{4BB8F69A-20F8-4130-90FE-135164A76C1C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -90,6 +92,10 @@ Global
 		{DF9A2B32-C703-47D3-A7D4-30726F7D3D69}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DF9A2B32-C703-47D3-A7D4-30726F7D3D69}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DF9A2B32-C703-47D3-A7D4-30726F7D3D69}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4BB8F69A-20F8-4130-90FE-135164A76C1C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4BB8F69A-20F8-4130-90FE-135164A76C1C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4BB8F69A-20F8-4130-90FE-135164A76C1C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4BB8F69A-20F8-4130-90FE-135164A76C1C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -107,6 +113,7 @@ Global
 		{1B4570A7-808B-4C44-B2A0-D9AB7A6D9501} = {2B8E7431-D6A7-451F-BF4E-D70ADE561EC2}
 		{5540FD88-EFBD-4C74-BA2F-7443A95F79C7} = {6E753C81-CC3C-4A85-BC67-B7D2F4F28881}
 		{DF9A2B32-C703-47D3-A7D4-30726F7D3D69} = {6E753C81-CC3C-4A85-BC67-B7D2F4F28881}
+		{4BB8F69A-20F8-4130-90FE-135164A76C1C} = {6E753C81-CC3C-4A85-BC67-B7D2F4F28881}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {A7E44F1B-D2FC-4A94-B95F-0558B70A9B92}

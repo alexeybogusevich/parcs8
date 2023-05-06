@@ -13,9 +13,22 @@ services:
       - ASPNETCORE_URLS=https://+:443;http://+:80
       - Daemons__PreconfiguredInstances__0__HostUrl=parcs.daemon
       - Daemons__PreconfiguredInstances__0__Port=1111
+      - Database__HostName=parcs.database
+      - Database__DatabaseName=parcs
+      - Database__Username=parcs_admin
+      - Database__Password=p5sAuuhrSxs9GHxD
+      - Database__Port=5432
     ports:
       - "5000:80"
       - "5001:443"
     volumes:
       - ${APPDATA}/Microsoft/UserSecrets:/root/.microsoft/usersecrets:ro
       - ${APPDATA}/ASP.NET/Https:/root/.aspnet/https:ro
+
+  parcs.database:
+    ports:
+    - "5432:5432"
+    environment:
+      - POSTGRES_DB=parcs
+      - POSTGRES_USER=parcs_admin
+      - POSTGRES_PASSWORD=p5sAuuhrSxs9GHxD

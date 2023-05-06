@@ -13,6 +13,10 @@ using System.Threading.Channels;
 using Channel = System.Threading.Channels.Channel;
 using Parcs.HostAPI.HostedServices;
 using Parcs.Core.Models;
+using Parcs.Host.Configuration;
+using Microsoft.EntityFrameworkCore;
+using Parcs.Data.Context;
+using System.Text;
 
 namespace Parcs.HostAPI.Extensions
 {
@@ -66,6 +70,23 @@ namespace Parcs.HostAPI.Extensions
                 .AddSingleton(svc => svc.GetRequiredService<Channel<InternalChannelReference>>().Reader)
                 .AddSingleton(svc => svc.GetRequiredService<Channel<InternalChannelReference>>().Writer)
                 .AddMediatR(options => options.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
+        }
+
+        public static IServiceCollection AddDatabase(this IServiceCollection services, IConfiguration configuration)
+        {
+            var databaseConfiguration = configuration
+                .GetSection(DatabaseConfiguration.SectionName)
+                .Get<DatabaseConfiguration>();
+
+            var connectionString = new StringBuilder()
+                .Append($"Host={databaseConfiguration.HostName};")
+                .Append($"Port={databaseConfiguration.Port};")
+                .Append($"Database={databaseConfiguration.DatabaseName};")
+                .Append($"User ID={databaseConfiguration.Username};")
+                .Append($"Password={databaseConfiguration.Password}")
+                .ToString();
+
+            return services.AddDbContext<ParcsDbContext>(options => options.UseNpgsql(connectionString));
         }
 
         public static IServiceCollection AddValidation(this IServiceCollection services)

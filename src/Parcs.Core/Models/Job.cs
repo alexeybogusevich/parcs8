@@ -10,13 +10,12 @@ namespace Parcs.Core.Models
         private readonly CancellationTokenSource _cancellationTokenSource = new();
         private readonly List<Daemon> _executedOnDaemons = new();
 
-        public Job(Guid moduleId, string modulePath, string assemblyName, string className)
+        public Job(Guid moduleId, string assemblyName, string className)
         {
             Id = Guid.NewGuid();
             CreateDateUtc = DateTime.UtcNow;
             Status = JobStatus.New;
             ModuleId = moduleId;
-            ModulePath = modulePath;
             AssemblyName = assemblyName;
             ClassName = className;
             _hasBeenRun = false;
@@ -26,8 +25,6 @@ namespace Parcs.Core.Models
         public Guid Id { get; private set; }
 
         public Guid ModuleId { get; private set; }
-
-        public string ModulePath { get; private set; }
 
         public string AssemblyName { get; private set; }
 

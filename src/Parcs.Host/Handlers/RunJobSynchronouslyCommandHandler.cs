@@ -11,11 +11,13 @@ namespace Parcs.HostAPI.Handlers
     {
         private readonly IModuleInfoFactory _moduleInfoFactory;
         private readonly IJobManager _jobManager;
+        private readonly IModuleLoader _moduleLoader;
 
-        public RunJobSynchronouslyCommandHandler(IModuleInfoFactory moduleInfoFactory, IJobManager jobManager)
+        public RunJobSynchronouslyCommandHandler(IModuleInfoFactory moduleInfoFactory,  IJobManager jobManager, IModuleLoader moduleLoader)
         {
             _moduleInfoFactory = moduleInfoFactory;
             _jobManager = jobManager;
+            _moduleLoader = moduleLoader;
         }
 
         public async Task<RunJobSynchronouslyCommandResponse> Handle(RunJobSynchronouslyCommand command, CancellationToken cancellationToken)
@@ -25,18 +27,17 @@ namespace Parcs.HostAPI.Handlers
                 throw new ArgumentException($"Job not found: {command.JobId}");
             }
 
-            ArgumentNullException.ThrowIfNull(job.Module);
-
             var jobMetadata = new JobMetadata(job.Id, job.ModuleId);
             var arguments = command.GetArgumentsDictionary();
             var pointsNumber = command.PointsNumber;
 
             try
             {
+                var module = _moduleLoader.Load(job.ModuleId, job.AssemblyName, job.ClassName);
                 await using var moduleInfo = _moduleInfoFactory.Create(jobMetadata, pointsNumber, arguments, job.CancellationToken);
 
                 job.Start();
-                await job.Module.RunAsync(moduleInfo, job.CancellationToken);
+                await module.RunAsync(moduleInfo, job.CancellationToken);
                 job.Finish();
             }
             catch (Exception ex)

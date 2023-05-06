@@ -12,8 +12,11 @@ builder.Services.AddApplicationServices();
 builder.Services.AddApplicationOptions(builder.Configuration);
 builder.Services.AddAsynchronousJobProcessing();
 builder.Services.AddHttpClient();
+builder.Services.AddDatabase(builder.Configuration);
 
 var app = builder.Build();
+
+app.MigrateDatabase();
 
 app.UseSwagger();
 app.UseSwaggerUI();

@@ -1,5 +1,7 @@
 ﻿using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Parcs.Data.Context;
 using System.Net;
 
 namespace Parcs.HostAPI.Extensions
@@ -51,6 +53,16 @@ namespace Parcs.HostAPI.Extensions
 
                 return context.Response.WriteAsJsonAsync(problemDetails);
             }));
+        }
+
+        public static IApplicationBuilder MigrateDatabase(this WebApplication webApplication)
+        {
+            using var serviceScope = webApplication.Services.GetRequiredService<IServiceScopeFactory>().CreateScope();
+
+            var parcsDbContext = serviceScope.ServiceProvider.GetService<ParcsDbContext>();
+            parcsDbContext.Database.Migrate();
+
+            return webApplication;
         }
     }
 }
