@@ -17,7 +17,7 @@ services:
     image: ${DOCKER_REGISTRY-}parcshostapi
     build:
       context: .
-      dockerfile: Parcs.HostAPI/Dockerfile
+      dockerfile: Parcs.Host/Dockerfile
     volumes:
       - type: volume
         source: parcs.storage
