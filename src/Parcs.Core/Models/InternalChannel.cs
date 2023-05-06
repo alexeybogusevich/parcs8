@@ -148,25 +148,12 @@ namespace Parcs.Core.Models
         {
             var internalChannelData = await _channelReader.ReadAsync(_cancellationToken);
 
-            try
+            if (internalChannelData is not InternalChannelData<T> typedInternalChannelData)
             {
-                if (internalChannelData is not InternalChannelData<T> typedInternalChannelData)
-                {
-                    if (typeof(InternalChannelData<T>).FullName == internalChannelData.GetType().FullName)
-                    {
-                        return (InternalChannelData<T>)internalChannelData;
-                    }
-
-                    throw new ArgumentException($"Expected to receive {typeof(T).FullName} but got {internalChannelData.GetType().FullName}");
-                }
-
-                return typedInternalChannelData;
+                throw new ArgumentException($"Expected to receive {typeof(T).FullName} but got {internalChannelData.GetType().FullName}");
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex);
-                throw;
-            }
+
+            return typedInternalChannelData;
         }
 
         public void Dispose() => _disposeAction.Invoke();

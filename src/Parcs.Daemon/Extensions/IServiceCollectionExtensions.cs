@@ -30,6 +30,7 @@ namespace Parcs.Daemon.Extensions
                 .AddSingleton<IDaemonResolver, DaemonResolver>()
                 .AddSingleton<IInputOutputFactory, InputOutputFactory>()
                 .AddSingleton<IInternalChannelManager, InternalChannelManager>()
+                .AddSingleton<IIsolatedLoadContextProvider, IsolatedLoadContextProvider>()
                 .AddSingleton<IJobContextAccessor, JobContextAccessor>()
                 .AddSingleton<IJobDirectoryPathBuilder, JobDirectoryPathBuilder>()
                 .AddSingleton<IModuleInfoFactory, ModuleInfoFactory>()

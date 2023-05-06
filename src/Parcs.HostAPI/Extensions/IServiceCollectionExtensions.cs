@@ -61,6 +61,7 @@ namespace Parcs.HostAPI.Extensions
                 .AddSingleton<IFileEraser, FileEraser>()
                 .AddSingleton<IJobManager, JobManager>()
                 .AddSingleton<IInternalChannelManager, InternalChannelManager>()
+                .AddSingleton<IIsolatedLoadContextProvider, IsolatedLoadContextProvider>()
                 .AddSingleton(Channel.CreateUnbounded<InternalChannelReference>(new UnboundedChannelOptions() { SingleReader = true }))
                 .AddSingleton(svc => svc.GetRequiredService<Channel<InternalChannelReference>>().Reader)
                 .AddSingleton(svc => svc.GetRequiredService<Channel<InternalChannelReference>>().Writer)

@@ -6,13 +6,20 @@ namespace Parcs.Core.Services
     public class IsolatedLoadContext : AssemblyLoadContext
     {
         private readonly AssemblyDependencyResolver _resolver;
-        private readonly IEnumerable<string> _sharedAssemblyNames;
+        private readonly List<string> _sharedAssemblyNames = new ();
 
-        public IsolatedLoadContext(string assemblyPath, IEnumerable<string> sharedAssemblyNames)
+        public IsolatedLoadContext(string assemblyPath)
         {
             _resolver = new AssemblyDependencyResolver(assemblyPath);
-            _sharedAssemblyNames = sharedAssemblyNames;
             Resolving += OnFailedResolution;
+        }
+
+        public void AddSharedAssembly(string assemblyName)
+        {
+            if (!_sharedAssemblyNames.Contains(assemblyName))
+            {
+                _sharedAssemblyNames.Add(assemblyName);
+            }
         }
 
         protected override Assembly Load(AssemblyName assemblyName)

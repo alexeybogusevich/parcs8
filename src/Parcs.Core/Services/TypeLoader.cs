@@ -7,11 +7,20 @@ namespace Parcs.Core.Services
     {
         private const string AssemblyExtension = "dll";
 
+        private readonly IIsolatedLoadContextProvider _isolatedLoadContextProvider;
+
+        public TypeLoader(IIsolatedLoadContextProvider isolatedLoadContextProvider)
+        {
+            _isolatedLoadContextProvider = isolatedLoadContextProvider;
+        }
+
         public T Load(string assemblyDirectoryPath, string assemblyName, string className = null)
         {
             var assemblyPath = Path.Combine(assemblyDirectoryPath, $"{assemblyName}.{AssemblyExtension}");
 
-            var loadContext = new IsolatedLoadContext(assemblyPath, new List<string> { typeof(T).Assembly.GetName().Name });
+            var loadContext = _isolatedLoadContextProvider.Create(assemblyPath);
+            loadContext.AddSharedAssembly(typeof(T).Assembly.GetName().Name);
+            
             var assembly = loadContext.LoadFromAssemblyName(AssemblyName.GetAssemblyName(assemblyPath));
             var classes = assembly.GetTypes().Where(t => typeof(T).IsAssignableFrom(t));
 
