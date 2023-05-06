@@ -1,7 +1,7 @@
 ﻿using FluentValidation;
-using Parcs.HostAPI.Models.Commands;
+using Parcs.Host.Models.Commands;
 
-namespace Parcs.HostAPI.Validators
+namespace Parcs.Host.Validators
 {
     public class CreateModuleCommandValidator : AbstractValidator<CreateModuleCommand>
     {

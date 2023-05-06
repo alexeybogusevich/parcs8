@@ -1,7 +1,7 @@
 ﻿using FluentValidation;
-using Parcs.HostAPI.Models.Queries;
+using Parcs.Host.Models.Queries;
 
-namespace Parcs.HostAPI.Validators
+namespace Parcs.Host.Validators
 {
     public class GetJobQueryValidator : AbstractValidator<GetJobQuery>
     {

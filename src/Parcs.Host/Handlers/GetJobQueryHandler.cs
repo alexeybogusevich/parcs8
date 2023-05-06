@@ -3,10 +3,10 @@ using Microsoft.EntityFrameworkCore;
 using Parcs.Core.Models;
 using Parcs.Data.Context;
 using Parcs.Host.Models.Responses.Nested;
-using Parcs.HostAPI.Models.Queries;
-using Parcs.HostAPI.Models.Responses;
+using Parcs.Host.Models.Queries;
+using Parcs.Host.Models.Responses;
 
-namespace Parcs.HostAPI.Handlers
+namespace Parcs.Host.Handlers
 {
     public sealed class GetJobQueryHandler : IRequestHandler<GetJobQuery, GetJobQueryResponse>
     {

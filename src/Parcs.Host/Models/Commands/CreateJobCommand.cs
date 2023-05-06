@@ -1,11 +1,15 @@
 ﻿using MediatR;
-using Parcs.HostAPI.Models.Commands.Base;
-using Parcs.HostAPI.Models.Responses;
+using Parcs.Host.Models.Commands.Base;
+using Parcs.Host.Models.Responses;
 
-namespace Parcs.HostAPI.Models.Commands
+namespace Parcs.Host.Models.Commands
 {
     public class CreateJobCommand : IRequest<CreateJobCommandResponse>
     {
+        public CreateJobCommand()
+        {
+        }
+
         public CreateJobCommand(CreateJobRunCommand jobRunCommand)
         {
             ModuleId = jobRunCommand.ModuleId;

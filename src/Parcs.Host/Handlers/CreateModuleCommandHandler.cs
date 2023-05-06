@@ -1,12 +1,12 @@
 ﻿using MediatR;
-using Parcs.HostAPI.Models.Commands;
-using Parcs.HostAPI.Models.Responses;
-using Parcs.HostAPI.Services.Interfaces;
+using Parcs.Host.Models.Commands;
+using Parcs.Host.Models.Responses;
+using Parcs.Host.Services.Interfaces;
 using Parcs.Core.Services.Interfaces;
 using Parcs.Data.Context;
 using Parcs.Data.Entities;
 
-namespace Parcs.HostAPI.Handlers
+namespace Parcs.Host.Handlers
 {
     public sealed class CreateModuleCommandHandler : IRequestHandler<CreateModuleCommand, CreateModuleCommandResponse>
     {

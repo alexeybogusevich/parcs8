@@ -1,6 +1,6 @@
-﻿using Parcs.HostAPI.Models.Domain;
+﻿using Parcs.Host.Models.Domain;
 
-namespace Parcs.HostAPI.Models.Responses
+namespace Parcs.Host.Models.Responses
 {
     public class GetJobOutputQueryResponse
     {

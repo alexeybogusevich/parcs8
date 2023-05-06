@@ -1,7 +1,7 @@
 ﻿using MediatR;
-using Parcs.HostAPI.Models.Responses;
+using Parcs.Host.Models.Responses;
 
-namespace Parcs.HostAPI.Models.Commands
+namespace Parcs.Host.Models.Commands
 {
     public class CreateModuleCommand : IRequest<CreateModuleCommandResponse>
     {

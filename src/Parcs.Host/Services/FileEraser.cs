@@ -1,6 +1,6 @@
-﻿using Parcs.HostAPI.Services.Interfaces;
+﻿using Parcs.Host.Services.Interfaces;
 
-namespace Parcs.HostAPI.Services
+namespace Parcs.Host.Services
 {
     public sealed class FileEraser : IFileEraser
     {

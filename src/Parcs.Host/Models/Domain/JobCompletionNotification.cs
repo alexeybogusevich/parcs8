@@ -1,4 +1,4 @@
-﻿namespace Parcs.HostAPI.Models.Domain
+﻿namespace Parcs.Host.Models.Domain
 {
     public sealed class JobCompletionNotification
     {

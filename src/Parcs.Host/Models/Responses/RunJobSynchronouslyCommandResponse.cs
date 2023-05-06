@@ -1,16 +1,13 @@
 ﻿using Parcs.Core.Models;
 
-namespace Parcs.HostAPI.Models.Responses
+namespace Parcs.Host.Models.Responses
 {
     public class RunJobSynchronouslyCommandResponse
     {
-        public RunJobSynchronouslyCommandResponse(long jobId, JobStatus? jobStatus)
+        public RunJobSynchronouslyCommandResponse(JobStatus? jobStatus)
         {
-            JobId = jobId;
             JobStatus = jobStatus;
         }
-
-        public long JobId { get; set; }
 
         public JobStatus? JobStatus { get; set; }
     }

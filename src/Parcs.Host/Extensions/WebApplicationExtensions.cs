@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Parcs.Data.Context;
 using System.Net;
 
-namespace Parcs.HostAPI.Extensions
+namespace Parcs.Host.Extensions
 {
     public static class WebApplicationExtensions
     {

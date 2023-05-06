@@ -1,7 +1,7 @@
-﻿using Parcs.HostAPI.Services.Interfaces;
+﻿using Parcs.Host.Services.Interfaces;
 using System.Collections.Concurrent;
 
-namespace Parcs.HostAPI.Services
+namespace Parcs.Host.Services
 {
     public sealed class JobTracker : IJobTracker
     {
@@ -14,7 +14,7 @@ namespace Parcs.HostAPI.Services
 
         public bool TryGetCancellationToken(long jobId, out CancellationToken cancellationToken)
         {
-            if (!_trackedJobs.TryGetValue(jobId, out var cancellationTokenSource))
+            if (_trackedJobs.TryGetValue(jobId, out var cancellationTokenSource))
             {
                 cancellationToken = cancellationTokenSource.Token;
 

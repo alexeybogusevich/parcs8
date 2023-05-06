@@ -1,9 +1,9 @@
 ﻿using FluentValidation;
-using Parcs.HostAPI.Models.Commands;
-using Parcs.HostAPI.Validators.Base;
+using Parcs.Host.Models.Commands;
+using Parcs.Host.Validators.Base;
 using Parcs.Core.Services.Interfaces;
 
-namespace Parcs.HostAPI.Validators
+namespace Parcs.Host.Validators
 {
     public class CreateAsynchronousJobRunCommandValidator : CreateJobRunCommandValidator<CreateAsynchronousJobRunCommand>
     {

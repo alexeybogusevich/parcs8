@@ -1,13 +1,13 @@
 ﻿using MediatR;
-using Parcs.HostAPI.Models.Queries;
-using Parcs.HostAPI.Models.Responses;
-using Parcs.HostAPI.Services.Interfaces;
+using Parcs.Host.Models.Queries;
+using Parcs.Host.Models.Responses;
+using Parcs.Host.Services.Interfaces;
 using Parcs.Core.Models.Enums;
 using Parcs.Core.Services.Interfaces;
 using Parcs.Data.Context;
 using Microsoft.EntityFrameworkCore;
 
-namespace Parcs.HostAPI.Handlers
+namespace Parcs.Host.Handlers
 {
     public sealed class GetJobOutputQueryHandler : IRequestHandler<GetJobOutputQuery, GetJobOutputQueryResponse>
     {
@@ -25,8 +25,12 @@ namespace Parcs.HostAPI.Handlers
 
         public async Task<GetJobOutputQueryResponse> Handle(GetJobOutputQuery request, CancellationToken cancellationToken)
         {
-            var job = await _parcsDbContext.Jobs.FirstOrDefaultAsync(cancellationToken) 
-                ?? throw new ArgumentException($"Job not found: {request.JobId}");
+            var job = await _parcsDbContext.Jobs.FirstOrDefaultAsync(cancellationToken);
+
+            if (job is null)
+            {
+                return null;
+            }
             
             var outputDirectoryPath = _jobDirectoryPathBuilder.Build(job.Id, JobDirectoryGroup.Output);
             var outputDirectoryArchive = await _fileArchiver.ArchiveDirectoryAsync(outputDirectoryPath, cancellationToken);

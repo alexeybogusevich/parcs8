@@ -1,4 +1,4 @@
-﻿namespace Parcs.HostAPI.Configuration
+﻿namespace Parcs.Host.Configuration
 {
     public sealed class JobOutputConfiguration
     {

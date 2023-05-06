@@ -1,8 +1,8 @@
 ﻿using MediatR;
-using Parcs.HostAPI.Models.Commands;
+using Parcs.Host.Models.Commands;
 using System.Threading.Channels;
 
-namespace Parcs.HostAPI.Handlers
+namespace Parcs.Host.Handlers
 {
     public sealed class RunJobAsynchronouslyCommandHandler : IRequestHandler<RunJobAsynchronouslyCommand>
     {

@@ -1,6 +1,6 @@
 ﻿using MediatR;
 
-namespace Parcs.HostAPI.Models.Commands
+namespace Parcs.Host.Models.Commands
 {
     public class CancelJobCommand : IRequest
     {

@@ -1,10 +1,11 @@
 ﻿using MediatR;
 using Microsoft.AspNetCore.Mvc;
-using Parcs.HostAPI.Models.Commands;
-using Parcs.HostAPI.Models.Responses;
+using Parcs.Host.Models.Commands;
+using Parcs.Host.Models.Queries;
+using Parcs.Host.Models.Responses;
 using System.Net;
 
-namespace Parcs.HostAPI.Controllers
+namespace Parcs.Host.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
@@ -15,6 +16,29 @@ namespace Parcs.HostAPI.Controllers
         public ModulesController(IMediator mediator)
         {
             _mediator = mediator;
+        }
+
+        [HttpGet]
+        [ProducesResponseType(typeof(IEnumerable<GetModuleQueryResponse>), (int)HttpStatusCode.OK)]
+        public async Task<IActionResult> GetAsync(CancellationToken cancellationToken)
+        {
+            var response = await _mediator.Send(new GetAllModulesQuery(), cancellationToken);
+            return Ok(response);
+        }
+
+        [HttpGet("{Id}")]
+        [ProducesResponseType(typeof(GetModuleQueryResponse), (int)HttpStatusCode.OK)]
+        [ProducesResponseType((int)HttpStatusCode.NotFound)]
+        public async Task<IActionResult> GetAsync([FromRoute] GetModuleQuery query, CancellationToken cancellationToken)
+        {
+            var response = await _mediator.Send(query, cancellationToken);
+
+            if (response is null)
+            {
+                return NotFound();
+            }
+
+            return Ok(response);
         }
 
         [HttpPost]

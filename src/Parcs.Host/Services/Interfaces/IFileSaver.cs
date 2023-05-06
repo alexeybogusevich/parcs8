@@ -1,4 +1,4 @@
-﻿namespace Parcs.HostAPI.Services.Interfaces
+﻿namespace Parcs.Host.Services.Interfaces
 {
     public interface IFileSaver
     {

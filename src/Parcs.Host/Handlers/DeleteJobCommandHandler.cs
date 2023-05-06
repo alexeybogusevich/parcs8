@@ -1,11 +1,11 @@
 ﻿using MediatR;
-using Parcs.HostAPI.Models.Commands;
-using Parcs.HostAPI.Services.Interfaces;
+using Parcs.Host.Models.Commands;
+using Parcs.Host.Services.Interfaces;
 using Parcs.Core.Services.Interfaces;
 using Parcs.Data.Context;
 using Microsoft.EntityFrameworkCore;
 
-namespace Parcs.HostAPI.Handlers
+namespace Parcs.Host.Handlers
 {
     public sealed class DeleteJobCommandHandler : IRequestHandler<DeleteJobCommand>
     {

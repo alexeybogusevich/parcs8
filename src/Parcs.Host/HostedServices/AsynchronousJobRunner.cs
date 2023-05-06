@@ -1,11 +1,11 @@
 ﻿using MediatR;
-using Parcs.HostAPI.Models.Commands;
-using Parcs.HostAPI.Models.Commands.Base;
-using Parcs.HostAPI.Models.Domain;
-using Parcs.HostAPI.Services.Interfaces;
+using Parcs.Host.Models.Commands;
+using Parcs.Host.Models.Commands.Base;
+using Parcs.Host.Models.Domain;
+using Parcs.Host.Services.Interfaces;
 using System.Threading.Channels;
 
-namespace Parcs.HostAPI.HostedServices
+namespace Parcs.Host.HostedServices
 {
     public class AsynchronousJobRunner : BackgroundService
     {

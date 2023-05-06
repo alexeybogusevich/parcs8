@@ -1,8 +1,8 @@
 ﻿using MediatR;
-using Parcs.HostAPI.Models.Commands;
-using Parcs.HostAPI.Services.Interfaces;
+using Parcs.Host.Models.Commands;
+using Parcs.Host.Services.Interfaces;
 
-namespace Parcs.HostAPI.Handlers
+namespace Parcs.Host.Handlers
 {
     public class CancelJobCommandHandler : IRequestHandler<CancelJobCommand>
     {

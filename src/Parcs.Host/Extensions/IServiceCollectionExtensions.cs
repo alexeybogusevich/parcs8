@@ -1,24 +1,24 @@
 ﻿using FluentValidation;
 using FluentValidation.AspNetCore;
-using Parcs.HostAPI.Configuration;
-using Parcs.HostAPI.Models.Commands;
-using Parcs.HostAPI.Services;
-using Parcs.HostAPI.Services.Interfaces;
-using Parcs.HostAPI.Validators;
+using Parcs.Host.Configuration;
+using Parcs.Host.Models.Commands;
+using Parcs.Host.Services;
+using Parcs.Host.Services.Interfaces;
+using Parcs.Host.Validators;
 using Parcs.Core.Configuration;
 using Parcs.Core.Services;
 using Parcs.Core.Services.Interfaces;
 using System.Reflection;
 using System.Threading.Channels;
 using Channel = System.Threading.Channels.Channel;
-using Parcs.HostAPI.HostedServices;
+using Parcs.Host.HostedServices;
 using Parcs.Core.Models;
 using Parcs.Host.Configuration;
 using Microsoft.EntityFrameworkCore;
 using Parcs.Data.Context;
 using System.Text;
 
-namespace Parcs.HostAPI.Extensions
+namespace Parcs.Host.Extensions
 {
     public static class IServiceCollectionExtensions
     {

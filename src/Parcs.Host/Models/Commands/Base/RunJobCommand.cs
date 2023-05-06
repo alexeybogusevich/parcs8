@@ -1,6 +1,6 @@
 ﻿using System.Text.Json;
 
-namespace Parcs.HostAPI.Models.Commands.Base
+namespace Parcs.Host.Models.Commands.Base
 {
     public class RunJobCommand
     {

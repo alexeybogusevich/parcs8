@@ -1,4 +1,4 @@
-﻿namespace Parcs.HostAPI.Models.Enums
+﻿namespace Parcs.Host.Models.Enums
 {
     public enum EntityType
     {

@@ -1,4 +1,4 @@
-using Parcs.HostAPI.Extensions;
+using Parcs.Host.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 

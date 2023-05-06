@@ -1,7 +1,7 @@
 ﻿using MediatR;
-using Parcs.HostAPI.Models.Commands.Base;
+using Parcs.Host.Models.Commands.Base;
 
-namespace Parcs.HostAPI.Models.Commands
+namespace Parcs.Host.Models.Commands
 {
     public class CreateAsynchronousJobRunCommand : CreateJobRunCommand, IRequest
     {

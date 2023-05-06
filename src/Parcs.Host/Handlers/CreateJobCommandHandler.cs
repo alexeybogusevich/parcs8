@@ -1,14 +1,14 @@
 ﻿using MediatR;
-using Parcs.HostAPI.Models.Commands;
-using Parcs.HostAPI.Models.Responses;
-using Parcs.HostAPI.Services.Interfaces;
+using Parcs.Host.Models.Commands;
+using Parcs.Host.Models.Responses;
+using Parcs.Host.Services.Interfaces;
 using Parcs.Core.Models.Enums;
 using Parcs.Core.Services.Interfaces;
 using Parcs.Data.Context;
 using Parcs.Data.Entities;
 using Parcs.Core.Models;
 
-namespace Parcs.HostAPI.Handlers
+namespace Parcs.Host.Handlers
 {
     public sealed class CreateJobCommandHandler : IRequestHandler<CreateJobCommand, CreateJobCommandResponse>
     {
@@ -36,10 +36,13 @@ namespace Parcs.HostAPI.Handlers
                 ModuleId = request.ModuleId,
                 AssemblyName = request.AssemblyName,
                 ClassName = request.ClassName,
+                Statuses = new List<JobStatusEntity>
+                {
+                    new JobStatusEntity { Status = (short)JobStatus.Created }
+                },
             };
 
             await _parcsDbContext.Jobs.AddAsync(job, cancellationToken);
-            await _parcsDbContext.JobStatuses.AddAsync(new JobStatusEntity(job.Id, (short)JobStatus.Created), cancellationToken);
             await _parcsDbContext.SaveChangesAsync(cancellationToken);
 
             _jobTracker.StartTracking(job.Id);

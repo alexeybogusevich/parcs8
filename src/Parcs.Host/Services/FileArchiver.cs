@@ -1,8 +1,8 @@
-﻿using Parcs.HostAPI.Models.Domain;
-using Parcs.HostAPI.Services.Interfaces;
+﻿using Parcs.Host.Models.Domain;
+using Parcs.Host.Services.Interfaces;
 using System.IO.Compression;
 
-namespace Parcs.HostAPI.Services
+namespace Parcs.Host.Services
 {
     public sealed class FileArchiver : IFileArchiver
     {

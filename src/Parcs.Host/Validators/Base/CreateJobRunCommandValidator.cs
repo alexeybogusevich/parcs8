@@ -1,11 +1,11 @@
 ﻿using FluentValidation;
-using Parcs.HostAPI.Models.Commands.Base;
+using Parcs.Host.Models.Commands.Base;
 using Parcs.Core.Services.Interfaces;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 
-namespace Parcs.HostAPI.Validators.Base
+namespace Parcs.Host.Validators.Base
 {
     public abstract class CreateJobRunCommandValidator<TCreateJobRunCommandValidator> : AbstractValidator<TCreateJobRunCommandValidator>
         where TCreateJobRunCommandValidator : CreateJobRunCommand

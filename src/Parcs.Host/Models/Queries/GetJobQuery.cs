@@ -1,7 +1,7 @@
 ﻿using MediatR;
-using Parcs.HostAPI.Models.Responses;
+using Parcs.Host.Models.Responses;
 
-namespace Parcs.HostAPI.Models.Queries
+namespace Parcs.Host.Models.Queries
 {
     public class GetJobQuery : IRequest<GetJobQueryResponse>
     {

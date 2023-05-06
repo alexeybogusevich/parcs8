@@ -1,6 +1,6 @@
-﻿using Parcs.HostAPI.Models.Domain;
+﻿using Parcs.Host.Models.Domain;
 
-namespace Parcs.HostAPI.Services.Interfaces
+namespace Parcs.Host.Services.Interfaces
 {
     public interface IJobCompletionNotifier
     {

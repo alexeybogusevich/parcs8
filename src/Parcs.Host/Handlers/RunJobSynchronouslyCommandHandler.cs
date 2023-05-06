@@ -1,13 +1,13 @@
 ﻿using MediatR;
-using Parcs.HostAPI.Models.Commands;
-using Parcs.HostAPI.Models.Responses;
-using Parcs.HostAPI.Services.Interfaces;
+using Parcs.Host.Models.Commands;
+using Parcs.Host.Models.Responses;
+using Parcs.Host.Services.Interfaces;
 using Parcs.Core.Services.Interfaces;
 using Parcs.Core.Models;
 using Parcs.Data.Context;
 using Microsoft.EntityFrameworkCore;
 
-namespace Parcs.HostAPI.Handlers
+namespace Parcs.Host.Handlers
 {
     public class RunJobSynchronouslyCommandHandler : IRequestHandler<RunJobSynchronouslyCommand, RunJobSynchronouslyCommandResponse>
     {
@@ -33,7 +33,8 @@ namespace Parcs.HostAPI.Handlers
 
             if (!_jobTracker.TryGetCancellationToken(job.Id, out var jobCancellationToken))
             {
-                throw new ArgumentException("Job cancellation token was null.");
+                _jobTracker.StartTracking(job.Id);
+                _ = _jobTracker.TryGetCancellationToken(job.Id, out jobCancellationToken);
             }
 
             var jobMetadata = new JobMetadata(job.Id, job.ModuleId);
@@ -67,7 +68,7 @@ namespace Parcs.HostAPI.Handlers
 
             var jobLastStatus = (JobStatus?)job.Statuses.LastOrDefault()?.Status;
 
-            return new RunJobSynchronouslyCommandResponse(job.Id, jobLastStatus);
+            return new RunJobSynchronouslyCommandResponse(jobLastStatus);
         }
     }
 }
