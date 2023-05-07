@@ -1,55 +1,51 @@
 apiVersion: v1
-kind: ServiceAccount
+kind: PersistentVolume
 metadata:
-  name: parcs-service-account
-  namespace: default
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: read-kubernetes-api
-rules:
-- apiGroups: [""]
-  resources: ["services", "endpoints"]
-  verbs: ["get", "list"]
-  resourceNames: ["*"]
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: read-kubernetes-api-binding
-  namespace: default
-subjects:
-- kind: ServiceAccount
-  name: parcs-service-account
-  namespace: default
-roleRef:
-  kind: Role
-  name: read-kubernetes-api
-  apiGroup: rbac.authorization.k8s.io
+  name: parcs-storage-volume
+spec:
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: /mnt/data/storage
 ---
 apiVersion: v1
 kind: PersistentVolume
 metadata:
-  name: parcs-storage
+  name: parcs-database-volume
 spec:
   capacity:
     storage: 1Gi
   accessModes:
     - ReadWriteOnce
   hostPath:
-    path: /mnt/data
+    path: /mnt/data/database
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: parcs-storage-claim
+  name: parcs-storage-volume-claim
 spec:
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 500Mi
+      storage: 1Gi
+  selector:
+    matchLabels:
+      app: parcs
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: parcs-database-volume-claim
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
   selector:
     matchLabels:
       app: parcs
@@ -92,17 +88,17 @@ spec:
         resources:
           limits:
             cpu: 500m
-            memory: 512Mi
+            memory: 1024Mi
           requests:
             cpu: 100m
-            memory: 128Mi
+            memory: 256Mi
         volumeMounts:
-        - name: parcs-storage
+        - name: parcs-storage-volume
           mountPath: /var/lib/storage
       volumes:
-      - name: parcs-storage
+      - name: parcs-storage-volume
         persistentVolumeClaim:
-          claimName: parcs-storage-claim
+          claimName: parcs-storage-volume-claim
 ---
 apiVersion: v1
 kind: Service
@@ -133,8 +129,6 @@ spec:
       labels:
         app: parcs-hostapi
     spec:
-      serviceAccountName: parcs-service-account
-      automountServiceAccountToken: true
       containers:
       - name: parcs-hostapi
         image: oleksiibohusevych/parcshost
@@ -149,18 +143,68 @@ spec:
             cpu: 100m
             memory: 128Mi
         env:
-        - name: PARCS_DAEMON_ENDPOINTS
-          value: parcs-daemon-headless.parcs.svc.cluster.local
         - name: Hosting__Environment
           value: Kubernetes
         - name: Kubernetes__NamespaceName
           value: Default
         - name: Kubernetes__DaemonsHeadlessServiceName
           value: parcs-daemon-headless
+        - name: Database__HostName
+          value: parcs-database
+        - name: Database__DatabaseName
+          value: parcs
+        - name: Database__Username
+          value: parcs_admin
+        - name: Database__Password
+          value: p5sAuuhrSxs9GHxD
+        - name: Database__Port
+          value: '5432'                             
         volumeMounts:
-        - name: parcs-storage
+        - name: parcs-storage-volume
           mountPath: /var/lib/storage
       volumes:
-      - name: parcs-storage
+      - name: parcs-storage-volume
         persistentVolumeClaim:
-          claimName: parcs-storage-claim
+          claimName: parcs-storage-volume-claim
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: parcs-database
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: parcs-database
+  template:
+    metadata:
+      labels:
+        app: parcs-database
+    spec:
+      containers:
+      - name: parcs-database
+        image: postgres:latest
+        imagePullPolicy: Always
+        env:
+        - name: POSTGRES_USER
+          value: p5sAuuhrSxs9GHxD
+        - name: POSTGRES_PASSWORD
+          value: parcs_admin
+        - name: POSTGRES_DB
+          value: parcs
+        ports:
+        - containerPort: 5432
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        volumeMounts:
+        - name: parcs-database-volume
+          mountPath: /var/lib/postgresql/data
+      volumes:
+      - name: parcs-database-volume
+        persistentVolumeClaim:
+          claimName: parcs-database-volume-claim

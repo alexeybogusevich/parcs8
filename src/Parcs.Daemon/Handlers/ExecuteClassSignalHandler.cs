@@ -42,7 +42,7 @@ namespace Parcs.TCP.Daemon.Handlers
                 var className = await managedChannel.ReadStringAsync();
 
                 var module = _moduleLoader.Load(moduleId, assemblyName, className);
-                var moduleInfo = _moduleInfoFactory.Create(jobMetadata, pointsNumber, arguments, managedChannel, jobCancellationToken);
+                await using var moduleInfo = _moduleInfoFactory.Create(jobMetadata, pointsNumber, arguments, managedChannel, jobCancellationToken);
 
                 await module.RunAsync(moduleInfo, jobCancellationToken);
             }

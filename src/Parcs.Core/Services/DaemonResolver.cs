@@ -26,7 +26,15 @@ namespace Parcs.Core.Services
         public IEnumerable<Daemon> GetAvailableDaemons()
         {
             var resolutionStrategy = _daemonResolutionStrategyFactory.Create(_hostingConfiguration.Environment);
-            return resolutionStrategy.Resolve();
+
+            var resolvedDaemons = resolutionStrategy.Resolve();
+
+            if (resolvedDaemons is null || !resolvedDaemons.Any())
+            {
+                throw new InvalidOperationException($"No daemon was resolved. Strategy: {resolutionStrategy.GetType().Name}");
+            }
+
+            return resolvedDaemons;
         }
     }
 }
