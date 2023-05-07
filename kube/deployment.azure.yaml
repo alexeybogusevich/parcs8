@@ -170,6 +170,52 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
+  name: parcs-portal
+  labels:
+    app: parcs-portal
+spec:
+  type: LoadBalancer
+  ports:
+  - name: https
+    port: 443
+    targetPort: 443
+  - name: http
+    port: 80
+    targetPort: 80
+  selector:
+    app: parcs-portal
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: parcs-portal
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: parcs-portal
+  template:
+    metadata:
+      labels:
+        app: parcs-portal
+    spec:
+      containers:
+      - name: parcs-portal
+        image: oleksiibohusevych/parcsportal
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 80
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
   name: parcs-database
   labels:
     app: parcs-database
