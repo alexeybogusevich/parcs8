@@ -30,6 +30,11 @@ namespace Parcs.Host.Handlers
                 .Include(e => e.Failures)
                 .FirstOrDefaultAsync(e => e.Id == request.JobId, CancellationToken.None) ?? throw new ArgumentException("Job not found.");
 
+            if (job.Statuses.All(s => s.Status != (short)JobStatus.Failed))
+            {
+                await _parcsDbContext.JobStatuses.AddAsync(new(job.Id, (short)JobStatus.Failed), CancellationToken.None);
+            }
+
             await _parcsDbContext.JobFailures.AddAsync(new(job.Id, request.Message, request.StackTrace), CancellationToken.None);
             await _parcsDbContext.SaveChangesAsync(CancellationToken.None);
 

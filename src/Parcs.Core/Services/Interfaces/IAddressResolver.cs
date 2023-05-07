@@ -4,6 +4,6 @@ namespace Parcs.Core.Services.Interfaces
 {
     public interface IAddressResolver
     {
-        IPAddress[] Resolve(string url);
+        IPAddress[] Resolve(string hostName);
     }
 }

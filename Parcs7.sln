@@ -29,7 +29,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "kube", "kube", "{9A51C28B-99DB-421A-879D-F3F12BAE0A4C}"
 	ProjectSection(SolutionItems) = preProject
-		kube\deployment.yaml = kube\deployment.yaml
+		kube\deployment.azure.yaml = kube\deployment.azure.yaml
+		kube\deployment.local.yaml = kube\deployment.local.yaml
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "infra", "infra", "{1B4570A7-808B-4C44-B2A0-D9AB7A6D9501}"
@@ -44,7 +45,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Parcs.Core", "src\Parcs.Cor
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Parcs.Host", "src\Parcs.Host\Parcs.Host.csproj", "{DF9A2B32-C703-47D3-A7D4-30726F7D3D69}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Parcs.Data", "src\Parcs.Data\Parcs.Data.csproj", "{4BB8F69A-20F8-4130-90FE-135164A76C1C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Parcs.Data", "src\Parcs.Data\Parcs.Data.csproj", "{4BB8F69A-20F8-4130-90FE-135164A76C1C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

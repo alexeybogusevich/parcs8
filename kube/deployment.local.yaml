@@ -70,7 +70,7 @@ kind: Deployment
 metadata:
   name: parcs-daemon
 spec:
-  replicas: 3
+  replicas: 1
   selector:
     matchLabels:
       app: parcs-daemon
@@ -79,6 +79,7 @@ spec:
       labels:
         app: parcs-daemon
     spec:
+      dnsPolicy: ClusterFirst
       containers:
       - name: parcs-daemon
         image: oleksiibohusevych/parcsdaemon
@@ -95,10 +96,19 @@ spec:
         volumeMounts:
         - name: parcs-storage-volume
           mountPath: /var/lib/storage
+        env:
+        - name: Hosting__Environment
+          value: Kubernetes
+        - name: Kubernetes__NamespaceName
+          value: Default
+        - name: Kubernetes__DaemonsHeadlessServiceName
+          value: parcs-daemon-headless
+        - name: HostApi__Uri
+          value: parcs-hostapi-internal    
       volumes:
       - name: parcs-storage-volume
         persistentVolumeClaim:
-          claimName: parcs-storage-volume-claim
+          claimName: parcs-storage-volume-claim    
 ---
 apiVersion: v1
 kind: Service
@@ -111,6 +121,23 @@ spec:
   ports:
   - name: https
     port: 443
+    targetPort: 80
+  selector:
+    app: parcs-hostapi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: parcs-hostapi-internal
+  labels:
+    app: parcs-hostapi
+spec:
+  ports:
+  - name: https
+    port: 443
+    targetPort: 443
+  - name: http
+    port: 80
     targetPort: 80
   selector:
     app: parcs-hostapi
@@ -129,6 +156,7 @@ spec:
       labels:
         app: parcs-hostapi
     spec:
+      dnsPolicy: ClusterFirst
       containers:
       - name: parcs-hostapi
         image: oleksiibohusevych/parcshost
@@ -167,6 +195,20 @@ spec:
         persistentVolumeClaim:
           claimName: parcs-storage-volume-claim
 ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: parcs-database
+  labels:
+    app: parcs-database
+spec:
+  selector:
+    app: parcs-database
+  ports:
+  - name: postgres
+    port: 5432
+    targetPort: 5432
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -187,9 +229,9 @@ spec:
         imagePullPolicy: Always
         env:
         - name: POSTGRES_USER
-          value: p5sAuuhrSxs9GHxD
-        - name: POSTGRES_PASSWORD
           value: parcs_admin
+        - name: POSTGRES_PASSWORD
+          value: p5sAuuhrSxs9GHxD
         - name: POSTGRES_DB
           value: parcs
         ports:

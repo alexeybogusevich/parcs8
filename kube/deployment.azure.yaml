@@ -1,0 +1,227 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: parcs-storage-volume-claim
+spec:
+  accessModes:
+  - ReadWriteOnce
+  storageClassName: managed-csi
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: parcs-database-volume-claim
+spec:
+  accessModes:
+  - ReadWriteOnce
+  storageClassName: managed-csi
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: parcs-daemon-headless
+  labels:
+    app: parcs-daemon
+spec:
+  ports:
+  - name: daemon
+    port: 1111
+    targetPort: 1111
+  selector:
+    app: parcs-daemon
+  clusterIP: None
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: parcs-daemon
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: parcs-daemon
+  template:
+    metadata:
+      labels:
+        app: parcs-daemon
+    spec:
+      dnsPolicy: ClusterFirst
+      containers:
+      - name: parcs-daemon
+        image: oleksiibohusevych/parcsdaemon
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 1111
+        resources:
+          limits:
+            cpu: 500m
+            memory: 1024Mi
+          requests:
+            cpu: 100m
+            memory: 256Mi
+        volumeMounts:
+        - name: parcs-storage-volume
+          mountPath: /var/lib/storage
+        env:
+        - name: Hosting__Environment
+          value: Kubernetes
+        - name: Kubernetes__NamespaceName
+          value: Default
+        - name: Kubernetes__DaemonsHeadlessServiceName
+          value: parcs-daemon-headless
+        - name: HostApi__Uri
+          value: parcs-hostapi-internal   
+      volumes:
+      - name: parcs-storage-volume
+        persistentVolumeClaim:
+          claimName: parcs-storage-volume-claim    
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: parcs-hostapi
+  labels:
+    app: parcs-hostapi
+spec:
+  type: LoadBalancer
+  ports:
+  - name: https
+    port: 443
+    targetPort: 80
+  selector:
+    app: parcs-hostapi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: parcs-hostapi-internal
+  labels:
+    app: parcs-hostapi
+spec:
+  ports:
+  - name: https
+    port: 443
+    targetPort: 443
+  - name: http
+    port: 80
+    targetPort: 80
+  selector:
+    app: parcs-hostapi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: parcs-hostapi
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: parcs-hostapi
+  template:
+    metadata:
+      labels:
+        app: parcs-hostapi
+    spec:
+      dnsPolicy: ClusterFirst
+      containers:
+      - name: parcs-hostapi
+        image: oleksiibohusevych/parcshost
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 80
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        env:
+        - name: Hosting__Environment
+          value: Kubernetes
+        - name: Kubernetes__NamespaceName
+          value: Default
+        - name: Kubernetes__DaemonsHeadlessServiceName
+          value: parcs-daemon-headless
+        - name: Database__HostName
+          value: parcs-database
+        - name: Database__DatabaseName
+          value: parcs
+        - name: Database__Username
+          value: parcs_admin
+        - name: Database__Password
+          value: p5sAuuhrSxs9GHxD
+        - name: Database__Port
+          value: '5432'                             
+        volumeMounts:
+        - name: parcs-storage-volume
+          mountPath: /var/lib/storage
+      volumes:
+      - name: parcs-storage-volume
+        persistentVolumeClaim:
+          claimName: parcs-storage-volume-claim
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: parcs-database
+  labels:
+    app: parcs-database
+spec:
+  selector:
+    app: parcs-database
+  ports:
+  - name: postgres
+    port: 5432
+    targetPort: 5432
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: parcs-database
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: parcs-database
+  template:
+    metadata:
+      labels:
+        app: parcs-database
+    spec:
+      containers:
+      - name: parcs-database
+        image: postgres:latest
+        imagePullPolicy: Always
+        env:
+        - name: POSTGRES_USER
+          value: parcs_admin
+        - name: POSTGRES_PASSWORD
+          value: p5sAuuhrSxs9GHxD
+        - name: POSTGRES_DB
+          value: parcs
+        - name: PGDATA
+          value: /var/lib/postgresql/data/postgres
+        ports:
+        - containerPort: 5432
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        volumeMounts:
+        - name: parcs-database-volume
+          mountPath: /var/lib/postgresql/data
+          postgres: postgres
+      volumes:
+      - name: parcs-database-volume
+        persistentVolumeClaim:
+          claimName: parcs-database-volume-claim
