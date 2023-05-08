@@ -9,12 +9,12 @@ namespace Parcs.Modules.ProofOfWork.Parallel
             var difficulty = await moduleInfo.Parent.ReadIntAsync();
 
             var prompt = await moduleInfo.Parent.ReadStringAsync();
-            var nonceStart = await moduleInfo.Parent.ReadIntAsync();
-            var nonceEnd = await moduleInfo.Parent.ReadIntAsync();
+            var nonceStart = await moduleInfo.Parent.ReadLongAsync();
+            var nonceEnd = await moduleInfo.Parent.ReadLongAsync();
 
             var leadingZeros = new string(Enumerable.Repeat('0', difficulty).ToArray());
 
-            for (int nonce = nonceStart; nonce <= nonceEnd; ++nonce)
+            for (long nonce = nonceStart; nonce <= nonceEnd; ++nonce)
             {
                 var hashValue = HashService.GetHashValue($"{prompt}{nonce}");
 

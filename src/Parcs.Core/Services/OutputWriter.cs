@@ -18,6 +18,12 @@ namespace Parcs.Core.Services
             }
         }
 
+        public FileStream GetStreamForFile(string fileName = null)
+        {
+            var filePath = Path.Combine(_basePath, fileName ?? Guid.NewGuid().ToString());
+            return new FileStream(filePath, FileMode.Create);
+        }
+
         public async Task WriteToFileAsync(byte[] bytes, string fileName = null)
         {
             var filePath = Path.Combine(_basePath, fileName ?? Guid.NewGuid().ToString());

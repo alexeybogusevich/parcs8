@@ -2,8 +2,16 @@
 {
     public class ModuleOptions
     {
-        public string MatrixAFileName { get; set; }
+        public int MatrixSize { get; set; } = 16;
 
-        public string MatrixBFileName { get; set; }
+        public bool SaveMatrixes { get; set; } = false;
+
+        public string OutputFilename { get; set; } = "Output.txt";
+
+        public string MatrixAOutputFilename { get; set; } = "MatrixA.txt";
+
+        public string MatrixBOutputFilename { get; set; } = "MatrixB.txt";
+
+        public string MatrixCOutputFilename { get; set; } = "MatrixC.txt";
     }
 }

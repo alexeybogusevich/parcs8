@@ -1,18 +1,18 @@
 ﻿using Parcs.Modules.MatrixesMultiplication.Models;
 using Parcs.Net;
 
-namespace Parcs.Modules.MatrixesMultiplication
+namespace Parcs.Modules.MatrixesMultiplication.Parallel
 {
-    public class WorkerModule : IModule
+    public class AtomicWorkerModule : IModule
     {
         public async Task RunAsync(IModuleInfo moduleInfo, CancellationToken cancellationToken = default)
         {
             var matrixA = await moduleInfo.Parent.ReadObjectAsync<Matrix>();
             var matrixB = await moduleInfo.Parent.ReadObjectAsync<Matrix>();
 
-            var matrixAB = matrixA.MultiplyBy(matrixB, cancellationToken);
+            matrixA.MultiplyBy(matrixB, cancellationToken);
 
-            await moduleInfo.Parent.WriteObjectAsync(matrixAB);
+            await moduleInfo.Parent.WriteObjectAsync(matrixA);
         }
     }
 }

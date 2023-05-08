@@ -1,27 +1,46 @@
 ﻿using System.Text;
+using System.Threading;
 
 namespace Parcs.Modules.MatrixesMultiplication.Models
 {
-    internal class Matrix
+    public class Matrix
     {
         private const int MaxRandomValue = 100;
 
-        private int[,] _data;
+        public Matrix()
+        {
+        }
 
         public Matrix(int heigth, int width, bool randomFill = false)
         {
             Height = heigth;
             Width = width;
-            _data = new int[Height, Width];
+
+            Data = new List<List<int>>(Height);
+
+            for (int i = 0; i < Height; ++i)
+            {
+                var row = new List<int>(Width);
+
+                for (int j = 0; j < Width; ++j)
+                {
+                    row.Add(0);
+                }
+
+                Data.Add(row);
+            }
+
             if (randomFill)
             {
                 RandomFill();
             }
         }
 
-        public int Height { get; private set; }
+        public int Height { get; set; }
 
-        public int Width { get; private set; }
+        public int Width { get; set; }
+
+        public List<List<int>> Data { get; set; }
 
         public Matrix SubMatrix(int top, int left, int height, int width)
         {
@@ -35,7 +54,7 @@ namespace Parcs.Modules.MatrixesMultiplication.Models
                 {
                     for (int j = 0; j < width; j++)
                     {
-                        subMatrix[i, j] = _data[top + i, left + j];
+                        subMatrix[i, j] = Data[top + i][left + j];
                     }
                 }
             }
@@ -47,12 +66,12 @@ namespace Parcs.Modules.MatrixesMultiplication.Models
         {
             get
             {
-                return _data[x, y];
+                return Data[x][y];
             }
 
             set
             {
-                _data[x, y] = value;
+                Data[x][y] = value;
             }
         }
 
@@ -109,7 +128,20 @@ namespace Parcs.Modules.MatrixesMultiplication.Models
         {
             Height = matrix.Height;
             Width = matrix.Width;
-            _data = new int[Height, Width];
+
+            Data = new List<List<int>>(Height);
+
+            for (int i = 0; i < Height; ++i)
+            {
+                var row = new List<int>(Width);
+
+                for (int j = 0; j < Width; ++j)
+                {
+                    row.Add(0);
+                }
+
+                Data.Add(row);
+            }
 
             for (int i = 0; i < Height; ++i)
             {
@@ -128,7 +160,7 @@ namespace Parcs.Modules.MatrixesMultiplication.Models
                 {
                     for (int j = 0; j < source.Width; j++)
                     {
-                        _data[top + i, left + j] = source[i, j];
+                        Data[top + i][left + j] = source[i, j];
                     }
                 }
             }
@@ -141,7 +173,7 @@ namespace Parcs.Modules.MatrixesMultiplication.Models
             {
                 for (int j = 0; j < Width; ++j)
                 {
-                    _data[i, j] = rand.Next(MaxRandomValue);
+                    Data[i][j] = rand.Next(MaxRandomValue);
                 }
             }
         }
@@ -166,21 +198,10 @@ namespace Parcs.Modules.MatrixesMultiplication.Models
             return matrix;
         }
 
-        public void WriteToFile(string filePath)
+        public Task WriteToStreamAsync(FileStream fileStream, CancellationToken cancellationToken = default)
         {
-            using var stream = new FileStream(filePath, FileMode.OpenOrCreate);
-            using var writer = new BinaryWriter(stream);
-
-            writer.Write(Width);
-            writer.Write(Height);
-
-            for (var i = 0; i < Width; i++)
-            {
-                for (var j = 0; j < Height; j++)
-                {
-                    writer.Write(this[i, j]);
-                }
-            }
+            using var memoryStream = new MemoryStream(Encoding.UTF8.GetBytes(ToString()));
+            return memoryStream.CopyToAsync(fileStream, cancellationToken);
         }
 
         public override string ToString()
@@ -192,7 +213,14 @@ namespace Parcs.Modules.MatrixesMultiplication.Models
                 for (var j = 0; j < Height; j++)
                 {
                     stringBuilder.Append(this[i, j]);
+
+                    if (j != Height - 1)
+                    {
+                        stringBuilder.Append(' ');
+                    }
                 }
+
+                stringBuilder.AppendLine();
             }
 
             return stringBuilder.ToString();

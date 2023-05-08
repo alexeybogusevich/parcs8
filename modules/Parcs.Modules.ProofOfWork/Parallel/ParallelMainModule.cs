@@ -20,8 +20,8 @@ namespace Parcs.Modules.ProofOfWork.Parallel
                 channels[i] = await points[i].CreateChannelAsync();
             }
 
-            int? resultNonce = null;
-            var nonceStart = 0;
+            long? resultNonce = null;
+            long nonceStart = 0;
 
             var stopWatch = new Stopwatch();
             stopWatch.Start();
@@ -45,7 +45,7 @@ namespace Parcs.Modules.ProofOfWork.Parallel
 
                     if (found)
                     {
-                        resultNonce = await channels[i].ReadIntAsync();
+                        resultNonce = await channels[i].ReadLongAsync();
                         break;
                     }
                 }

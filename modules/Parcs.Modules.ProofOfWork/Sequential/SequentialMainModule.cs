@@ -10,11 +10,11 @@ namespace Parcs.Modules.ProofOfWork.Sequential
         {
             var moduleOptions = moduleInfo.ArgumentsProvider.Bind<ModuleOptions>();
 
-            int? resultNonce = null;
+            long? resultNonce = null;
             var stopWatch = new Stopwatch();
             stopWatch.Start();
 
-            for (int nonce = 0; nonce <= moduleOptions.MaximumNonce; ++nonce)
+            for (long nonce = 0; nonce <= moduleOptions.MaximumNonce; ++nonce)
             {
                 var hashValue = HashService.GetHashValue($"{moduleOptions.Prompt}{nonce}");
 
