@@ -18,6 +18,8 @@ namespace Parcs.Core.Models
             _tcpClient = tcpClient;
         }
 
+        public bool IsConnected => _tcpClient is not null && _tcpClient.Connected;
+
         public void SetCancellation(CancellationToken cancellationToken)
         {
             _cancellationToken = cancellationToken;

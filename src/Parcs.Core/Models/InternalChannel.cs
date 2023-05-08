@@ -19,6 +19,8 @@ namespace Parcs.Core.Models
             _disposeAction = disposeAction;
         }
 
+        public bool IsConnected => _channelReader is not null && _channelWriter is not null && _channelReader.Completion.IsCompleted is false;
+
         public void SetCancellation(CancellationToken cancellationToken)
         {
             _cancellationToken = cancellationToken;
@@ -156,6 +158,10 @@ namespace Parcs.Core.Models
             return typedInternalChannelData;
         }
 
-        public void Dispose() => _disposeAction.Invoke();
+        public void Dispose()
+        {
+            _channelWriter.Complete();
+            _disposeAction.Invoke();
+        }
     }
 }

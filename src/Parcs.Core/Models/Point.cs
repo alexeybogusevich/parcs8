@@ -66,13 +66,18 @@ namespace Parcs.Core.Models
 
         public async ValueTask DisposeAsync()
         {
-            if (_managedChannel is not null)
+            if (_managedChannel is null || _managedChannel.IsConnected is false)
             {
-                await _managedChannel.WriteSignalAsync(Signal.CloseConnection);
-
-                _managedChannel.Dispose();
-                _managedChannel = null;
+                return;
             }
+
+            await _managedChannel.WriteSignalAsync(Signal.CancelJob);
+            await _managedChannel.WriteDataAsync(_jobId);
+
+            await _managedChannel.WriteSignalAsync(Signal.CloseConnection);
+
+            _managedChannel?.Dispose();
+            _managedChannel = null;
         }
     }
 }

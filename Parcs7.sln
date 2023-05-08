@@ -47,6 +47,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Parcs.Host", "src\Parcs.Hos
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Parcs.Data", "src\Parcs.Data\Parcs.Data.csproj", "{4BB8F69A-20F8-4130-90FE-135164A76C1C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Parcs.Modules.ProofOfWork", "modules\Parcs.Modules.ProofOfWork\Parcs.Modules.ProofOfWork.csproj", "{07CCFBA5-4E36-493F-AD0A-E201785A687C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -97,6 +99,10 @@ Global
 		{4BB8F69A-20F8-4130-90FE-135164A76C1C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4BB8F69A-20F8-4130-90FE-135164A76C1C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4BB8F69A-20F8-4130-90FE-135164A76C1C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{07CCFBA5-4E36-493F-AD0A-E201785A687C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{07CCFBA5-4E36-493F-AD0A-E201785A687C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{07CCFBA5-4E36-493F-AD0A-E201785A687C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{07CCFBA5-4E36-493F-AD0A-E201785A687C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -115,6 +121,7 @@ Global
 		{5540FD88-EFBD-4C74-BA2F-7443A95F79C7} = {6E753C81-CC3C-4A85-BC67-B7D2F4F28881}
 		{DF9A2B32-C703-47D3-A7D4-30726F7D3D69} = {6E753C81-CC3C-4A85-BC67-B7D2F4F28881}
 		{4BB8F69A-20F8-4130-90FE-135164A76C1C} = {6E753C81-CC3C-4A85-BC67-B7D2F4F28881}
+		{07CCFBA5-4E36-493F-AD0A-E201785A687C} = {D4150577-5F2D-4343-821C-6DA8FCA60239}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {A7E44F1B-D2FC-4A94-B95F-0558B70A9B92}
