@@ -166,6 +166,17 @@ namespace Parcs.Modules.MatrixesMultiplication.Models
             }
         }
 
+        public void SetSubmatrix(Matrix mat, int iTop, int iLeft)
+        {
+            for (int iY = 0; iY < mat.Height; iY++)
+            {
+                for (int iX = 0; iX < mat.Width; iX++)
+                {
+                    Data[iTop + iY][iLeft + iX] = mat.Data[iY][iX];
+                }
+            }
+        }
+
         public void RandomFill()
         {
             var rand = new Random();

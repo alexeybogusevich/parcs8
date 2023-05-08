@@ -1,14 +1,15 @@
 ﻿using Parcs.Host.Models.Commands;
-using Parcs.Host.Validators.Base;
-using Parcs.Core.Services.Interfaces;
+using FluentValidation;
 
 namespace Parcs.Host.Validators
 {
-    public class CreateSynchronousJobRunCommandValidator : CreateJobRunCommandValidator<CreateSynchronousJobRunCommand>
+    public class CreateSynchronousJobRunCommandValidator : AbstractValidator<RunJobSynchronouslyCommand>
     {
-        public CreateSynchronousJobRunCommandValidator(IModuleDirectoryPathBuilder moduleDirectoryPathBuilder)
-            : base(moduleDirectoryPathBuilder)
+        public CreateSynchronousJobRunCommandValidator()
         {
+            RuleFor(c => c.PointsNumber)
+                .GreaterThan(0)
+                .WithMessage("The number of points must be greater than zero.");
         }
     }
 }

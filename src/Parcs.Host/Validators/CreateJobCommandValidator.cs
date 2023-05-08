@@ -1,20 +1,17 @@
 ﻿using FluentValidation;
-using Parcs.Host.Models.Commands.Base;
 using Parcs.Core.Services.Interfaces;
+using Parcs.Host.Models.Commands;
 using System.Reflection;
 using System.Runtime.InteropServices;
 
-namespace Parcs.Host.Validators.Base
+namespace Parcs.Host.Validators
 {
-    public abstract class CreateJobRunCommandValidator<TCreateJobRunCommandValidator> : AbstractValidator<TCreateJobRunCommandValidator>
-        where TCreateJobRunCommandValidator : CreateJobRunCommand
+    public class CreateJobCommandValidator : AbstractValidator<CreateJobCommand>
     {
         private const string AssemblyExtension = "dll";
 
-        protected CreateJobRunCommandValidator(IModuleDirectoryPathBuilder moduleDirectoryPathBuilder)
+        public CreateJobCommandValidator(IModuleDirectoryPathBuilder moduleDirectoryPathBuilder)
         {
-            RuleLevelCascadeMode = CascadeMode.Stop;
-
             RuleFor(c => c.ModuleId)
                 .NotEmpty()
                 .WithMessage("Module Id is required.")
@@ -23,23 +20,19 @@ namespace Parcs.Host.Validators.Base
                 .DependentRules(() =>
                 {
                     RuleFor(c => c)
-                        .Must(c => BeAnExistingAssembly(c.ModuleId, c.MainModuleAssemblyName, moduleDirectoryPathBuilder))
+                        .Must(c => BeAnExistingAssembly(c.ModuleId, c.AssemblyName, moduleDirectoryPathBuilder))
                         .WithMessage("Assembly not found.")
-                        .Must(c => BeAnExistingClass(c.ModuleId, c.MainModuleAssemblyName, c.MainModuleClassName, moduleDirectoryPathBuilder))
+                        .Must(c => BeAnExistingClass(c.ModuleId, c.AssemblyName, c.ClassName, moduleDirectoryPathBuilder))
                         .WithMessage("Class not found in the assembly.");
                 });
 
-            RuleFor(c => c.MainModuleAssemblyName)
+            RuleFor(c => c.AssemblyName)
                 .NotEmpty()
-                .WithMessage("Main module's assembly name is required.");
+                .WithMessage("Module's assembly name is required.");
 
-            RuleFor(c => c.MainModuleClassName)
+            RuleFor(c => c.ClassName)
                 .NotEmpty()
-                .WithMessage("Main module's class name is required.");
-
-            RuleFor(c => c.PointsNumber)
-                .GreaterThan(0)
-                .WithMessage("The number of points must be greater than zero.");
+                .WithMessage("Module's class name is required.");
         }
 
         private static bool BeAnExistingModule(long moduleId, IModuleDirectoryPathBuilder moduleDirectoryPathBuilder)
