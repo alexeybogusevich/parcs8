@@ -1,5 +1,4 @@
 ﻿using System.Text;
-using System.Threading;
 
 namespace Parcs.Modules.MatrixesMultiplication.Models
 {
@@ -64,64 +63,51 @@ namespace Parcs.Modules.MatrixesMultiplication.Models
 
         public int this[int x, int y]
         {
-            get
-            {
-                return Data[x][y];
-            }
-
-            set
-            {
-                Data[x][y] = value;
-            }
+            get => Data[x][y];
+            set => Data[x][y] = value;
         }
 
-        public Matrix Add(Matrix matrix)
+        public void Add(Matrix matrix)
         {
             if (matrix.Width != Width || matrix.Height != Height)
             {
-                Console.WriteLine("Different dimentions");
-                return null;
+                throw new ArgumentException("Matrixes dimensions should be the same");
             }
 
-            for (int i = 0; i < Height; ++i)
+            for (int i = 0; i < Height; i++)
             {
-                for (int j = 0; j < Width; ++j)
+                for (int j = 0; j < Width; j++)
                 {
-                    this[i, j] += matrix[i, j];
+                    this[i, j] = this[i, j] + matrix[i, j];
                 }
             }
-
-            return this;
         }
 
-        public Matrix MultiplyBy(Matrix matrix, CancellationToken token = default)
+        public void MultiplyBy(Matrix matrix, CancellationToken token = default)
         {
-            Matrix resultMatrix = null;
-
             if (Width != matrix.Height)
             {
-                Console.WriteLine("Cannot multiply matrixes with such dimentions");
+                throw new ArgumentException("Cannot multiply matrixes with such dimentions");
             }
 
-            else
-            {
-                resultMatrix = new Matrix(Height, matrix.Width);
+            var resultMatrix = new Matrix(Height, matrix.Width);
 
-                for (int i = 0; i < Height; i++)
+            for (int i = 0; i < Height; i++)
+            {
+                token.ThrowIfCancellationRequested();
+
+                for (int j = 0; j < matrix.Width; j++)
                 {
-                    token.ThrowIfCancellationRequested();
-                    for (int j = 0; j < matrix.Width; j++)
+                    resultMatrix[i, j] = 0;
+
+                    for (int k = 0; k < Width; k++)
                     {
-                        resultMatrix[i, j] = 0;
-                        for (int pos = 0; pos < Width; pos++)
-                        {
-                            resultMatrix[i, j] += this[i, pos] * matrix[pos, j];
-                        }
+                        resultMatrix[i, j] += this[i, k] * matrix[k, j];
                     }
                 }
             }
 
-            return resultMatrix;
+            Assign(resultMatrix);
         }
 
         public void Assign(Matrix matrix)
@@ -209,10 +195,10 @@ namespace Parcs.Modules.MatrixesMultiplication.Models
             return matrix;
         }
 
-        public Task WriteToStreamAsync(FileStream fileStream, CancellationToken cancellationToken = default)
+        public Task WriteToStreamAsync(Stream stream, CancellationToken cancellationToken = default)
         {
             using var memoryStream = new MemoryStream(Encoding.UTF8.GetBytes(ToString()));
-            return memoryStream.CopyToAsync(fileStream, cancellationToken);
+            return memoryStream.CopyToAsync(stream, cancellationToken);
         }
 
         public override string ToString()

@@ -5,24 +5,10 @@ namespace Parcs.Modules.MatrixesMultiplication.Parallel
 {
     public class RecursiveWorkerModule : IModule
     {
-        private readonly object _lockerA = new ();
-        private readonly object _lockerB = new ();
-
         public async Task RunAsync(IModuleInfo moduleInfo, CancellationToken cancellationToken = default)
         {
             var matrixA = await moduleInfo.Parent.ReadObjectAsync<Matrix>();
             var matrixB = await moduleInfo.Parent.ReadObjectAsync<Matrix>();
-
-            lock (_lockerA)
-            {
-                Console.WriteLine($"Matrix A Height: {matrixA.Height}, Width: {matrixA.Width}.");
-                Console.WriteLine("Matrix A:");
-                Console.WriteLine(matrixA.ToString());
-
-                Console.WriteLine($"Matrix B Height: {matrixB.Height}, Width: {matrixB.Width}.");
-                Console.WriteLine("Matrix B:");
-                Console.WriteLine(matrixB.ToString());
-            }
 
             var points = new IPoint[8];
             var channels = new IChannel[8];
@@ -32,7 +18,7 @@ namespace Parcs.Modules.MatrixesMultiplication.Parallel
                 points[i] = await moduleInfo.CreatePointAsync();
                 channels[i] = await points[i].CreateChannelAsync();
 
-                if (matrixA.Width > 4)
+                if (matrixA.Width > 2)
                 {
                     await points[i].ExecuteClassAsync<RecursiveWorkerModule>();
                 }
@@ -58,13 +44,6 @@ namespace Parcs.Modules.MatrixesMultiplication.Parallel
             }
 
             var matrixC = MatrixDivisioner.Join8(new Matrix(matrixA.Height, matrixB.Width), matrixCPairs);
-
-            lock (_lockerB)
-            {
-                Console.WriteLine($"Matrix C Height: {matrixA.Height}, Width: {matrixA.Width}.");
-                Console.WriteLine("Matrix C:");
-                Console.WriteLine(matrixC.ToString());
-            }
 
             await moduleInfo.Parent.WriteObjectAsync(matrixC);
         }
