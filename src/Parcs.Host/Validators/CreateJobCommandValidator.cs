@@ -12,6 +12,8 @@ namespace Parcs.Host.Validators
 
         public CreateJobCommandValidator(IModuleDirectoryPathBuilder moduleDirectoryPathBuilder)
         {
+            RuleLevelCascadeMode = CascadeMode.Stop;
+
             RuleFor(c => c.ModuleId)
                 .NotEmpty()
                 .WithMessage("Module Id is required.")
