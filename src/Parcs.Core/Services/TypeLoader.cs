@@ -5,8 +5,6 @@ namespace Parcs.Core.Services
 {
     public class TypeLoader<T> : ITypeLoader<T> where T : class
     {
-        private const string AssemblyExtension = "dll";
-
         private readonly IIsolatedLoadContextProvider _isolatedLoadContextProvider;
 
         public TypeLoader(IIsolatedLoadContextProvider isolatedLoadContextProvider)
@@ -14,10 +12,8 @@ namespace Parcs.Core.Services
             _isolatedLoadContextProvider = isolatedLoadContextProvider;
         }
 
-        public T Load(string assemblyDirectoryPath, string assemblyName, string className = null)
+        public T Load(string assemblyPath, string className = null)
         {
-            var assemblyPath = Path.Combine(assemblyDirectoryPath, $"{assemblyName}.{AssemblyExtension}");
-
             var loadContext = _isolatedLoadContextProvider.Create(assemblyPath);
             loadContext.AddSharedAssembly(typeof(T).Assembly.GetName().Name);
             
@@ -46,6 +42,11 @@ namespace Parcs.Core.Services
             }
 
             return Activator.CreateInstance(@class) as T;
+        }
+
+        public void Unload(string assemblyPath)
+        {
+            _isolatedLoadContextProvider.Delete(assemblyPath);
         }
     }
 }

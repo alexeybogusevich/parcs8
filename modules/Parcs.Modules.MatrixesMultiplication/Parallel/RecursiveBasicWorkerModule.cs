@@ -5,10 +5,24 @@ namespace Parcs.Modules.MatrixesMultiplication.Parallel
 {
     public class RecursiveBasicWorkerModule : IModule
     {
+        private readonly object _lockerA = new();
+        private readonly object _lockerB = new();
+
         public async Task RunAsync(IModuleInfo moduleInfo, CancellationToken cancellationToken = default)
         {
             var matrixA = await moduleInfo.Parent.ReadObjectAsync<Matrix>();
             var matrixB = await moduleInfo.Parent.ReadObjectAsync<Matrix>();
+
+            lock (_lockerA)
+            {
+                Console.WriteLine($"Matrix A Height: {matrixA.Height}, Width: {matrixA.Width}.");
+                Console.WriteLine("Matrix A:");
+                Console.WriteLine(matrixA.ToString());
+
+                Console.WriteLine($"Matrix B Height: {matrixB.Height}, Width: {matrixB.Width}.");
+                Console.WriteLine("Matrix B:");
+                Console.WriteLine(matrixB.ToString());
+            }
 
             var points = new IPoint[8];
             var channels = new IChannel[8];
@@ -18,7 +32,7 @@ namespace Parcs.Modules.MatrixesMultiplication.Parallel
                 points[i] = await moduleInfo.CreatePointAsync();
                 channels[i] = await points[i].CreateChannelAsync();
 
-                if (matrixA.Width / 2 > 4)
+                if (matrixA.Width > 4)
                 {
                     await points[i].ExecuteClassAsync<RecursiveBasicWorkerModule>();
                 }
@@ -61,6 +75,13 @@ namespace Parcs.Modules.MatrixesMultiplication.Parallel
             resultMatrix.SetSubmatrix(await SumMatrix(channels[2], channels[3]), 0, matrixA.Width / 2);
             resultMatrix.SetSubmatrix(await SumMatrix(channels[4], channels[5]), matrixA.Width / 2, 0);
             resultMatrix.SetSubmatrix(await SumMatrix(channels[6], channels[7]), matrixA.Width / 2, matrixA.Width / 2);
+
+            lock (_lockerB)
+            {
+                Console.WriteLine($"Matrix C Height: {resultMatrix.Height}, Width: {resultMatrix.Width}.");
+                Console.WriteLine("Matrix C:");
+                Console.WriteLine(resultMatrix.ToString());
+            }
 
             await moduleInfo.Parent.WriteObjectAsync(resultMatrix);
         }

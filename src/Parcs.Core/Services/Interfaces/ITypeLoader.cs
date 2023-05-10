@@ -2,6 +2,8 @@
 {
     public interface ITypeLoader<out T> where T : class
     {
-        T Load(string assemblyDirectoryPath, string assemblyName, string className = null);
+        T Load(string assemblyPath, string className = null);
+
+        void Unload(string assemblyPath);
     }
 }

@@ -15,9 +15,7 @@ namespace Parcs.Host.Handlers
 
         public Task Handle(CancelJobCommand request, CancellationToken cancellationToken)
         {
-            _jobTracker.CancelAndStopTrackning(request.JobId);
-
-            return Task.CompletedTask;
+            return _jobTracker.CancelAndStopTrackingAsync(request.JobId);
         }
     }
 }

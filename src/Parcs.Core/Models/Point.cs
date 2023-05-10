@@ -71,9 +71,6 @@ namespace Parcs.Core.Models
                 return;
             }
 
-            await _managedChannel.WriteSignalAsync(Signal.CancelJob);
-            await _managedChannel.WriteDataAsync(_jobId);
-
             await _managedChannel.WriteSignalAsync(Signal.CloseConnection);
 
             _managedChannel?.Dispose();

@@ -25,14 +25,14 @@ namespace Parcs.Host.Handlers
 
         public async Task Handle(DeleteJobCommand request, CancellationToken cancellationToken)
         {
-            _ = _jobTracker.CancelAndStopTrackning(request.JobId);
-
             var job = await _parcsDbContext.Jobs.FirstOrDefaultAsync(CancellationToken.None);
 
             if (job is null)
             {
                 return;
             }
+
+            await _jobTracker.CancelAndStopTrackingAsync(request.JobId);
 
             _parcsDbContext.Jobs.Remove(job);
             await _parcsDbContext.SaveChangesAsync(CancellationToken.None);

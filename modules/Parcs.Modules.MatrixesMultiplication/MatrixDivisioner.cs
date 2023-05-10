@@ -21,26 +21,21 @@ namespace Parcs.Modules.MatrixesMultiplication
         public static IEnumerable<Tuple<Matrix, Matrix>> Divide8(Matrix a, Matrix b)
         {
             yield return
-                Tuple.Create(a.SubMatrix(0, 0, a.Height / 2, a.Width / 2), b.SubMatrix(0, 0, b.Height / 2, b.Width / 2));
+                Tuple.Create(a.SubMatrix(0, 0, a.Width / 2, a.Width / 2), b.SubMatrix(0, 0, b.Width / 2, b.Width / 2));
             yield return
-                Tuple.Create(a.SubMatrix(0, a.Width / 2, a.Height / 2, a.Width / 2 + a.Width % 2),
-                    b.SubMatrix(b.Height / 2, 0, b.Height / 2 + b.Height % 2, b.Width / 2));
+                Tuple.Create(a.SubMatrix(0, a.Width / 2, a.Width / 2, a.Width / 2), b.SubMatrix(b.Width / 2, 0, b.Width / 2, b.Width / 2));
             yield return
-                Tuple.Create(a.SubMatrix(0, 0, a.Height / 2, a.Width / 2),
-                    b.SubMatrix(0, b.Width / 2, b.Height / 2, b.Width / 2 + b.Width % 2));
-            yield return Tuple.Create(a.SubMatrix(0, a.Width / 2, a.Height / 2, a.Width / 2 + a.Width % 2),
-                b.SubMatrix(b.Height / 2, b.Width / 2, b.Height / 2 + b.Height % 2, b.Width / 2 + b.Width % 2));
+                Tuple.Create(a.SubMatrix(0, 0, a.Width / 2, a.Width / 2), b.SubMatrix(0, b.Width / 2, b.Width / 2, b.Width / 2));
             yield return
-                Tuple.Create(a.SubMatrix(a.Height / 2, 0, a.Height / 2 + a.Height % 2, a.Width / 2),
-                    b.SubMatrix(0, 0, b.Height / 2, b.Width / 2));
-            yield return Tuple.Create(a.SubMatrix(a.Height / 2, a.Width / 2, a.Height / 2 + a.Height % 2,
-                a.Width / 2 + a.Width % 2), b.SubMatrix(b.Height / 2, 0, b.Height / 2 + b.Height % 2, b.Width / 2));
+                Tuple.Create(a.SubMatrix(0, a.Width / 2, a.Width / 2, a.Width / 2), b.SubMatrix(b.Width / 2, b.Width / 2, b.Width / 2, b.Width / 2));
             yield return
-                Tuple.Create(a.SubMatrix(a.Height / 2, 0, a.Height / 2 + a.Height % 2, a.Width / 2),
-                    b.SubMatrix(0, b.Width / 2, b.Height / 2, b.Width / 2 + b.Width % 2));
-            yield return Tuple.Create(a.SubMatrix(a.Height / 2, a.Width / 2, a.Height / 2 + a.Height % 2,
-                a.Width / 2 + a.Width % 2), b.SubMatrix(b.Height / 2, b.Width / 2, b.Height / 2 + b.Height % 2,
-                    b.Width / 2 + b.Width % 2));
+                Tuple.Create(a.SubMatrix(a.Width / 2, 0, a.Width / 2, a.Width / 2), b.SubMatrix(0, 0, b.Width / 2, b.Width / 2));
+            yield return
+                Tuple.Create(a.SubMatrix(a.Width / 2, a.Width / 2, a.Width / 2, a.Width / 2), b.SubMatrix(b.Width / 2, 0, b.Width / 2, b.Width / 2));
+            yield return
+                Tuple.Create(a.SubMatrix(a.Width / 2, 0, a.Width / 2, a.Width / 2), b.SubMatrix(0, b.Width / 2, b.Width / 2, b.Width / 2));
+            yield return
+                Tuple.Create(a.SubMatrix(a.Width / 2, a.Width / 2, a.Width / 2, a.Width / 2), b.SubMatrix(b.Width / 2, b.Width / 2, b.Width / 2, b.Width / 2));
         }
 
         public static Matrix Join2(Matrix resultMatrix, IList<Matrix> matrixes)
@@ -68,19 +63,19 @@ namespace Parcs.Modules.MatrixesMultiplication
 
             parts[0, 0] = matrixes[0];
             parts[0, 0].Add(matrixes[1]);
-            resultMatrix.FillSubMatrix(parts[0, 0], 0, 0);
+            resultMatrix.SetSubmatrix(parts[0, 0], 0, 0);
 
             parts[0, 1] = matrixes[2];
             parts[0, 1].Add(matrixes[3]);
-            resultMatrix.FillSubMatrix(parts[0, 1], 0, resultMatrix.Width / 2);
+            resultMatrix.SetSubmatrix(parts[0, 1], 0, resultMatrix.Width / 2);
 
             parts[1, 0] = matrixes[4];
             parts[1, 0].Add(matrixes[5]);
-            resultMatrix.FillSubMatrix(parts[1, 0], resultMatrix.Height / 2, 0);
+            resultMatrix.SetSubmatrix(parts[1, 0], resultMatrix.Height / 2, 0);
 
             parts[1, 1] = matrixes[6];
             parts[1, 1].Add(matrixes[7]);
-            resultMatrix.FillSubMatrix(parts[1, 1], resultMatrix.Height / 2, resultMatrix.Width / 2);
+            resultMatrix.SetSubmatrix(parts[1, 1], resultMatrix.Height / 2, resultMatrix.Width / 2);
 
             return resultMatrix;
         }

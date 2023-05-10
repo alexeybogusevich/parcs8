@@ -166,13 +166,13 @@ namespace Parcs.Modules.MatrixesMultiplication.Models
             }
         }
 
-        public void SetSubmatrix(Matrix mat, int iTop, int iLeft)
+        public void SetSubmatrix(Matrix source, int top, int left)
         {
-            for (int iY = 0; iY < mat.Height; iY++)
+            for (int i = 0; i < source.Height; i++)
             {
-                for (int iX = 0; iX < mat.Width; iX++)
+                for (int j = 0; j < source.Width; j++)
                 {
-                    Data[iTop + iY][iLeft + iX] = mat.Data[iY][iX];
+                    Data[top + i][left + j] = source[i, j];
                 }
             }
         }
@@ -219,9 +219,9 @@ namespace Parcs.Modules.MatrixesMultiplication.Models
         {
             var stringBuilder = new StringBuilder();
 
-            for (var i = 0; i < Width; i++)
+            for (var i = 0; i < Height; i++)
             {
-                for (var j = 0; j < Height; j++)
+                for (var j = 0; j < Width; j++)
                 {
                     stringBuilder.Append(this[i, j]);
 

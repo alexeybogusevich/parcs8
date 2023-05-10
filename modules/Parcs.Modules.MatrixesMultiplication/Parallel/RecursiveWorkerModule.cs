@@ -5,21 +5,34 @@ namespace Parcs.Modules.MatrixesMultiplication.Parallel
 {
     public class RecursiveWorkerModule : IModule
     {
+        private readonly object _lockerA = new ();
+        private readonly object _lockerB = new ();
+
         public async Task RunAsync(IModuleInfo moduleInfo, CancellationToken cancellationToken = default)
         {
             var matrixA = await moduleInfo.Parent.ReadObjectAsync<Matrix>();
             var matrixB = await moduleInfo.Parent.ReadObjectAsync<Matrix>();
 
-            var pointsNumber = moduleInfo.ArgumentsProvider.GetPointsNumber();
-            var points = new IPoint[pointsNumber];
-            var channels = new IChannel[pointsNumber];
+            lock (_lockerA)
+            {
+                Console.WriteLine($"Matrix A Height: {matrixA.Height}, Width: {matrixA.Width}.");
+                Console.WriteLine("Matrix A:");
+                Console.WriteLine(matrixA.ToString());
 
-            for (int i = 0; i < pointsNumber; ++i)
+                Console.WriteLine($"Matrix B Height: {matrixB.Height}, Width: {matrixB.Width}.");
+                Console.WriteLine("Matrix B:");
+                Console.WriteLine(matrixB.ToString());
+            }
+
+            var points = new IPoint[8];
+            var channels = new IChannel[8];
+
+            for (int i = 0; i < 8; ++i)
             {
                 points[i] = await moduleInfo.CreatePointAsync();
                 channels[i] = await points[i].CreateChannelAsync();
 
-                if (matrixA.Width / pointsNumber > 1 && pointsNumber > 1)
+                if (matrixA.Width > 4)
                 {
                     await points[i].ExecuteClassAsync<RecursiveWorkerModule>();
                 }
@@ -29,14 +42,7 @@ namespace Parcs.Modules.MatrixesMultiplication.Parallel
                 }
             }
 
-            var matrixABPairs = pointsNumber switch
-            {
-                1 => new Tuple<Matrix, Matrix>[] { new(matrixA, matrixB) },
-                2 => MatrixDivisioner.Divide2(matrixA, matrixB).ToArray(),
-                4 => MatrixDivisioner.Divide4(matrixA, matrixB).ToArray(),
-                8 => MatrixDivisioner.Divide8(matrixA, matrixB).ToArray(),
-                _ => throw new NotSupportedException(),
-            };
+            var matrixABPairs = MatrixDivisioner.Divide8(matrixA, matrixB).ToArray();
 
             for (int i = 0; i < matrixABPairs.Length; i++)
             {
@@ -51,14 +57,14 @@ namespace Parcs.Modules.MatrixesMultiplication.Parallel
                 matrixCPairs.Add(await channels[i].ReadObjectAsync<Matrix>());
             }
 
-            var matrixC = pointsNumber switch
+            var matrixC = MatrixDivisioner.Join8(new Matrix(matrixA.Height, matrixB.Width), matrixCPairs);
+
+            lock (_lockerB)
             {
-                1 => matrixCPairs.First(),
-                2 => MatrixDivisioner.Join2(new Matrix(matrixA.Height, matrixB.Width), matrixCPairs),
-                4 => MatrixDivisioner.Join4(new Matrix(matrixA.Height, matrixB.Width), matrixCPairs),
-                8 => MatrixDivisioner.Join8(new Matrix(matrixA.Height, matrixB.Width), matrixCPairs),
-                _ => throw new NotSupportedException(),
-            };
+                Console.WriteLine($"Matrix C Height: {matrixA.Height}, Width: {matrixA.Width}.");
+                Console.WriteLine("Matrix C:");
+                Console.WriteLine(matrixC.ToString());
+            }
 
             await moduleInfo.Parent.WriteObjectAsync(matrixC);
         }

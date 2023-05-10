@@ -4,7 +4,7 @@
     {
         void StartTracking(long jobId);
         bool TryGetCancellationToken(long jobId, out CancellationToken cancellationToken);
-        bool CancelAndStopTrackning(long jobId);
+        Task<bool> CancelAndStopTrackingAsync(long jobId);
         bool StopTracking(long jobId);
     }
 }

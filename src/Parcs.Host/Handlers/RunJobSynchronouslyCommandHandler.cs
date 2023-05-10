@@ -43,11 +43,11 @@ namespace Parcs.Host.Handlers
             }
 
             var jobMetadata = new JobMetadata(job.Id, job.ModuleId);
+            var moduleInfo = _moduleInfoFactory.Create(jobMetadata, command.PointsNumber, command.Arguments, jobCancellationToken);
 
             try
             {
                 var module = _moduleLoader.Load(job.ModuleId, job.AssemblyName, job.ClassName);
-                await using var moduleInfo = _moduleInfoFactory.Create(jobMetadata, command.PointsNumber, command.Arguments, jobCancellationToken);
 
                 await _parcsDbContext.JobStatuses.AddAsync(new(job.Id, (short)JobStatus.Started), CancellationToken.None);
                 await _parcsDbContext.SaveChangesAsync(CancellationToken.None);
@@ -68,10 +68,13 @@ namespace Parcs.Host.Handlers
                 await _parcsDbContext.JobStatuses.AddAsync(new(job.Id, (short)JobStatus.Failed), CancellationToken.None);
                 await _parcsDbContext.SaveChangesAsync(CancellationToken.None);
             }
+            finally
+            {
+                await moduleInfo.DisposeAsync();
+                _ = await _jobTracker.CancelAndStopTrackingAsync(job.Id);
+            }
 
-            var jobLastStatus = (JobStatus?)job.Statuses.LastOrDefault()?.Status;
-
-            return new RunJobSynchronouslyCommandResponse(jobLastStatus);
+            return new RunJobSynchronouslyCommandResponse((JobStatus?)job.Statuses.LastOrDefault()?.Status);
         }
     }
 }
