@@ -5,7 +5,7 @@ using System.Text.Json;
 
 namespace Parcs.Modules.MatrixesMultiplication.Parallel
 {
-    public class MainModule : IModule
+    public class ParallelMainModule : IModule
     {
         public async Task RunAsync(IModuleInfo moduleInfo, CancellationToken cancellationToken = default)
         {
@@ -20,7 +20,7 @@ namespace Parcs.Modules.MatrixesMultiplication.Parallel
             var stopwatch = new Stopwatch();
             stopwatch.Start();
 
-            await rootPoint.ExecuteClassAsync<RecursiveWorkerModule>();
+            await rootPoint.ExecuteClassAsync<ParallelRecursiveWorkerModule>();
 
             await rootChannel.WriteObjectAsync(matrixA);
             await rootChannel.WriteObjectAsync(matrixB);

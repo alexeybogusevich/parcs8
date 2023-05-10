@@ -3,7 +3,6 @@ using Parcs.Core.Services.Interfaces;
 using Parcs.Host.Services.Interfaces;
 using Parcs.Net;
 using System.Collections.Concurrent;
-using System.Linq;
 using System.Net.Sockets;
 
 namespace Parcs.Host.Services
