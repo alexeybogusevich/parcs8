@@ -1,29 +1,54 @@
-﻿using Parcs.Net;
-using System.Text;
+﻿using Parcs.Modules.FloydWarshall.Extensions;
+using Parcs.Modules.FloydWarshall.Models;
+using Parcs.Net;
+using System.Diagnostics;
 
 namespace Parcs.Modules.FloydWarshall.Sequential
 {
     public class SequentialMainModule : IModule
     {
-        public Task RunAsync(IModuleInfo moduleInfo, CancellationToken cancellationToken = default)
+        public async Task RunAsync(IModuleInfo moduleInfo, CancellationToken cancellationToken = default)
         {
-            var options = moduleInfo.ArgumentsProvider.Bind<ModuleOptions>();
+            var moduleOptions = moduleInfo.ArgumentsProvider.Bind<ModuleOptions>();
 
+            Matrix initialMatrix;
 
+            if (moduleOptions.InputFile is not null)
+            {
+                using var fileStream = moduleInfo.InputReader.GetFileStreamForFile(moduleOptions.InputFile);
+                initialMatrix = Matrix.LoadFromStream(fileStream);
+            }
+            else
+            {
+                initialMatrix = new Matrix(moduleOptions.VerticesNumber, moduleOptions.VerticesNumber, true);
+                initialMatrix.FillWithRandomDistances(maxDistance: 100);
+            }
+
+            var stopwatch = new Stopwatch();
+            stopwatch.Start();
+
+            var finalMatrix = Floyd(initialMatrix);
+
+            stopwatch.Stop();
+
+            if (moduleOptions.SaveMatrixes)
+            {
+                await using var fileStream = moduleInfo.OutputWriter.GetStreamForFile(moduleOptions.OutputFile);
+                await finalMatrix.WriteToStreamAsync(fileStream, cancellationToken);
+            }
         }
 
-        private static int[][] Floyd(int[][] m)
+        private static Matrix Floyd(Matrix matrix)
         {
-            int[][] result = (int[][])m.Clone();
-            int rowLength = result.Length;
+            var result = new Matrix(matrix);
 
-            for (int k = 0; k < rowLength; k++)
+            for (int k = 0; k < result.Height; k++)
             {
-                for (int i = 0; i < rowLength; i++)
+                for (int i = 0; i < result.Width; i++)
                 {
-                    for (int j = 0; j < rowLength; j++)
+                    for (int j = 0; j < result.Height; j++)
                     {
-                        result[i][j] = MinWeight(result[i][j], result[i][k], result[k][j]);
+                        result[i, j] = MinWeight(result[i, j], result[i, k], result[k, j]);
                     }
                 }
             }
@@ -46,57 +71,6 @@ namespace Parcs.Modules.FloydWarshall.Sequential
                     return a;
                 else
                     return b + c;
-            }
-        }
-
-        private static void SaveMatrix(string filename, int[][] m)
-        {
-            var sb = new StringBuilder();
-
-            for (int i = 0; i < m.Length; i++)
-            {
-                for (int j = 0; j < m.Length; j++)
-                {
-                    sb.Append(m[i][j]);
-                    if (j != m.Length - 1)
-                    {
-                        sb.Append(' ');
-                    }
-                }
-                sb.AppendLine();
-            }
-
-            File.WriteAllText(filename, sb.ToString());
-        }
-
-        private static int[][] ReadMatrix()
-        {
-            Console.WriteLine("Matrix size: ");
-            string input = Console.ReadLine();
-            var m = int.Parse(input);
-            var result = new int[m][];
-            for (int i = 0; i < m; i++)
-            {
-                result[i] = Console.ReadLine()
-                    .Replace("-1", int.MaxValue.ToString())
-                    .Split(' ')
-                    .Select(a => int.Parse(a))
-                    .ToArray();
-            }
-            return result;
-        }
-
-        private static void PrintMatrix(int[][] m)
-        {
-            int rowLength = m.Length;
-
-            for (int i = 0; i < rowLength; i++)
-            {
-                for (int j = 0; j < m[i].Length; j++)
-                {
-                    Console.Write(m[i][j] + " ");
-                }
-                Console.WriteLine();
             }
         }
     }

@@ -1,167 +1,121 @@
-﻿using Parcs.Net;
+﻿using Parcs.Modules.FloydWarshall.Extensions;
+using Parcs.Modules.FloydWarshall.Models;
+using Parcs.Net;
 using System.Diagnostics;
-using System.Text;
 
 namespace Parcs.Modules.FloydWarshall.Parallel
 {
     public class ParallelMainModule : IModule
     {
-        private IChannel[] _channels;
-        private List<List<int>> _matrix;
-
         public async Task RunAsync(IModuleInfo moduleInfo, CancellationToken cancellationToken = default)
         {
-            var options = moduleInfo.ArgumentsProvider.Bind<ModuleOptions>();
+            var moduleOptions = moduleInfo.ArgumentsProvider.Bind<ModuleOptions>();
 
-            int pointsNumber = moduleInfo.ArgumentsProvider.GetPointsNumber();
-            _matrix = GetMatrix(options.InputFile, moduleInfo);
+            var initialMatrix = GetInitialDistancesMatrix(moduleInfo, moduleOptions);
 
-            if (_matrix.Count % pointsNumber != 0)
+            var pointsNumber = moduleInfo.ArgumentsProvider.GetPointsNumber();
+
+            if (initialMatrix.Height % pointsNumber != 0)
             {
-                throw new ArgumentException($"Matrix size (now {_matrix.Count}) should be divided by {pointsNumber}!");
+                throw new ArgumentException($"Matrix size (now {initialMatrix.Height}) should be divided by {pointsNumber}");
             }
 
-            _channels = new IChannel[pointsNumber];
+            var chunkSize = initialMatrix.Height / pointsNumber;
+            var channels = new IChannel[pointsNumber];
             var points = new IPoint[pointsNumber];
 
             for (int i = 0; i < pointsNumber; ++i)
             {
                 points[i] = await moduleInfo.CreatePointAsync();
-                _channels[i] = await points[i].CreateChannelAsync();
+                channels[i] = await points[i].CreateChannelAsync();
                 await points[i].ExecuteClassAsync<ParallelWorkerModule>();
             }
 
-            await DistributeAllDataAsync(pointsNumber);
+            await DistributeChunksAsync(initialMatrix, chunkSize, channels);
 
-            Stopwatch sw = new();
-            sw.Start();
-            await RunParallelFloydAsync(pointsNumber);
-            sw.Stop();
+            var stopwatch = new Stopwatch();
+            stopwatch.Start();
 
-            int[][] result = await GatherAllDataAsync(pointsNumber);
+            await RunFloydWarshallAsync(initialMatrix, chunkSize, channels);
 
-            await SaveMatrixAsync(options.OutputFile, result, moduleInfo);
-            Console.WriteLine("Done");
-            Console.WriteLine($"Total time {sw.ElapsedMilliseconds} ms ({sw.ElapsedTicks} ticks)");
+            stopwatch.Stop();
 
-            PrintMatrix(result);
-        }
+            var finalMatrix = await GetFinalDistancesMatrixAsync(initialMatrix, chunkSize, channels);
 
-        static List<List<int>> GetMatrix(string filename, IModuleInfo moduleInfo)
-        {
-            List<string> lines = new();
-
-            using var fileStream = moduleInfo.InputReader.GetFileStreamForFile(filename);
-            using var streamReader = new StreamReader(fileStream);
-
-            while (!streamReader.EndOfStream)
+            if (moduleOptions.SaveMatrixes)
             {
-                lines.Add(streamReader.ReadLine());
-            }
-
-            return lines
-                   .Select(l => l.Split(' ')
-                   .Where(k => k.Length > 0)
-                   .Select(i => int.Parse(i.Replace("-1", int.MaxValue.ToString())))
-                   .ToList())
-                   .ToList();
-        }
-
-        static async Task SaveMatrixAsync(string filename, int[][] m, IModuleInfo moduleInfo)
-        {
-            var stringBuilder = new StringBuilder();
-
-            for (int i = 0; i < m.Length; i++)
-            {
-                for (int j = 0; j < m.Length; j++)
-                {
-                    stringBuilder.Append(m[i][j]);
-                    if (j != m.Length - 1)
-                    {
-                        stringBuilder.Append(' ');
-                    }
-                }
-
-                stringBuilder.AppendLine();
-            }
-
-            await moduleInfo.OutputWriter.WriteToFileAsync(Encoding.UTF8.GetBytes(stringBuilder.ToString()), filename);
-        }
-
-        private static void PrintMatrix(int[][] m)
-        {
-            int rowLength = m.Length;
-
-            for (int i = 0; i < rowLength; i++)
-            {
-                for (int j = 0; j < m[i].Length; j++)
-                {
-                    Console.Write(m[i][j] + " ");
-                }
-
-                Console.WriteLine();
+                await using var fileStream = moduleInfo.OutputWriter.GetStreamForFile(moduleOptions.OutputFile);
+                await finalMatrix.WriteToStreamAsync(fileStream, cancellationToken);
             }
         }
 
-        private async Task<int[][]> GatherAllDataAsync(int pointsNumber)
+        private static Matrix GetInitialDistancesMatrix(IModuleInfo moduleInfo, ModuleOptions moduleOptions)
         {
-            int chunkSize = _matrix.Count / pointsNumber;
+            Matrix initialMatrix;
 
-            int[][] result = new int[_matrix.Count][];
-
-            for (int i = 0; i < _channels.Length; i++)
+            if (moduleOptions.InputFile is not null)
             {
-                int[][] chunk = await _channels[i].ReadObjectAsync<int[][]>();
+                using var fileStream = moduleInfo.InputReader.GetFileStreamForFile(moduleOptions.InputFile);
+                initialMatrix = Matrix.LoadFromStream(fileStream);
+            }
+            else
+            {
+                initialMatrix = new Matrix(moduleOptions.VerticesNumber, moduleOptions.VerticesNumber, true);
+                initialMatrix.FillWithRandomDistances(maxDistance: 100);
+            }
+
+            return initialMatrix;
+        }
+
+        private static async Task DistributeChunksAsync(Matrix initialMatrix, int chunkSize, IChannel[] channels)
+        {
+            for (int i = 0; i < channels.Length; i++)
+            {
+                await channels[i].WriteDataAsync(i);
+
+                var chunk = new Matrix(chunkSize, initialMatrix.Width);
+
                 for (int j = 0; j < chunkSize; j++)
                 {
-                    result[i * chunkSize + j] = chunk[j];
+                    chunk.Data[j] = initialMatrix.Data[i * chunkSize + j];
                 }
-            }
 
-            return result;
+                await channels[i].WriteObjectAsync(chunk);
+            }
         }
 
-        private async Task RunParallelFloydAsync(int pointsNumber)
+        private static async Task RunFloydWarshallAsync(Matrix initialMatrix, int chunkSize, IChannel[] channels)
         {
-            int chunkSize = _matrix.Count / pointsNumber;
-
-            for (int k = 0; k < _matrix.Count; k++)
+            for (int i = 0; i < initialMatrix.Height; ++i)
             {
-                int currentSupplier = k / chunkSize;
-                int[] currentRow = await _channels[currentSupplier].ReadObjectAsync<int[]>();
+                var currentRowSupplier = i / chunkSize;
 
-                for (int ch = 0; ch < _channels.Length; ch++)
+                var currentRow = await channels[currentRowSupplier].ReadObjectAsync<List<int>>();
+
+                for (int j = 0; j < channels.Length; j++)
                 {
-                    if (ch != currentSupplier)
+                    if (j != currentRowSupplier)
                     {
-                        await _channels[ch].WriteObjectAsync(currentRow);
+                        await channels[j].WriteObjectAsync(currentRow);
                     }
                 }
             }
         }
 
-        private async Task DistributeAllDataAsync(int pointsNumber)
+        private static async Task<Matrix> GetFinalDistancesMatrixAsync(Matrix initialMatrix, int chunkSize, IChannel[] channels)
         {
-            for (int i = 0; i < _channels.Length; i++)
+            var finalMatrix = new Matrix(initialMatrix.Height, initialMatrix.Width);
+
+            for (int i = 0; i < channels.Length; i++)
             {
-                await _channels[i].WriteDataAsync(i);
-
-                int chunkSize = _matrix.Count / pointsNumber;
-
-                var chunk = new List<List<int>>(chunkSize);
-
-                for (int i = 0; i < chunkSize; ++i)
-                {
-
-                }
-
+                var chunk = await channels[i].ReadObjectAsync<Matrix>();
                 for (int j = 0; j < chunkSize; j++)
                 {
-                    chunk[j] = _matrix[i * chunkSize + j];
+                    finalMatrix.Data[i * chunkSize + j] = chunk.Data[j];
                 }
-
-                await _channels[i].WriteObjectAsync(chunk);
             }
+
+            return finalMatrix;
         }
     }
 }

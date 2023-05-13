@@ -8,7 +8,7 @@
 
         public long NonceBatchSize { get; set; } = 1000;
 
-        public long MaximumNonce { get; set; } = 300000;
+        public long? MaximumNonce { get; set; }
 
         public string OutputFilename { get; set; } = "Output.txt";
     }

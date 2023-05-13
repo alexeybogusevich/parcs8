@@ -1,4 +1,5 @@
-﻿using Parcs.Net;
+﻿using Parcs.Modules.FloydWarshall.Models;
+using Parcs.Net;
 
 namespace Parcs.Modules.FloydWarshall.Parallel
 {
@@ -6,39 +7,33 @@ namespace Parcs.Modules.FloydWarshall.Parallel
     {
         public async Task RunAsync(IModuleInfo moduleInfo, CancellationToken cancellationToken = default)
         {
-            var number = await moduleInfo.Parent.ReadIntAsync();
-            Console.WriteLine($"Current number {number}");
-            var chunk = await moduleInfo.Parent.ReadObjectAsync<List<List<int>>>();
+            var currentNumber = await moduleInfo.Parent.ReadIntAsync();
+            var chunk = await moduleInfo.Parent.ReadObjectAsync<Matrix>();
 
-            int n = chunk[0].Count; //width
-            int c = chunk.Count; //height
-            Console.WriteLine($"Chunk {c}x{n}");
-
-            for (int k = 0; k < n; k++) // ->
+            for (int k = 0; k < chunk.Width; k++)
             {
-                var currentRow = new List<int>();
+                List<int> currentRow;
 
-                if (k >= number * c && k < number * c + c)
+                if (k >= currentNumber * chunk.Height && k < currentNumber * chunk.Height + chunk.Height)
                 {
-                    currentRow = chunk[k % c]; // iterate through all chunk rows
-                    await moduleInfo.Parent.WriteObjectAsync(chunk[k % c]);
+                    currentRow = chunk.Data[k % chunk.Height];
+                    await moduleInfo.Parent.WriteObjectAsync(chunk.Data[k % chunk.Height]);
                 }
                 else
                 {
                     currentRow = await moduleInfo.Parent.ReadObjectAsync<List<int>>();
                 }
 
-                for (int i = 0; i < c; i++)
+                for (int i = 0; i < chunk.Height; i++)
                 {
-                    for (int j = 0; j < n; j++)
+                    for (int j = 0; j < chunk.Width; j++)
                     {
-                        chunk[i][j] = MinWeight(chunk[i][j], chunk[i][k], currentRow[j]);
+                        chunk[i, j] = MinWeight(chunk[i, j], chunk[i, k], currentRow[j]);
                     }
                 }
             }
 
             await moduleInfo.Parent.WriteObjectAsync(chunk);
-            Console.WriteLine("Done!");
         }
 
         static int MinWeight(int a, int b, int c)
