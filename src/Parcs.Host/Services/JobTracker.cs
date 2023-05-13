@@ -66,6 +66,8 @@ namespace Parcs.Host.Services
             using var networkChannel = new NetworkChannel(tcpClient);
             await networkChannel.WriteSignalAsync(Signal.CancelJob);
             await networkChannel.WriteDataAsync(jobId);
+
+            await networkChannel.WriteSignalAsync(Signal.CloseConnection);
         }
 
         public bool StopTracking(long jobId) => _trackedJobs.TryRemove(jobId, out _);
