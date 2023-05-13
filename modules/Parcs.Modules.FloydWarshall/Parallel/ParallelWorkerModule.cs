@@ -1,22 +1,22 @@
 ﻿using Parcs.Net;
 
-namespace Parcs.Modules.FloydWarshall
+namespace Parcs.Modules.FloydWarshall.Parallel
 {
-    public class WorkerModule : IModule
+    public class ParallelWorkerModule : IModule
     {
         public async Task RunAsync(IModuleInfo moduleInfo, CancellationToken cancellationToken = default)
         {
             var number = await moduleInfo.Parent.ReadIntAsync();
             Console.WriteLine($"Current number {number}");
-            var chunk = await moduleInfo.Parent.ReadObjectAsync<int[][]>();
+            var chunk = await moduleInfo.Parent.ReadObjectAsync<List<List<int>>>();
 
-            int n = chunk[0].Length; //width
-            int c = chunk.Length; //height
+            int n = chunk[0].Count; //width
+            int c = chunk.Count; //height
             Console.WriteLine($"Chunk {c}x{n}");
 
             for (int k = 0; k < n; k++) // ->
             {
-                int[] currentRow;
+                var currentRow = new List<int>();
 
                 if (k >= number * c && k < number * c + c)
                 {
@@ -25,7 +25,7 @@ namespace Parcs.Modules.FloydWarshall
                 }
                 else
                 {
-                    currentRow = await moduleInfo.Parent.ReadObjectAsync<int[]>();
+                    currentRow = await moduleInfo.Parent.ReadObjectAsync<List<int>>();
                 }
 
                 for (int i = 0; i < c; i++)
@@ -46,16 +46,22 @@ namespace Parcs.Modules.FloydWarshall
             if (a != int.MaxValue)
             {
                 if (b != int.MaxValue && c != int.MaxValue)
+                {
                     return Math.Min(a, b + c);
+                }
                 else
+                {
                     return a;
+                }
+            }
+
+            if (b == int.MaxValue || c == int.MaxValue)
+            {
+                return a;
             }
             else
             {
-                if (b == int.MaxValue || c == int.MaxValue)
-                    return a;
-                else
-                    return b + c;
+                return b + c;
             }
         }
     }

@@ -3,10 +3,12 @@ using Parcs.Net;
 
 namespace Parcs.Modules.MatrixesMultiplication.Parallel
 {
-    public class ParallelRecursiveWorkerModule : IModule
+    public class RecursiveWorkerModule : IModule
     {
         public async Task RunAsync(IModuleInfo moduleInfo, CancellationToken cancellationToken = default)
         {
+            var moduleOptions = moduleInfo.ArgumentsProvider.Bind<RecursiveModuleOptions>();
+
             var matrixA = await moduleInfo.Parent.ReadObjectAsync<Matrix>();
             var matrixB = await moduleInfo.Parent.ReadObjectAsync<Matrix>();
 
@@ -18,13 +20,13 @@ namespace Parcs.Modules.MatrixesMultiplication.Parallel
                 points[i] = await moduleInfo.CreatePointAsync();
                 channels[i] = await points[i].CreateChannelAsync();
 
-                if (matrixA.Width > 2)
+                if (matrixA.Width / 2 >= moduleOptions.MinimumMatrixSize)
                 {
-                    await points[i].ExecuteClassAsync<ParallelRecursiveWorkerModule>();
+                    await points[i].ExecuteClassAsync<RecursiveWorkerModule>();
                 }
                 else
                 {
-                    await points[i].ExecuteClassAsync<ParallelAtomicWorkerModule>();
+                    await points[i].ExecuteClassAsync<RecursiveAtomicWorkerModule>();
                 }
             }
 

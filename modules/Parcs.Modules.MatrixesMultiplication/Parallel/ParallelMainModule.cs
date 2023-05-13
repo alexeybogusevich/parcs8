@@ -7,25 +7,65 @@ namespace Parcs.Modules.MatrixesMultiplication.Parallel
 {
     public class ParallelMainModule : IModule
     {
+        private readonly List<int> _allowedPointsNumbers = new() { 1, 2, 4, 8, };
+
         public async Task RunAsync(IModuleInfo moduleInfo, CancellationToken cancellationToken = default)
         {
             var moduleOptions = moduleInfo.ArgumentsProvider.Bind<ModuleOptions>();
 
             var matrixA = new Matrix(moduleOptions.MatrixSize, moduleOptions.MatrixSize, true);
             var matrixB = new Matrix(moduleOptions.MatrixSize, moduleOptions.MatrixSize, true);
-            
-            var rootPoint = await moduleInfo.CreatePointAsync();
-            var rootChannel = await rootPoint.CreateChannelAsync();
+
+            var pointsNumber = moduleInfo.ArgumentsProvider.GetPointsNumber();
+
+            if (_allowedPointsNumbers.Contains(pointsNumber) is false)
+            {
+                throw new ArgumentException($"Invalid number of points. Allowed values: {string.Join(", ", _allowedPointsNumbers)}");
+            }
+
+            var points = new IPoint[pointsNumber];
+            var channels = new IChannel[pointsNumber];
+
+            for (int i = 0; i < pointsNumber; ++i)
+            {
+                points[i] = await moduleInfo.CreatePointAsync();
+                channels[i] = await points[i].CreateChannelAsync();
+                await points[i].ExecuteClassAsync<ParallelWorkerModule>();
+            }
 
             var stopwatch = new Stopwatch();
             stopwatch.Start();
 
-            await rootPoint.ExecuteClassAsync<ParallelRecursiveWorkerModule>();
+            var matrixABPairs = pointsNumber switch
+            {
+                1 => new Tuple<Matrix, Matrix>[] { new(matrixA, matrixB) },
+                2 => MatrixDivisioner.Divide2(matrixA, matrixB).ToArray(),
+                4 => MatrixDivisioner.Divide4(matrixA, matrixB).ToArray(),
+                8 => MatrixDivisioner.Divide8(matrixA, matrixB).ToArray(),
+                _ => throw new NotSupportedException(),
+            };
 
-            await rootChannel.WriteObjectAsync(matrixA);
-            await rootChannel.WriteObjectAsync(matrixB);
+            for (int i = 0; i < matrixABPairs.Length; i++)
+            {
+                await channels[i].WriteObjectAsync(matrixABPairs[i].Item1);
+                await channels[i].WriteObjectAsync(matrixABPairs[i].Item2);
+            }
 
-            var matrixC = await rootChannel.ReadObjectAsync<Matrix>();
+            var matrixCPairs = new List<Matrix>();
+
+            for (int i = 0; i < channels.Length; ++i)
+            {
+                matrixCPairs.Add(await channels[i].ReadObjectAsync<Matrix>());
+            }
+
+            var matrixC = pointsNumber switch
+            {
+                1 => matrixCPairs.First(),
+                2 => MatrixDivisioner.Join2(new Matrix(matrixA.Height, matrixB.Width), matrixCPairs),
+                4 => MatrixDivisioner.Join4(new Matrix(matrixA.Height, matrixB.Width), matrixCPairs),
+                8 => MatrixDivisioner.Join8(new Matrix(matrixA.Height, matrixB.Width), matrixCPairs),
+                _ => throw new NotSupportedException(),
+            };
 
             stopwatch.Stop();
 

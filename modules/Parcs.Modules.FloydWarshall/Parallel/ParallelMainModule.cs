@@ -2,12 +2,12 @@
 using System.Diagnostics;
 using System.Text;
 
-namespace Parcs.Modules.FloydWarshall
+namespace Parcs.Modules.FloydWarshall.Parallel
 {
-    internal class MainModule : IModule
+    public class ParallelMainModule : IModule
     {
         private IChannel[] _channels;
-        private int[][] _matrix;
+        private List<List<int>> _matrix;
 
         public async Task RunAsync(IModuleInfo moduleInfo, CancellationToken cancellationToken = default)
         {
@@ -16,9 +16,9 @@ namespace Parcs.Modules.FloydWarshall
             int pointsNumber = moduleInfo.ArgumentsProvider.GetPointsNumber();
             _matrix = GetMatrix(options.InputFile, moduleInfo);
 
-            if (_matrix.Length % pointsNumber != 0)
+            if (_matrix.Count % pointsNumber != 0)
             {
-                throw new ArgumentException($"Matrix size (now {_matrix.Length}) should be divided by {pointsNumber}!");
+                throw new ArgumentException($"Matrix size (now {_matrix.Count}) should be divided by {pointsNumber}!");
             }
 
             _channels = new IChannel[pointsNumber];
@@ -28,7 +28,7 @@ namespace Parcs.Modules.FloydWarshall
             {
                 points[i] = await moduleInfo.CreatePointAsync();
                 _channels[i] = await points[i].CreateChannelAsync();
-                await points[i].ExecuteClassAsync<WorkerModule>();
+                await points[i].ExecuteClassAsync<ParallelWorkerModule>();
             }
 
             await DistributeAllDataAsync(pointsNumber);
@@ -47,14 +47,13 @@ namespace Parcs.Modules.FloydWarshall
             PrintMatrix(result);
         }
 
-        static int[][] GetMatrix(string filename, IModuleInfo moduleInfo)
+        static List<List<int>> GetMatrix(string filename, IModuleInfo moduleInfo)
         {
-            var inputReader = moduleInfo.InputReader;
+            List<string> lines = new();
 
-            List<string> lines = new ();
-
-            using var fileStream = inputReader.GetFileStreamForFile(filename);
+            using var fileStream = moduleInfo.InputReader.GetFileStreamForFile(filename);
             using var streamReader = new StreamReader(fileStream);
+
             while (!streamReader.EndOfStream)
             {
                 lines.Add(streamReader.ReadLine());
@@ -64,8 +63,8 @@ namespace Parcs.Modules.FloydWarshall
                    .Select(l => l.Split(' ')
                    .Where(k => k.Length > 0)
                    .Select(i => int.Parse(i.Replace("-1", int.MaxValue.ToString())))
-                   .ToArray())
-                   .ToArray();
+                   .ToList())
+                   .ToList();
         }
 
         static async Task SaveMatrixAsync(string filename, int[][] m, IModuleInfo moduleInfo)
@@ -106,9 +105,9 @@ namespace Parcs.Modules.FloydWarshall
 
         private async Task<int[][]> GatherAllDataAsync(int pointsNumber)
         {
-            int chunkSize = _matrix.Length / pointsNumber;
+            int chunkSize = _matrix.Count / pointsNumber;
 
-            int[][] result = new int[_matrix.Length][];
+            int[][] result = new int[_matrix.Count][];
 
             for (int i = 0; i < _channels.Length; i++)
             {
@@ -124,9 +123,9 @@ namespace Parcs.Modules.FloydWarshall
 
         private async Task RunParallelFloydAsync(int pointsNumber)
         {
-            int chunkSize = _matrix.Length / pointsNumber;
+            int chunkSize = _matrix.Count / pointsNumber;
 
-            for (int k = 0; k < _matrix.Length; k++)
+            for (int k = 0; k < _matrix.Count; k++)
             {
                 int currentSupplier = k / chunkSize;
                 int[] currentRow = await _channels[currentSupplier].ReadObjectAsync<int[]>();
@@ -145,11 +144,16 @@ namespace Parcs.Modules.FloydWarshall
         {
             for (int i = 0; i < _channels.Length; i++)
             {
-                Console.WriteLine($"Sent to channel: {i}");
                 await _channels[i].WriteDataAsync(i);
-                int chunkSize = _matrix.Length / pointsNumber;
 
-                int[][] chunk = new int[chunkSize][];
+                int chunkSize = _matrix.Count / pointsNumber;
+
+                var chunk = new List<List<int>>(chunkSize);
+
+                for (int i = 0; i < chunkSize; ++i)
+                {
+
+                }
 
                 for (int j = 0; j < chunkSize; j++)
                 {

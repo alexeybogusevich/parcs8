@@ -8,7 +8,7 @@
     <Description>PARCS for .NET</Description>
     <Copyright>Taras Shevchenko National University of Kyiv</Copyright>
     <PackageId>Parcs.Net</PackageId>
-    <Version>0.3.8</Version>
+    <Version>0.4.0</Version>
     <PackageTags>parallel;distributed</PackageTags>
     <Authors>Oleksii Bohusevych</Authors>
     <Company>Taras Shevchenko National University of Kyiv</Company>

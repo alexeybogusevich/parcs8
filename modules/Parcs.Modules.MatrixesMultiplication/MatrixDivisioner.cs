@@ -6,16 +6,22 @@ namespace Parcs.Modules.MatrixesMultiplication
     {
         public static IEnumerable<Tuple<Matrix, Matrix>> Divide2(Matrix a, Matrix b)
         {
-            yield return Tuple.Create(a.SubMatrix(0, 0, b.Height / 2, b.Width), b);
-            yield return Tuple.Create(a.SubMatrix(0, 0, a.Height / 2 + a.Height % 2, a.Width), b);
+            yield return 
+                Tuple.Create(a.SubMatrix(0, 0, b.Height / 2, b.Width), b);
+            yield return
+                Tuple.Create(a.SubMatrix(0, 0, a.Height / 2 + a.Height % 2, a.Width), b);
         }
 
         public static IEnumerable<Tuple<Matrix, Matrix>> Divide4(Matrix a, Matrix b)
         {
-            yield return Tuple.Create(a.SubMatrix(0, 0, a.Height / 2, a.Width), b.SubMatrix(0, 0, b.Height, b.Width / 2));
-            yield return Tuple.Create(a.SubMatrix(0, 0, a.Height / 2, a.Width), b.SubMatrix(0, b.Width / 2, b.Height, b.Width / 2 + b.Width % 2));
-            yield return Tuple.Create(a.SubMatrix(a.Height / 2, 0, a.Height / 2 + a.Height % 2, b.Width), b.SubMatrix(0, 0, b.Height, b.Width / 2));
-            yield return Tuple.Create(a.SubMatrix(a.Height / 2, 0, a.Height / 2 + a.Height % 2, b.Width), b.SubMatrix(0, b.Width / 2, b.Height, b.Width / 2 + b.Width % 2));
+            yield return
+                Tuple.Create(a.SubMatrix(0, 0, a.Height / 2, a.Width), b.SubMatrix(0, 0, b.Height, b.Width / 2));
+            yield return
+                Tuple.Create(a.SubMatrix(0, 0, a.Height / 2, a.Width), b.SubMatrix(0, b.Width / 2, b.Height, b.Width / 2 + b.Width % 2));
+            yield return
+                Tuple.Create(a.SubMatrix(a.Height / 2, 0, a.Height / 2 + a.Height % 2, b.Width), b.SubMatrix(0, 0, b.Height, b.Width / 2));
+            yield return
+                Tuple.Create(a.SubMatrix(a.Height / 2, 0, a.Height / 2 + a.Height % 2, b.Width), b.SubMatrix(0, b.Width / 2, b.Height, b.Width / 2 + b.Width % 2));
         }
 
         public static IEnumerable<Tuple<Matrix, Matrix>> Divide8(Matrix a, Matrix b)

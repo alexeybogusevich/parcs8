@@ -1,12 +1,13 @@
 ﻿using Parcs.Modules.MatrixesMultiplication.Models;
 using Parcs.Net;
 using System.Diagnostics;
+using System.Text.Json;
 
 namespace Parcs.Modules.MatrixesMultiplication.Sequential
 {
     public class SequentialMainModule : IModule
     {
-        public Task RunAsync(IModuleInfo moduleInfo, CancellationToken cancellationToken = default)
+        public async Task RunAsync(IModuleInfo moduleInfo, CancellationToken cancellationToken = default)
         {
             var moduleOptions = moduleInfo.ArgumentsProvider.Bind<ModuleOptions>();
 
@@ -20,7 +21,14 @@ namespace Parcs.Modules.MatrixesMultiplication.Sequential
 
             stopwatch.Stop();
 
-            return Task.CompletedTask;
+            var moduleOutput = new ModuleOutput { ElapsedSeconds = stopwatch.Elapsed.TotalSeconds };
+            await moduleInfo.OutputWriter.WriteToFileAsync(JsonSerializer.SerializeToUtf8Bytes(moduleOutput), moduleOptions.OutputFilename);
+
+            if (moduleOptions.SaveMatrixes)
+            {
+                await using var fileStreamC = moduleInfo.OutputWriter.GetStreamForFile(moduleOptions.MatrixCOutputFilename);
+                await matrixA.WriteToStreamAsync(fileStreamC, cancellationToken);
+            }
         }
     }
 }

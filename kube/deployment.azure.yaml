@@ -60,10 +60,10 @@ spec:
         - containerPort: 1111
         resources:
           limits:
-            cpu: 500m
+            cpu: 800m
             memory: 2048Mi
           requests:
-            cpu: 200m
+            cpu: 100m
             memory: 1024Mi
         volumeMounts:
         - name: parcs-storage-volume

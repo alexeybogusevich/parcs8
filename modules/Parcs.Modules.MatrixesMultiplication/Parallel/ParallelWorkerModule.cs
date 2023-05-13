@@ -3,7 +3,7 @@ using Parcs.Net;
 
 namespace Parcs.Modules.MatrixesMultiplication.Parallel
 {
-    public class ParallelAtomicWorkerModule : IModule
+    public class ParallelWorkerModule : IModule
     {
         public async Task RunAsync(IModuleInfo moduleInfo, CancellationToken cancellationToken = default)
         {
