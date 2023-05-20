@@ -2,6 +2,7 @@
 using Parcs.Modules.FloydWarshall.Models;
 using Parcs.Net;
 using System.Diagnostics;
+using System.Text.Json;
 
 namespace Parcs.Modules.FloydWarshall.Parallel
 {
@@ -41,6 +42,9 @@ namespace Parcs.Modules.FloydWarshall.Parallel
             stopwatch.Stop();
 
             var finalMatrix = await GetFinalDistancesMatrixAsync(initialMatrix, chunkSize, channels);
+
+            var moduleOutput = new ModuleOutput { ElapsedSeconds = stopwatch.Elapsed.TotalSeconds };
+            await moduleInfo.OutputWriter.WriteToFileAsync(JsonSerializer.SerializeToUtf8Bytes(moduleOutput), moduleOptions.OutputFile);
 
             if (moduleOptions.SaveMatrixes)
             {

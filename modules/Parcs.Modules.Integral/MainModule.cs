@@ -1,5 +1,7 @@
 ﻿using Parcs.Net;
+using System.Diagnostics;
 using System.Text;
+using System.Text.Json;
 
 namespace Parcs.Modules.Integral
 {
@@ -11,7 +13,7 @@ namespace Parcs.Modules.Integral
 
             double a = 0;
             double b = Math.PI / 2;
-            double h = moduleOptions.Precision ?? 0.00000001;
+            double h = moduleOptions.Precision;
 
             var pointsNumber = moduleInfo.ArgumentsProvider.GetPointsNumber();
             var points = new IPoint[pointsNumber];
@@ -32,8 +34,9 @@ namespace Parcs.Modules.Integral
                 await channels[i].WriteDataAsync(h);
                 y += (b - a) / pointsNumber;
             }
-            DateTime time = DateTime.Now;
-            Console.WriteLine("Waiting for result...");
+
+            var stopwatch = new Stopwatch();
+            stopwatch.Start();
 
             double result = 0;
             for (int i = pointsNumber - 1; i >= 0; --i)
@@ -41,15 +44,10 @@ namespace Parcs.Modules.Integral
                 result += await channels[i].ReadDoubleAsync();
             }
 
-            Console.WriteLine("Result found: res = {0}, time = {1}", result, Math.Round((DateTime.Now - time).TotalSeconds, 3));
+            stopwatch.Stop();
 
-            var bytes = Encoding.UTF8.GetBytes(result.ToString());
-            await moduleInfo.OutputWriter.WriteToFileAsync(bytes, moduleOptions.OutputFilename);
-
-            for (int i = 0; i < pointsNumber; ++i)
-            {
-                await points[i].DeleteAsync();
-            }
+            var moduleOutput = new ModuleOutput { ElapsedSeconds = stopwatch.Elapsed.TotalSeconds, Result = result };
+            await moduleInfo.OutputWriter.WriteToFileAsync(JsonSerializer.SerializeToUtf8Bytes(moduleOutput), moduleOptions.OutputFilename);
         }
     }
 }

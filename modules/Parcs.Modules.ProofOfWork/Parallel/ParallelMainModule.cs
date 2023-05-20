@@ -41,9 +41,7 @@ namespace Parcs.Modules.ProofOfWork.Parallel
 
                 for (int i = 0; i < pointsNumber; ++i)
                 {
-                    var found = await channels[i].ReadBooleanAsync();
-
-                    if (found)
+                    if (await channels[i].ReadBooleanAsync())
                     {
                         resultNonce = await channels[i].ReadLongAsync();
                         break;

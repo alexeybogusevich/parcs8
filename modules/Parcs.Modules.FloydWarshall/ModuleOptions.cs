@@ -2,9 +2,9 @@
 {
     public class ModuleOptions
     {
-        public int VerticesNumber { get; set; }
+        public int VerticesNumber { get; set; } = 16;
 
-        public bool SaveMatrixes { get; set; }
+        public bool SaveMatrixes { get; set; } = false;
 
         public string InputFile { get; set; }
 
