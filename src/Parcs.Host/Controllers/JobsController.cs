@@ -19,7 +19,7 @@ namespace Parcs.Host.Controllers
         }
 
         [HttpGet]
-        [ProducesResponseType(typeof(IEnumerable<GetJobQueryResponse>), (int)HttpStatusCode.OK)]
+        [ProducesResponseType(typeof(IEnumerable<GetPlainJobQueryResponse>), (int)HttpStatusCode.OK)]
         public async Task<IActionResult> GetAsync(CancellationToken cancellationToken)
         {
             var response = await _mediator.Send(new GetAllJobsQuery(), cancellationToken);
