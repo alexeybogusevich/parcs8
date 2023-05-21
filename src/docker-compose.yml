@@ -29,6 +29,16 @@ services:
     depends_on:
       - parcs.database
 
+  parcs.portal:
+    image: ${DOCKER_REGISTRY-}parcsportal
+    build:
+      context: .
+      dockerfile: Parcs.Portal/Dockerfile
+    networks:
+      - parcsnet
+    depends_on:
+      - parcs.hostapi
+
   parcs.database:
     image: postgres:latest
     restart: always
@@ -43,4 +53,4 @@ volumes:
 
 networks:
   parcsnet:
-    driver: bridge  
+    driver: bridge

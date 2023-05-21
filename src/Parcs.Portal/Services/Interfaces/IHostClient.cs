@@ -10,13 +10,13 @@ namespace Parcs.Portal.Services.Interfaces
 
         Task<GetJobHostResponse> GetJobAsync(long jobId, CancellationToken cancellationToken = default);
 
-        Task<IEnumerable<GetJobHostResponse>> GetJobsAsync(long moduleId, CancellationToken cancellationToken = default);
+        Task<IEnumerable<GetPlainJobHostResponse>> GetJobsAsync(CancellationToken cancellationToken = default);
 
         Task<Result<CreateJobHostResponse>> PostJobAsync(CreateJobHostRequest createJobHostRequest, CancellationToken cancellationToken = default);
 
         Task<GetModuleHostResponse> GetModuleAsync(long id, CancellationToken cancellationToken = default);
 
-        Task<IEnumerable<GetModuleHostResponse>> GetModulesAsync(CancellationToken cancellationToken = default);
+        Task<IEnumerable<GetPlainModuleHostResponse>> GetModulesAsync(CancellationToken cancellationToken = default);
 
         Task<Result<CreateModuleHostResponse>> PostModuleAsync(CreateModuleHostRequest createModuleHostRequest, CancellationToken cancellationToken = default);
 

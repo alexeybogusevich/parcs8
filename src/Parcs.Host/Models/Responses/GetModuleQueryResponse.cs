@@ -8,6 +8,8 @@ namespace Parcs.Host.Models.Responses
 
         public string Name { get; set; }
 
+        public DateTime CreateDateUtc { get; set; }
+
         public IEnumerable<JobResponse> Jobs { get; set; }
     }
 }

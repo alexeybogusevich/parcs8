@@ -1,0 +1,13 @@
+﻿@page "/viewmodule/{Id:long}"
+@inherits ViewModuleBase
+
+<Title value="PARCS Modules"></Title>
+
+@if (IsLoading)
+{
+    <div class="spinner"></div>
+}
+else
+{
+    <PatientProfile Patient="Patient"></PatientProfile>
+}

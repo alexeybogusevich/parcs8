@@ -49,8 +49,8 @@ namespace Parcs.Daemon.Extensions
         public static IServiceCollection AddHttpClients(this IServiceCollection services, IConfiguration configuration)
         {
             var hostApiConfiguration = configuration
-                .GetSection(HostApiConfiguration.SectionName)
-                .Get<HostApiConfiguration>();
+                .GetSection(HostConfiguration.SectionName)
+                .Get<HostConfiguration>();
 
             services.AddHttpClient<IHostApiClient, HostApiClient>(client =>
             {
@@ -67,8 +67,8 @@ namespace Parcs.Daemon.Extensions
                 .Configure<FileSystemConfiguration>(configuration.GetSection(FileSystemConfiguration.SectionName))
                 .Configure<HostingConfiguration>(configuration.GetSection(HostingConfiguration.SectionName))
                 .Configure<KubernetesConfiguration>(configuration.GetSection(KubernetesConfiguration.SectionName))
-                .Configure<NodeConfiguration>(configuration.GetSection(NodeConfiguration.SectionName))
-                .Configure<HostApiConfiguration>(configuration.GetSection(HostApiConfiguration.SectionName));
+                .Configure<DaemonConfiguration>(configuration.GetSection(DaemonConfiguration.SectionName))
+                .Configure<HostConfiguration>(configuration.GetSection(HostConfiguration.SectionName));
         }
     }
 }

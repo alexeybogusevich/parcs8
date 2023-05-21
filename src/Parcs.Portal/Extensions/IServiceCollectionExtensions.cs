@@ -19,5 +19,19 @@ namespace Parcs.Portal.Extensions
                 .Configure<HostConfiguration>(configuration.GetSection(HostConfiguration.SectionName))
                 .Configure<PortalConfiguration>(configuration.GetSection(PortalConfiguration.SectionName));
         }
+
+        public static IServiceCollection AddHttpClients(this IServiceCollection services, IConfiguration configuration)
+        {
+            var hostConfiguration = configuration
+                .GetSection(HostConfiguration.SectionName)
+                .Get<HostConfiguration>();
+
+            services.AddHttpClient<IHostClient, HostClient>(client =>
+            {
+                client.BaseAddress = new Uri($"http://{hostConfiguration.Uri}:80");
+            });
+
+            return services;
+        }
     }
 }

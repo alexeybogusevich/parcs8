@@ -32,9 +32,11 @@ namespace Parcs.Host.Handlers
 
             return new GetJobQueryResponse
             {
-                JobId = job.Id,
+                Id = job.Id,
                 ModuleId = job.ModuleId,
                 ModuleName = job.Module.Name,
+                AssemblyName = job.AssemblyName,
+                ClassName = job.ClassName,
                 Statuses = job.Statuses.Select(s => new JobStatusResponse((JobStatus)s.Status, s.CreateDateUtc)).ToList(),
                 Failures = job.Failures.Select(f => new JobFailureResponse(f.Message, f.StackTrace, f.CreateDateUtc)).ToList(),
             };

@@ -9,9 +9,9 @@ namespace Parcs.Daemon.Services
     public class HostApiClient : IHostApiClient
     {
         private readonly FlurlClient _flurlClient;
-        private readonly HostApiConfiguration _configuration;
+        private readonly HostConfiguration _configuration;
 
-        public HostApiClient(HttpClient httpClient, IOptions<HostApiConfiguration> options)
+        public HostApiClient(HttpClient httpClient, IOptions<HostConfiguration> options)
         {
             _flurlClient = new FlurlClient(httpClient);
             _configuration = options.Value;

@@ -13,31 +13,27 @@ namespace Parcs.Portal.Services
 {
     public class HostClient : IHostClient
     {
-        private readonly IHttpClientFactory _httpClientFactory;
+        private readonly FlurlClient _flurlClient;
         private readonly HostConfiguration _hostConfiguration;
 
-        public HostClient(IHttpClientFactory httpClientFactory, IOptions<HostConfiguration> hostOptions)
+        public HostClient(HttpClient httpClient, IOptions<HostConfiguration> hostOptions)
         {
-            _httpClientFactory = httpClientFactory;
+            _flurlClient = new FlurlClient(httpClient);
             _hostConfiguration = hostOptions.Value;
         }
 
         public Task<GetModuleHostResponse> GetModuleAsync(long id, CancellationToken cancellationToken = default)
         {
-            using var flurlClient = new FlurlClient(_httpClientFactory.CreateClient());
-
-            return flurlClient
+            return _flurlClient
                 .Request(string.Format(_hostConfiguration.GetModuleEndpoint, id))
                 .GetJsonAsync<GetModuleHostResponse>(cancellationToken);
         }
 
-        public Task<IEnumerable<GetModuleHostResponse>> GetModulesAsync(CancellationToken cancellationToken = default)
+        public Task<IEnumerable<GetPlainModuleHostResponse>> GetModulesAsync(CancellationToken cancellationToken = default)
         {
-            using var flurlClient = new FlurlClient(_httpClientFactory.CreateClient());
-
-            return flurlClient
+            return _flurlClient
                 .Request(_hostConfiguration.GetModulesEndpoint)
-                .GetJsonAsync<IEnumerable<GetModuleHostResponse>>(cancellationToken);
+                .GetJsonAsync<IEnumerable<GetPlainModuleHostResponse>>(cancellationToken);
         }
 
         public async Task<Result<CreateModuleHostResponse>> PostModuleAsync(CreateModuleHostRequest createModuleHostRequest, CancellationToken cancellationToken = default)
@@ -57,9 +53,7 @@ namespace Parcs.Portal.Services
 
             try
             {
-                using var flurlClient = new FlurlClient(_httpClientFactory.CreateClient());
-
-                var response = await flurlClient
+                var response = await _flurlClient
                     .Request(_hostConfiguration.PostModulesEndpoint)
                     .PostMultipartAsync(MultipartContent, cancellationToken);
 
@@ -82,29 +76,23 @@ namespace Parcs.Portal.Services
 
         public Task DeleteModuleAsync(long id, CancellationToken cancellationToken = default)
         {
-            using var flurlClient = new FlurlClient(_httpClientFactory.CreateClient());
-
-            return flurlClient
+            return _flurlClient
                 .Request(string.Format(_hostConfiguration.DeleteModulesEndpoint, id))
                 .DeleteAsync(cancellationToken);
         }
 
         public Task<GetJobHostResponse> GetJobAsync(long jobId, CancellationToken cancellationToken = default)
         {
-            using var flurlClient = new FlurlClient(_httpClientFactory.CreateClient());
-
-            return flurlClient
+            return _flurlClient
                 .Request(string.Format(_hostConfiguration.GetJobEndpoint, jobId))
                 .GetJsonAsync<GetJobHostResponse>(cancellationToken);
         }
 
-        public Task<IEnumerable<GetJobHostResponse>> GetJobsAsync(long moduleId, CancellationToken cancellationToken = default)
+        public Task<IEnumerable<GetPlainJobHostResponse>> GetJobsAsync(CancellationToken cancellationToken = default)
         {
-            using var flurlClient = new FlurlClient(_httpClientFactory.CreateClient());
-
-            return flurlClient
+            return _flurlClient
                 .Request(_hostConfiguration.GetJobsEndpoint)
-                .GetJsonAsync<IEnumerable<GetJobHostResponse>>(cancellationToken);
+                .GetJsonAsync<IEnumerable<GetPlainJobHostResponse>>(cancellationToken);
         }
 
         public async Task<Result<CreateJobHostResponse>> PostJobAsync(CreateJobHostRequest createJobHostRequest, CancellationToken cancellationToken = default)
@@ -126,9 +114,7 @@ namespace Parcs.Portal.Services
 
             try
             {
-                using var flurlClient = new FlurlClient(_httpClientFactory.CreateClient());
-
-                var response = await flurlClient
+                var response = await _flurlClient
                     .Request(_hostConfiguration.PostJobsEndpoint)
                     .PostMultipartAsync(MultipartContent, cancellationToken);
 
@@ -151,9 +137,7 @@ namespace Parcs.Portal.Services
 
         public async Task<Result<bool>> PostRunAsync(RunJobHostRequest runJobHostRequest, CancellationToken cancellationToken = default)
         {
-            using var flurlClient = new FlurlClient(_httpClientFactory.CreateClient());
-
-            var response = await flurlClient
+            var response = await _flurlClient
                 .Request(_hostConfiguration.PostAsynchronousRunsEndpoint)
                 .PostJsonAsync(runJobHostRequest, cancellationToken);
 

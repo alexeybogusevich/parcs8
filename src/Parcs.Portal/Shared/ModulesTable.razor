@@ -2,16 +2,16 @@
 
 <div class="row">
     <div class="col-sm-4 col-9 m-b-10">
-        <input type="text" class="form-control" placeholder="Пошук" @bind="FiltersInput.SearchWord">
+        <input type="text" class="form-control" placeholder="Type to search..." @bind="FiltersInput.SearchWord">
     </div>
     <div class="col-sm-2 col-9 m-b-10">
         <div class="btn-group float-right">
-            <button class="btn btn-primary float-right" @onclick="Filter"><i class="fa fa-search"></i></button>
-            <button class="btn btn-white float-right" @onclick="ClearFilters"><i class="fa fa-remove"></i></button>
+            <button class="btn btn-primary float-right" @onclick="Filter"><i class="fa fa-search"></i> Search</button>
+            <button class="btn btn-white float-right" @onclick="ClearFilters"><i class="fa fa-remove"></i> Reset</button>
         </div>
     </div>
     <div class="col-sm-6 col-9 text-left m-b-10">
-        <a href="/newmodule" class="btn btn btn-primary btn-rounded float-right"><i class="fa fa-plus"></i> Додати</a>
+        <a href="/newmodule" class="btn btn btn-primary btn-rounded float-right"><i class="fa fa-plus"></i> Create a module</a>
     </div>
 </div>
 <div class="row">
@@ -22,7 +22,8 @@
                     <tr>
                         <th>Id</th>
                         <th>Name</th>
-                        <th>Jobs</th>
+                        <th>Create date</th>
+                        <th>Number of jobs</th>
                         <th class="text-right">...</th>
                     </tr>
                 </thead>
@@ -32,7 +33,8 @@
                         <tr>
                             <td><a href="/viewmodule/@module.Id">@module.Id</a></td>
                             <td>@module.Name</td>
-                            <td>@module.Jobs.Count()</td>
+                            <td>@module.CreateDateUtc.ToLocalTime()</td>
+                            <td>@module.JobsNumber</td>
                             <td class="text-right">
                                 <div class="dropdown dropdown-action">
                                     <a href="#" class="action-icon dropdown-toggle" data-toggle="dropdown" aria-expanded="false"><i class="fa fa-ellipsis-v"></i></a>
@@ -53,7 +55,7 @@
         <li class="page-item">
             <a class="page-link" href="javascript:void(0)" aria-label="Previous" @onclick="() => GoToPage(1)">
                 <span aria-hidden="true">&laquo;</span>
-                <span class="sr-only">Назад</span>
+                <span class="sr-only">Back</span>
             </a>
         </li>
         @foreach (var pageNo in AvailablePages)
@@ -73,10 +75,10 @@
         <div class="modal-content">
             <div class="modal-body text-center">
                 <img src="img/sent.png" alt="" width="50" height="46">
-                <h3>You are deleting module @ModuleToDelete.Id</h3>
+                <h3>Are you sure you want to delete this module?</h3>
                 <div class="m-t-20">
                     <a href="javascript:void(0);" class="btn btn-white" data-dismiss="modal" @onclick="ResetModuleToDelete">Cancel</a>
-                    <button type="submit" class="btn btn-danger" data-dismiss="modal" @onclick="DeleteAsync">Confirm</button>
+                    <button type="submit" class="btn btn-danger" data-dismiss="modal" @onclick="DeleteAsync">Delete</button>
                 </div>
             </div>
         </div>

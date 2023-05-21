@@ -3,12 +3,11 @@ using Microsoft.EntityFrameworkCore;
 using Parcs.Core.Models;
 using Parcs.Data.Context;
 using Parcs.Host.Models.Queries;
-using Parcs.Host.Models.Responses.Nested;
 using Parcs.Host.Models.Responses;
 
 namespace Parcs.Host.Handlers
 {
-    public class GetAllJobsQueryHandler : IRequestHandler<GetAllJobsQuery, IEnumerable<GetJobQueryResponse>>
+    public class GetAllJobsQueryHandler : IRequestHandler<GetAllJobsQuery, IEnumerable<GetPlainJobQueryResponse>>
     {
         private readonly ParcsDbContext _parcsDbContext;
 
@@ -17,17 +16,20 @@ namespace Parcs.Host.Handlers
             _parcsDbContext = parcsDbContext;
         }
 
-        public async Task<IEnumerable<GetJobQueryResponse>> Handle(GetAllJobsQuery request, CancellationToken cancellationToken)
+        public async Task<IEnumerable<GetPlainJobQueryResponse>> Handle(GetAllJobsQuery request, CancellationToken cancellationToken)
         {
             return await _parcsDbContext.Jobs.Select(
-                e => new GetJobQueryResponse
+                e => new GetPlainJobQueryResponse
                 {
-                    JobId = e.Id,
+                    Id = e.Id,
                     ModuleId = e.ModuleId,
                     ModuleName = e.Module.Name,
-                    Statuses = e.Statuses.Select(s => new JobStatusResponse((JobStatus)s.Status, s.CreateDateUtc)).ToList(),
-                    Failures = e.Failures.Select(f => new JobFailureResponse(f.Message, f.StackTrace, f.CreateDateUtc)).ToList(),
+                    AssemblyName = e.AssemblyName,
+                    ClassName = e.ClassName,
+                    CreateDateUtc = e.CreateDateUtc,
+                    Status = (JobStatus)e.Statuses.OrderByDescending(s => s.Id).FirstOrDefault().Status,
                 })
+                .OrderByDescending(e => e.Id)
                 .ToListAsync(cancellationToken);
         }
     }

@@ -2,9 +2,9 @@
 {
     public class HostConfiguration
     {
-        public const string SectionName = "Portal";
+        public const string SectionName = "Host";
 
-        public string HostName { get; set; }
+        public string Uri { get; set; }
 
         public string GetModuleEndpoint { get; set; }
 

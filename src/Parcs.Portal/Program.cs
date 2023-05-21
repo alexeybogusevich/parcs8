@@ -5,6 +5,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 builder.Services.AddApplicationServices();
+builder.Services.AddApplicationOptions(builder.Configuration);
+builder.Services.AddHttpClients(builder.Configuration);
 
 var app = builder.Build();
 
