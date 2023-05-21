@@ -1,6 +1,6 @@
 ﻿namespace Parcs.Daemon.Configuration
 {
-    public sealed class NodeConfiguration
+    public sealed class DaemonConfiguration
     {
         public const string SectionName = "Node";
 

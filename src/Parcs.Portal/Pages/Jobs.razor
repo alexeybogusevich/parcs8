@@ -1,0 +1,17 @@
+﻿@page "/jobs"
+@inherits JobsBase
+
+<Title value="PARCS Jobs"></Title>
+
+@if (IsLoading)
+{
+    <div class="spinner"></div>
+}
+else
+{
+    <div class="page-wrapper">
+        <div class="content">
+            <JobsTable Jobs="JobsList" />
+        </div>
+    </div>
+}

@@ -22,9 +22,12 @@ namespace Parcs.Host.Handlers
             return await _parcsDbContext.Jobs.Select(
                 e => new GetJobQueryResponse
                 {
-                    JobId = e.Id,
+                    Id = e.Id,
+                    AssemblyName = e.AssemblyName,
+                    ClassName = e.ClassName,
                     ModuleId = e.ModuleId,
                     ModuleName = e.Module.Name,
+                    CreateDateUtc = e.CreateDateUtc,
                     Statuses = e.Statuses.Select(s => new JobStatusResponse((JobStatus)s.Status, s.CreateDateUtc)).ToList(),
                     Failures = e.Failures.Select(f => new JobFailureResponse(f.Message, f.StackTrace, f.CreateDateUtc)).ToList(),
                 })

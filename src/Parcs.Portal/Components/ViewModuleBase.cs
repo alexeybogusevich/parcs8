@@ -4,19 +4,21 @@ using Parcs.Portal.Services.Interfaces;
 
 namespace Parcs.Portal.Components
 {
-    public class ModulesBase : PageBase
+    public class ViewModuleBase : PageBase
     {
         [Inject]
         protected IHostClient HostClient { get; set; }
 
-        public List<GetPlainModuleHostResponse> ModulesList { get; set; }
+        [Parameter]
+        public long Id { get; set; }
+
+        protected GetModuleHostResponse Module { get; set; } = new ();
 
         protected override async Task OnInitializedAsync()
         {
             IsLoading = true;
 
-            var modules = await HostClient.GetModulesAsync(cancellationTokenSource.Token);
-            ModulesList = modules.ToList();
+            Module = await HostClient.GetModuleAsync(Id, cancellationTokenSource.Token);
 
             IsLoading = false;
         }

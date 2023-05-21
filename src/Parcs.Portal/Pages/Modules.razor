@@ -1,0 +1,18 @@
+﻿@page "/"
+@page "/modules"
+@inherits ModulesBase
+
+<Title value="PARCS Modules"></Title>
+
+@if (IsLoading)
+{
+    <div class="spinner"></div>
+}
+else
+{
+    <div class="page-wrapper">
+        <div class="content">
+            <ModulesTable Modules="ModulesList" />
+        </div>
+    </div>
+}

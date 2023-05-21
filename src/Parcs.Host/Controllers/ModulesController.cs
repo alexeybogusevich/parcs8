@@ -19,7 +19,7 @@ namespace Parcs.Host.Controllers
         }
 
         [HttpGet]
-        [ProducesResponseType(typeof(IEnumerable<GetModuleQueryResponse>), (int)HttpStatusCode.OK)]
+        [ProducesResponseType(typeof(IEnumerable<GetPlainModuleQueryResponse>), (int)HttpStatusCode.OK)]
         public async Task<IActionResult> GetAsync(CancellationToken cancellationToken)
         {
             var response = await _mediator.Send(new GetAllModulesQuery(), cancellationToken);

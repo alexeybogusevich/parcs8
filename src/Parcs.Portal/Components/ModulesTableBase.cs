@@ -17,11 +17,11 @@ namespace Parcs.Portal.Components
         private readonly int PagesForReference = 5;
 
         [Parameter]
-        public List<GetModuleHostResponse> Modules { get; set; }
+        public List<GetPlainModuleHostResponse> Modules { get; set; }
 
-        protected GetModuleHostResponse ModuleToDelete { get; set; }
+        protected GetPlainModuleHostResponse ModuleToDelete { get; set; }
 
-        protected PaginatedList<GetModuleHostResponse> CurrentPage { get; set; }
+        protected PaginatedList<GetPlainModuleHostResponse> CurrentPage { get; set; }
 
         protected List<int> AvailablePages { get; set; } = new ();
 
@@ -29,7 +29,7 @@ namespace Parcs.Portal.Components
 
         protected override void OnParametersSet()
         {
-            CurrentPage = PaginatedList<GetModuleHostResponse>.Create(Modules, 1, PageSize);
+            CurrentPage = PaginatedList<GetPlainModuleHostResponse>.Create(Modules, 1, PageSize);
             SetAvailablePages();
         }
 
@@ -52,7 +52,7 @@ namespace Parcs.Portal.Components
 
         protected void GoToPage(int pageNumber)
         {
-            CurrentPage = PaginatedList<GetModuleHostResponse>.Create(Modules, pageNumber, PageSize);
+            CurrentPage = PaginatedList<GetPlainModuleHostResponse>.Create(Modules, pageNumber, PageSize);
             SetAvailablePages();
         }
 
@@ -60,14 +60,14 @@ namespace Parcs.Portal.Components
         {
             if (string.IsNullOrEmpty(FiltersInput.SearchWord))
             {
-                CurrentPage = PaginatedList<GetModuleHostResponse>.Create(Modules, 1, PageSize);
+                CurrentPage = PaginatedList<GetPlainModuleHostResponse>.Create(Modules, 1, PageSize);
                 SetAvailablePages();
                 return;
             }
 
             var filteredModules = Modules.Where(p => p.Name.Contains(FiltersInput.SearchWord, StringComparison.OrdinalIgnoreCase));
 
-            CurrentPage = PaginatedList<GetModuleHostResponse>.Create(filteredModules, 1, PageSize);
+            CurrentPage = PaginatedList<GetPlainModuleHostResponse>.Create(filteredModules, 1, PageSize);
 
             SetAvailablePages();
         }
@@ -75,11 +75,11 @@ namespace Parcs.Portal.Components
         protected void ClearFilters()
         {
             FiltersInput.SearchWord = string.Empty;
-            CurrentPage = PaginatedList<GetModuleHostResponse>.Create(Modules, 1, PageSize);
+            CurrentPage = PaginatedList<GetPlainModuleHostResponse>.Create(Modules, 1, PageSize);
             SetAvailablePages();
         }
 
-        protected void SetModuleToDelete(GetModuleHostResponse module)
+        protected void SetModuleToDelete(GetPlainModuleHostResponse module)
         {
             ModuleToDelete = module;
         }
@@ -87,6 +87,11 @@ namespace Parcs.Portal.Components
         protected void ResetModuleToDelete()
         {
             ModuleToDelete = null;
+        }
+
+        protected void NavigateToModule(long moduleId)
+        {
+            NavigationManager.NavigateTo($"/viewmodule/{moduleId}");
         }
 
         protected async Task DeleteAsync()
@@ -98,10 +103,10 @@ namespace Parcs.Portal.Components
 
             await HostClient.DeleteModuleAsync(ModuleToDelete.Id);
 
-            var deletedDoctor = Modules.FirstOrDefault(d => d.Id.Equals(ModuleToDelete.Id));
-            Modules.Remove(deletedDoctor);
+            var deletedModule = Modules.FirstOrDefault(d => d.Id.Equals(ModuleToDelete.Id));
+            Modules.Remove(deletedModule);
 
-            CurrentPage = PaginatedList<GetModuleHostResponse>.Create(Modules, CurrentPage.PageIndex, PageSize);
+            CurrentPage = PaginatedList<GetPlainModuleHostResponse>.Create(Modules, CurrentPage.PageIndex, PageSize);
             SetAvailablePages();
 
             ModuleToDelete = null;

@@ -1,8 +1,8 @@
-﻿using Parcs.Portal.Models.Host.Responses.Nested;
+﻿using Parcs.Core.Models;
 
-namespace Parcs.Portal.Models.Host.Responses
+namespace Parcs.Host.Models.Responses
 {
-    public class GetJobHostResponse
+    public class GetPlainJobQueryResponse
     {
         public long Id { get; set; }
 
@@ -16,8 +16,6 @@ namespace Parcs.Portal.Models.Host.Responses
 
         public DateTime CreateDateUtc { get; set; }
 
-        public IEnumerable<JobStatusResponse> Statuses { get; set; }
-
-        public IEnumerable<JobFailureResponse> Failures { get; set; }
+        public JobStatus Status { get; set; }
     }
 }

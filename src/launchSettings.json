@@ -4,11 +4,13 @@
       "commandName": "DockerCompose",
       "commandVersion": "1.0",
       "composeLaunchAction": "LaunchBrowser",
-      "composeLaunchServiceName": "parcs.hostapi",
-      "composeLaunchUrl": "{Scheme}://localhost:{ServicePort}/swagger",
+      "composeLaunchServiceName": "parcs.portal",
+      "composeLaunchUrl": "{Scheme}://localhost:{ServicePort}",
       "serviceActions": {
         "parcs.daemon": "StartDebugging",
-        "parcs.hostapi": "StartDebugging"
+        "parcs.hostapi": "StartDebugging",
+        "parcs.portal": "StartDebugging",
+        "parcs.database": "StartWithoutDebugging"
       }
     }
   }

@@ -1,6 +1,6 @@
 ﻿namespace Parcs.Daemon.Configuration
 {
-    public class HostApiConfiguration
+    public class HostConfiguration
     {
         public const string SectionName = "HostApi";
 

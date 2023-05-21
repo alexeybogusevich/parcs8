@@ -13,7 +13,7 @@ namespace Parcs.Portal.Components
 
         protected bool IsLoading { get; set; }
 
-        protected readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
+        protected readonly CancellationTokenSource cancellationTokenSource = new ();
 
         public void Dispose()
         {

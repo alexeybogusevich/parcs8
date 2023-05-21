@@ -33,6 +33,7 @@ namespace Parcs.Host.Handlers
             {
                 Id  = module.Id,
                 Name = module.Name,
+                CreateDateUtc = module.CreateDateUtc,
                 Jobs = module.Jobs.Select(e => new JobResponse
                 {
                     JobId = e.Id,

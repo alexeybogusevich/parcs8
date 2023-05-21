@@ -15,7 +15,7 @@ namespace Parcs.Daemon.HostedServices
         private readonly IChannelOrchestrator _channelOrchestrator;
         private readonly ILogger<TcpServer> _logger;
 
-        public TcpServer(IChannelOrchestrator channelOrchestrator, IOptions<NodeConfiguration> nodeOptions, ILogger<TcpServer> logger)
+        public TcpServer(IChannelOrchestrator channelOrchestrator, IOptions<DaemonConfiguration> nodeOptions, ILogger<TcpServer> logger)
         {
             _tcpListener = new TcpListener(new IPEndPoint(IPAddress.Any, nodeOptions.Value.Port));
             _channelOrchestrator = channelOrchestrator;

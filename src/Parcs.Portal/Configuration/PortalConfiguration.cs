@@ -4,7 +4,7 @@
     {
         public const string SectionName = "Portal";
 
-        public string HostName { get; set; }
+        public string Uri { get; set; }
 
         public string JobCompletionEndpoint { get; set; }
     }
