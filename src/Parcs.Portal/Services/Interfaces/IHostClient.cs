@@ -19,5 +19,7 @@ namespace Parcs.Portal.Services.Interfaces
         Task<IEnumerable<GetModuleHostResponse>> GetModulesAsync(CancellationToken cancellationToken = default);
 
         Task<Result<CreateModuleHostResponse>> PostModuleAsync(CreateModuleHostRequest createModuleHostRequest, CancellationToken cancellationToken = default);
+
+        Task DeleteModuleAsync(long id, CancellationToken cancellationToken = default);
     }
 }

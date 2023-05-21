@@ -1,0 +1,84 @@
+﻿@inherits ModulesTableBase
+
+<div class="row">
+    <div class="col-sm-4 col-9 m-b-10">
+        <input type="text" class="form-control" placeholder="Пошук" @bind="FiltersInput.SearchWord">
+    </div>
+    <div class="col-sm-2 col-9 m-b-10">
+        <div class="btn-group float-right">
+            <button class="btn btn-primary float-right" @onclick="Filter"><i class="fa fa-search"></i></button>
+            <button class="btn btn-white float-right" @onclick="ClearFilters"><i class="fa fa-remove"></i></button>
+        </div>
+    </div>
+    <div class="col-sm-6 col-9 text-left m-b-10">
+        <a href="/newmodule" class="btn btn btn-primary btn-rounded float-right"><i class="fa fa-plus"></i> Додати</a>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="table-responsive">
+            <table class="table table-border table-striped custom-table datatable mb-0">
+                <thead>
+                    <tr>
+                        <th>Id</th>
+                        <th>Name</th>
+                        <th>Jobs</th>
+                        <th class="text-right">...</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var module in CurrentPage.Items)
+                    {
+                        <tr>
+                            <td><a href="/viewmodule/@module.Id">@module.Id</a></td>
+                            <td>@module.Name</td>
+                            <td>@module.Jobs.Count()</td>
+                            <td class="text-right">
+                                <div class="dropdown dropdown-action">
+                                    <a href="#" class="action-icon dropdown-toggle" data-toggle="dropdown" aria-expanded="false"><i class="fa fa-ellipsis-v"></i></a>
+                                    <div class="dropdown-menu dropdown-menu-right">
+                                        <a class="dropdown-item" href="#" data-toggle="modal" data-target="#delete_module" @onclick="() => SetModuleToDelete(module)"><i class="fa fa-trash-o m-r-5"></i> Delete</a>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<div>
+    <ul class="pagination" style="justify-content: flex-end;">
+        <li class="page-item">
+            <a class="page-link" href="javascript:void(0)" aria-label="Previous" @onclick="() => GoToPage(1)">
+                <span aria-hidden="true">&laquo;</span>
+                <span class="sr-only">Назад</span>
+            </a>
+        </li>
+        @foreach (var pageNo in AvailablePages)
+        {
+            <li class="page-item @(pageNo == CurrentPage.PageIndex ? "active" : string.Empty)"><a class="page-link" href="javascript:void(0)" @onclick="() => GoToPage(pageNo)">@pageNo</a></li>
+        }
+        <li class="page-item">
+            <a class="page-link" href="javascript:void(0)" aria-label="Next" @onclick="() => GoToPage(CurrentPage.TotalPages)">
+                <span aria-hidden="true">&raquo;</span>
+                <span class="sr-only">Next</span>
+            </a>
+        </li>
+    </ul>
+</div>
+<div id="delete_module" class="modal fade delete-modal" role="dialog">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-body text-center">
+                <img src="img/sent.png" alt="" width="50" height="46">
+                <h3>You are deleting module @ModuleToDelete.Id</h3>
+                <div class="m-t-20">
+                    <a href="javascript:void(0);" class="btn btn-white" data-dismiss="modal" @onclick="ResetModuleToDelete">Cancel</a>
+                    <button type="submit" class="btn btn-danger" data-dismiss="modal" @onclick="DeleteAsync">Confirm</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -56,5 +56,13 @@ namespace Parcs.Host.Controllers
             await _mediator.Send(new DeleteAllModulesCommand(), cancellationToken);
             return NoContent();
         }
+
+        [HttpDelete("{id}")]
+        [ProducesResponseType((int)HttpStatusCode.NoContent)]
+        public async Task<IActionResult> DeleteAsync([FromRoute] DeleteModuleCommand command, CancellationToken cancellationToken)
+        {
+            await _mediator.Send(command, cancellationToken);
+            return NoContent();
+        }
     }
 }

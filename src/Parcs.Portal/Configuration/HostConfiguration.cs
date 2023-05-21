@@ -12,6 +12,8 @@
 
         public string PostModulesEndpoint { get; set; }
 
+        public string DeleteModulesEndpoint { get; set; }
+
         public string GetJobEndpoint { get; set; }
 
         public string GetJobsEndpoint { get; set; }

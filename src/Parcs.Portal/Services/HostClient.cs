@@ -80,6 +80,15 @@ namespace Parcs.Portal.Services
             }
         }
 
+        public Task DeleteModuleAsync(long id, CancellationToken cancellationToken = default)
+        {
+            using var flurlClient = new FlurlClient(_httpClientFactory.CreateClient());
+
+            return flurlClient
+                .Request(string.Format(_hostConfiguration.DeleteModulesEndpoint, id))
+                .DeleteAsync(cancellationToken);
+        }
+
         public Task<GetJobHostResponse> GetJobAsync(long jobId, CancellationToken cancellationToken = default)
         {
             using var flurlClient = new FlurlClient(_httpClientFactory.CreateClient());
