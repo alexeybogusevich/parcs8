@@ -174,5 +174,10 @@ namespace Parcs.Portal.Components
         {
             DisplayedFailures = new ();
         }
+
+        protected void DownloadOutput(long jobId)
+        {
+            NavigationManager.NavigateTo($"/api/jobsOutput/{jobId}", true);
+        }
     }
 }

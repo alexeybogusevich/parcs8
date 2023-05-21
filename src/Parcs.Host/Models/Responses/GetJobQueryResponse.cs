@@ -16,6 +16,8 @@ namespace Parcs.Host.Models.Responses
 
         public DateTime CreateDateUtc { get; set; }
 
+        public bool HasOutput { get; set; }
+
         public IEnumerable<JobStatusResponse> Statuses { get; set; }
 
         public IEnumerable<JobFailureResponse> Failures { get; set; }

@@ -5,21 +5,25 @@ using Parcs.Data.Context;
 using Parcs.Host.Models.Queries;
 using Parcs.Host.Models.Responses.Nested;
 using Parcs.Host.Models.Responses;
+using Parcs.Core.Services.Interfaces;
+using Parcs.Core.Models.Enums;
 
 namespace Parcs.Host.Handlers
 {
     public class GetAllJobsQueryHandler : IRequestHandler<GetAllJobsQuery, IEnumerable<GetJobQueryResponse>>
     {
         private readonly ParcsDbContext _parcsDbContext;
+        private readonly IJobDirectoryPathBuilder _jobDirectoryPathBuilder;
 
-        public GetAllJobsQueryHandler(ParcsDbContext parcsDbContext)
+        public GetAllJobsQueryHandler(ParcsDbContext parcsDbContext, IJobDirectoryPathBuilder jobDirectoryPathBuilder)
         {
             _parcsDbContext = parcsDbContext;
+            _jobDirectoryPathBuilder = jobDirectoryPathBuilder;
         }
 
         public async Task<IEnumerable<GetJobQueryResponse>> Handle(GetAllJobsQuery request, CancellationToken cancellationToken)
         {
-            return await _parcsDbContext.Jobs.Select(
+            var jobs = await _parcsDbContext.Jobs.Select(
                 e => new GetJobQueryResponse
                 {
                     Id = e.Id,
@@ -32,6 +36,13 @@ namespace Parcs.Host.Handlers
                     Failures = e.Failures.Select(f => new JobFailureResponse(f.Message, f.StackTrace, f.CreateDateUtc)).ToList(),
                 })
                 .ToListAsync(cancellationToken);
+
+            foreach (var job in jobs)
+            {
+                job.HasOutput = Directory.Exists(_jobDirectoryPathBuilder.Build(job.Id, JobDirectoryGroup.Output));
+            }
+
+            return jobs;
         }
     }
 }

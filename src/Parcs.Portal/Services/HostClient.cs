@@ -94,7 +94,7 @@ namespace Parcs.Portal.Services
         public async Task<DocumentDownloadResponse> GetJobOutputAsync(long jobId, CancellationToken cancellationToken = default)
         {
             using var response = await _flurlClient
-                .Request(string.Format(_hostConfiguration.GetJobEndpoint, jobId))
+                .Request(string.Format(_hostConfiguration.GetJobOutputEndpoint, jobId))
                 .SendAsync(HttpMethod.Get, cancellationToken: cancellationToken);
 
             var responseHeaders = response.Headers.ToDictionary(h => h.Name, h => h.Value);

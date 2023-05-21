@@ -5,16 +5,20 @@ using Parcs.Data.Context;
 using Parcs.Host.Models.Responses.Nested;
 using Parcs.Host.Models.Queries;
 using Parcs.Host.Models.Responses;
+using Parcs.Core.Models.Enums;
+using Parcs.Core.Services.Interfaces;
 
 namespace Parcs.Host.Handlers
 {
     public sealed class GetJobQueryHandler : IRequestHandler<GetJobQuery, GetJobQueryResponse>
     {
         private readonly ParcsDbContext _parcsDbContext;
+        private readonly IJobDirectoryPathBuilder _jobDirectoryPathBuilder;
 
-        public GetJobQueryHandler(ParcsDbContext parcsDbContext)
+        public GetJobQueryHandler(ParcsDbContext parcsDbContext, IJobDirectoryPathBuilder jobDirectoryPathBuilder)
         {
             _parcsDbContext = parcsDbContext;
+            _jobDirectoryPathBuilder = jobDirectoryPathBuilder;
         }
 
         public async Task<GetJobQueryResponse> Handle(GetJobQuery request, CancellationToken cancellationToken)
@@ -38,6 +42,7 @@ namespace Parcs.Host.Handlers
                 ModuleId = job.ModuleId,
                 ModuleName = job.Module.Name,
                 CreateDateUtc = job.CreateDateUtc,
+                HasOutput = Directory.Exists(_jobDirectoryPathBuilder.Build(job.Id, JobDirectoryGroup.Output)),
                 Statuses = job.Statuses.Select(s => new JobStatusResponse((JobStatus)s.Status, s.CreateDateUtc)).ToList(),
                 Failures = job.Failures.Select(f => new JobFailureResponse(f.Message, f.StackTrace, f.CreateDateUtc)).ToList(),
             };

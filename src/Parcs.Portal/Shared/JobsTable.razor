@@ -1,4 +1,5 @@
-﻿@inherits JobsTableBase
+﻿@using Parcs.Core.Models;
+@inherits JobsTableBase
 
 <div class="row">
     <div class="col-sm-4 col-9 m-b-10">
@@ -25,14 +26,17 @@
                         <th>Assembly</th>
                         <th>Class</th>
                         <th>Create date</th>
-                        <th>Statuses</th>
+                        <th>Status</th>
                         <th>Failures</th>
+                        <th>Output</th>
                         <th class="text-right">...</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach (var job in CurrentPage.Items)
                     {
+                        var jobStatus = job.Statuses.OrderByDescending(s => s.CreateDateUtc).FirstOrDefault().Status;
+
                         <tr>
                             <td><a href="/viewjob/@job.Id">@job.Id</a></td>
                             <td><a href="/viewmodule/@job.ModuleId">@job.ModuleName</a></td>
@@ -40,7 +44,7 @@
                             <td>@job.ClassName</td>
                             <td>@job.CreateDateUtc.ToLocalTime()</td>
                             <td>
-                                <a href="javascript:void(0)" @onclick="() => ShowStatusesAsync(job.Statuses)">@job.Statuses.OrderByDescending(s => s.CreateDateUtc).FirstOrDefault().Status</a>
+                                <a href="javascript:void(0)" @onclick="() => ShowStatusesAsync(job.Statuses)">@jobStatus</a>
                             </td>
                             <td>
                                 @if (job.Failures.Any())
@@ -48,11 +52,22 @@
                                     <a href="javascript:void(0)" @onclick="() => ShowFailuresAsync(job.Failures)">@job.Failures.Count() Error(s)</a>
                                 }
                             </td>
+                            <td>
+                                @if (job.HasOutput)
+                                {
+                                    <div class="dropdown dropdown-action">
+                                        <a href="javascript:void(0)" class="action-icon" @onclick="() => DownloadOutput(job.Id)"><i class="fa fa-download"></i></a>
+                                    </div>
+                                }
+                            </td>
                             <td class="text-right">
                                 <div class="dropdown dropdown-action">
                                     <a href="#" class="action-icon dropdown-toggle" data-toggle="dropdown" aria-expanded="false"><i class="fa fa-ellipsis-v"></i></a>
                                     <div class="dropdown-menu dropdown-menu-right">
-                                        <a class="dropdown-item" href="#" data-toggle="modal" data-target="#cancel_job" @onclick="() => SetJobToCancel(job)"><i class="fa fa-solid fa-stop m-r-5"></i> Cancel</a>
+                                        @if (jobStatus == JobStatus.Started)
+                                        {
+                                            <a class="dropdown-item" href="#" data-toggle="modal" data-target="#cancel_job" @onclick="() => SetJobToCancel(job)"><i class="fa fa-solid fa-stop m-r-5"></i> Cancel</a>
+                                        }
                                         <a class="dropdown-item" href="#" data-toggle="modal" data-target="#delete_job" @onclick="() => SetJobToDelete(job)"><i class="fa fa-solid fa-trash-o m-r-5"></i> Delete</a>
                                     </div>
                                 </div>
