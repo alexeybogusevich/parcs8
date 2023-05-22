@@ -1,6 +1,7 @@
 ﻿using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Parcs.Core.Models;
+using Parcs.Core.Services.Interfaces;
 using Parcs.Data.Context;
 using Parcs.Host.Models.Queries;
 using Parcs.Host.Models.Responses;
@@ -11,10 +12,12 @@ namespace Parcs.Host.Handlers
     public class GetModuleQueryHandler : IRequestHandler<GetModuleQuery, GetModuleQueryResponse>
     {
         private readonly ParcsDbContext _parcsDbContext;
+        private readonly IModuleDirectoryPathBuilder _moduleDirectoryPathBuilder;
 
-        public GetModuleQueryHandler(ParcsDbContext parcsDbContext)
+        public GetModuleQueryHandler(ParcsDbContext parcsDbContext, IModuleDirectoryPathBuilder moduleDirectoryPathBuilder)
         {
             _parcsDbContext = parcsDbContext;
+            _moduleDirectoryPathBuilder = moduleDirectoryPathBuilder;
         }
 
         public async Task<GetModuleQueryResponse> Handle(GetModuleQuery request, CancellationToken cancellationToken)
@@ -29,14 +32,23 @@ namespace Parcs.Host.Handlers
                 return null;
             }
 
+            var moduleDirectory = _moduleDirectoryPathBuilder.Build(module.Id);
+            var moduleFiles = Directory.GetFiles(moduleDirectory).Select(Path.GetFileName).ToList();
+
             return new GetModuleQueryResponse
             {
                 Id  = module.Id,
                 Name = module.Name,
                 CreateDateUtc = module.CreateDateUtc,
-                Jobs = module.Jobs.Select(e => new JobResponse
+                Files = moduleFiles,
+                Jobs = module.Jobs.Select(e => new GetJobQueryResponse
                 {
-                    JobId = e.Id,
+                    Id = e.Id,
+                    AssemblyName = e.AssemblyName,
+                    ClassName = e.ClassName,
+                    ModuleId = e.ModuleId,
+                    ModuleName = e.Module.Name,
+                    CreateDateUtc = e.CreateDateUtc,
                     Statuses = e.Statuses.Select(s => new JobStatusResponse((JobStatus)s.Status, s.CreateDateUtc)).ToList(),
                     Failures = e.Failures.Select(f => new JobFailureResponse(f.Message, f.StackTrace, f.CreateDateUtc)).ToList(),
                 }),

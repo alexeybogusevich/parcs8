@@ -1,0 +1,99 @@
+﻿@inherits ModuleInfoBase
+
+<div class="page-wrapper">
+    <div class="content">
+        <div class="card-box profile-header">
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="profile-view">
+                        <ul class="personal-info">
+                            <li>
+                                <div class="row">
+                                    <div class="col-sm-2">
+                                        <span class="title" style="width:100%;">Id:</span>
+                                    </div>
+                                    <div class="col-sm-10">
+                                        <span class="text" style="width:100%;">@Module.Id</span>
+                                    </div>
+                                </div>
+                            </li>
+                            <li>
+                                <div class="row">
+                                    <div class="col-sm-2">
+                                        <span class="title" style="width:100%;">Name:</span>
+                                    </div>
+                                    <div class="col-sm-10">
+                                        <span class="text" style="width:100%;">@Module.Name</span>
+                                    </div>
+                                </div>
+                            </li>
+                            <li>
+                                <div class="row">
+                                    <div class="col-sm-2">
+                                        <span class="title" style="width:100%;">Create date:</span>
+                                    </div>
+                                    <div class="col-sm-10">
+                                        <span class="text" style="width:100%;">@Module.CreateDateUtc.ToLocalTime()</span>
+                                    </div>
+                                </div>
+                            </li>
+                            <li>
+                                <div class="row">
+                                    <div class="col-sm-2">
+                                        <span class="title" style="width:100%;">Number of jobs:</span>
+                                    </div>
+                                    <div class="col-sm-10">
+                                        <span class="text" style="width:100%;">@Module.Jobs.Count()</span>
+                                    </div>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="profile-tabs">
+            <ul class="nav nav-tabs nav-tabs-bottom">
+                <li class="nav-item"><a class="nav-link active" href="#jobs-tab1" data-toggle="tab">Jobs</a></li>
+                <li class="nav-item"><a class="nav-link" href="#files-tab2" data-toggle="tab">Files</a></li>
+            </ul>
+            <div class="tab-content">
+                <div class="tab-pane show active" id="jobs-tab1">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="card-box">
+                                <h3 class="card-title">Jobs</h3>
+                                <div class="experience-box">
+                                    <JobsTable Jobs="Module.Jobs.ToList()" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="tab-pane" id="files-tab2">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="table-responsive">
+                                <table class="table table-border table-striped custom-table datatable mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var file in Module.Files)
+                                        {
+                                            <tr>
+                                                <td>@file</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

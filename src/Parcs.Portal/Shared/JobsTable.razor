@@ -38,8 +38,8 @@
                         var jobStatus = job.Statuses.OrderByDescending(s => s.CreateDateUtc).FirstOrDefault().Status;
 
                         <tr>
-                            <td><a href="/viewjob/@job.Id">@job.Id</a></td>
-                            <td><a href="/viewmodule/@job.ModuleId">@job.ModuleName</a></td>
+                            <td>@job.Id</td>
+                            <td><a href="/module/@job.ModuleId">@job.ModuleName</a></td>
                             <td>@job.AssemblyName</td>
                             <td>@job.ClassName</td>
                             <td>@job.CreateDateUtc.ToLocalTime()</td>

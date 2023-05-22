@@ -1,6 +1,4 @@
-﻿using Parcs.Host.Models.Responses.Nested;
-
-namespace Parcs.Host.Models.Responses
+﻿namespace Parcs.Host.Models.Responses
 {
     public class GetModuleQueryResponse
     {
@@ -10,6 +8,8 @@ namespace Parcs.Host.Models.Responses
 
         public DateTime CreateDateUtc { get; set; }
 
-        public IEnumerable<JobResponse> Jobs { get; set; }
+        public IEnumerable<string> Files { get; set; }
+
+        public IEnumerable<GetJobQueryResponse> Jobs { get; set; }
     }
 }
