@@ -22,7 +22,7 @@ namespace Parcs.Portal.Components
             var createModuleRequest = new CreateModuleHostRequest
             {
                 Name = CreateModuleViewModel.Name,
-                BinaryFiles = CreateModuleViewModel.BinaryFiles.ToList(),
+                BinaryFiles = CreateModuleViewModel.BinaryFiles ?? Enumerable.Empty<IBrowserFile>(),
             };
 
             await HostClient.PostModuleAsync(createModuleRequest, cancellationTokenSource.Token);

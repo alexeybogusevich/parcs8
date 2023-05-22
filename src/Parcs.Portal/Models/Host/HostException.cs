@@ -1,6 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using System.Runtime.Serialization;
-using System.Text;
+﻿using System.Runtime.Serialization;
 
 namespace Parcs.Portal.Models.Host
 {
@@ -26,13 +24,11 @@ namespace Parcs.Portal.Models.Host
         {
         }
 
-        public HostException(ProblemDetails problemDetails)
+        public HostException(ExtendedProblemDetails problemDetails)
         {
             ProblemDetails = problemDetails;
         }
 
-        public ProblemDetails ProblemDetails { get; set; }
-
-        public override string ToString() => ProblemDetails.Detail;
+        public ExtendedProblemDetails ProblemDetails { get; set; }
     }
 }

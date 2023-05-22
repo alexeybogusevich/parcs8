@@ -6,6 +6,6 @@ namespace Parcs.Portal.Models.Host.Requests
     {
         public string Name { get; set; }
 
-        public List<IBrowserFile> BinaryFiles { get; set; }
+        public IEnumerable<IBrowserFile> BinaryFiles { get; set; }
     }
 }

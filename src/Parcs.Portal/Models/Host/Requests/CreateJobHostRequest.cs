@@ -1,10 +1,12 @@
-﻿namespace Parcs.Portal.Models.Host.Requests
+﻿using Microsoft.AspNetCore.Components.Forms;
+
+namespace Parcs.Portal.Models.Host.Requests
 {
     public class CreateJobHostRequest
     {
         public long ModuleId { get; set; }
 
-        public List<IFormFile> InputFiles { get; set; }
+        public IEnumerable<IBrowserFile> InputFiles { get; set; }
 
         public string AssemblyName { get; set; }
 

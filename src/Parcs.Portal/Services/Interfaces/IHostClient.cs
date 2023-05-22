@@ -7,7 +7,7 @@ namespace Parcs.Portal.Services.Interfaces
 {
     public interface IHostClient
     {
-        Task<Result<bool>> PostRunAsync(RunJobHostRequest runJobHostRequest, CancellationToken cancellationToken = default);
+        Task<bool> PostRunAsync(RunJobHostRequest runJobHostRequest, CancellationToken cancellationToken = default);
 
         Task<GetJobHostResponse> GetJobAsync(long jobId, CancellationToken cancellationToken = default);
 
@@ -15,7 +15,7 @@ namespace Parcs.Portal.Services.Interfaces
 
         Task<IEnumerable<GetJobHostResponse>> GetJobsAsync(CancellationToken cancellationToken = default);
 
-        Task<Result<CreateJobHostResponse>> PostJobAsync(CreateJobHostRequest createJobHostRequest, CancellationToken cancellationToken = default);
+        Task<CreateJobHostResponse> PostJobAsync(CreateJobHostRequest createJobHostRequest, CancellationToken cancellationToken = default);
 
         Task PutJobAsync(long jobId, CancellationToken cancellationToken = default);
 
@@ -23,7 +23,7 @@ namespace Parcs.Portal.Services.Interfaces
 
         Task<IEnumerable<GetPlainModuleHostResponse>> GetModulesAsync(CancellationToken cancellationToken = default);
 
-        Task<Result<CreateModuleHostResponse>> PostModuleAsync(CreateModuleHostRequest createModuleHostRequest, CancellationToken cancellationToken = default);
+        Task<CreateModuleHostResponse> PostModuleAsync(CreateModuleHostRequest createModuleHostRequest, CancellationToken cancellationToken = default);
 
         Task DeleteModuleAsync(long id, CancellationToken cancellationToken = default);
     }

@@ -1,7 +1,7 @@
-﻿@page "/newmodule"
-@inherits NewModuleBase
+﻿@page "/module/{moduleId:long}/newjob"
+@inherits NewJobBase
 
-<Title value="PARCS Modules"></Title>
+<Title value="PARCS Jobs"></Title>
 
 @if (IsLoading)
 {
@@ -13,25 +13,32 @@ else
         <div class="content">
             <div class="row">
                 <div class="col-lg-8 offset-lg-2">
-                    <h4 class="page-title">Create a module</h4>
+                    <h4 class="page-title">Create a job</h4>
                 </div>
             </div>
             <div class="row">
                 <div class="col-lg-8 offset-lg-2">
-                    <EditForm Model="@CreateModuleViewModel" OnValidSubmit="@(async () => await CreateModuleAsync())">
+                    <EditForm Model="@CreateJobViewModel" OnValidSubmit="@(async () => await CreateJobAsync())">
                         <DataAnnotationsValidator />
                         <ValidationSummary />
                         <div class="row">
                             <div class="col-sm-12">
                                 <div class="form-group">
-                                    <label>Name <span class="text-danger">*</span></label>
-                                    <InputText @bind-Value="CreateModuleViewModel.Name" autofocus="" class="form-control" />
-                                    <ValidationMessage For="@(() => CreateModuleViewModel.Name)" />
+                                    <label>Assembly <span class="text-danger">*</span></label>
+                                    <InputText @bind-Value="CreateJobViewModel.AssemblyName" autofocus="" class="form-control" />
+                                    <ValidationMessage For="@(() => CreateJobViewModel.AssemblyName)" />
                                 </div>
                             </div>
                             <div class="col-sm-12">
                                 <div class="form-group">
-                                    <label>Binaries <span class="text-danger">*</span></label>
+                                    <label>Class <span class="text-danger">*</span></label>
+                                    <InputText @bind-Value="CreateJobViewModel.ClassName" autofocus="" class="form-control" />
+                                    <ValidationMessage For="@(() => CreateJobViewModel.AssemblyName)" />
+                                </div>
+                            </div>
+                            <div class="col-sm-12">
+                                <div class="form-group">
+                                    <label>Input files </label>
                                     <InputFile OnChange="OnFileChanged" multiple></InputFile>
                                 </div>
                             </div>

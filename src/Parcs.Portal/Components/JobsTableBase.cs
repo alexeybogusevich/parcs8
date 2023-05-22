@@ -22,6 +22,9 @@ namespace Parcs.Portal.Components
         [Parameter]
         public List<GetJobHostResponse> Jobs { get; set; }
 
+        [Parameter]
+        public long? ModuleId { get; set; }
+
         protected GetJobHostResponse JobToDelete { get; set; }
 
         protected GetJobHostResponse JobToCancel { get; set; }

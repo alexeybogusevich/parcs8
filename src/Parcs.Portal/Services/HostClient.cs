@@ -1,7 +1,5 @@
 ﻿using Flurl.Http;
 using Flurl.Http.Content;
-using LanguageExt.Common;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Parcs.Portal.Configuration;
 using Parcs.Portal.Models;
@@ -39,9 +37,9 @@ namespace Parcs.Portal.Services
                 .GetJsonAsync<IEnumerable<GetPlainModuleHostResponse>>(cancellationToken);
         }
 
-        public async Task<Result<CreateModuleHostResponse>> PostModuleAsync(CreateModuleHostRequest createModuleHostRequest, CancellationToken cancellationToken = default)
+        public async Task<CreateModuleHostResponse> PostModuleAsync(CreateModuleHostRequest createModuleHostRequest, CancellationToken cancellationToken = default)
         {
-            var binaryFiles = createModuleHostRequest.BinaryFiles;
+            var binaryFiles = createModuleHostRequest.BinaryFiles.ToList();
             var binaryFileStreams = binaryFiles.Select(file => file.OpenReadStream()).ToList();
 
             void MultipartContent(CapturedMultipartContent multipartContentBuilder)
@@ -58,12 +56,13 @@ namespace Parcs.Portal.Services
             {
                 using var response = await _flurlClient
                     .Request(_hostConfiguration.PostModulesEndpoint)
+                    .AllowHttpStatus(StatusCodes.Status400BadRequest.ToString())
                     .PostMultipartAsync(MultipartContent, cancellationToken);
 
                 if (response.StatusCode == StatusCodes.Status400BadRequest)
                 {
-                    var problemDetails = await response.GetJsonAsync<ProblemDetails>();
-                    return new Result<CreateModuleHostResponse>(new HostException(problemDetails));
+                    var problemDetails = await response.GetJsonAsync<ExtendedProblemDetails>();
+                    throw new HostException(problemDetails);
                 }
 
                 return await response.GetJsonAsync<CreateModuleHostResponse>();
@@ -110,33 +109,35 @@ namespace Parcs.Portal.Services
                 .GetJsonAsync<IEnumerable<GetJobHostResponse>>(cancellationToken);
         }
 
-        public async Task<Result<CreateJobHostResponse>> PostJobAsync(CreateJobHostRequest createJobHostRequest, CancellationToken cancellationToken = default)
+        public async Task<CreateJobHostResponse> PostJobAsync(CreateJobHostRequest createJobHostRequest, CancellationToken cancellationToken = default)
         {
-            var binaryFiles = createJobHostRequest.InputFiles;
+            var binaryFiles = createJobHostRequest.InputFiles.ToList();
             var binaryFileStreams = binaryFiles.Select(file => file.OpenReadStream()).ToList();
 
             void MultipartContent(CapturedMultipartContent multipartContentBuilder)
             {
                 multipartContentBuilder.AddString(nameof(CreateJobHostRequest.ModuleId), createJobHostRequest.ModuleId.ToString());
-                multipartContentBuilder.AddString(nameof(CreateJobHostRequest.AssemblyName), createJobHostRequest.AssemblyName);
-                multipartContentBuilder.AddString(nameof(CreateJobHostRequest.ClassName), createJobHostRequest.ClassName);
 
                 for (int i = 0; i < binaryFileStreams.Count; ++i)
                 {
-                    multipartContentBuilder.AddFile($"{nameof(CreateJobHostRequest.InputFiles)}{i}", binaryFileStreams[i], binaryFiles[i].FileName);
+                    multipartContentBuilder.AddFile(nameof(CreateJobHostRequest.InputFiles), binaryFileStreams[i], binaryFiles[i].Name);
                 }
+
+                multipartContentBuilder.AddString(nameof(CreateJobHostRequest.AssemblyName), createJobHostRequest.AssemblyName);
+                multipartContentBuilder.AddString(nameof(CreateJobHostRequest.ClassName), createJobHostRequest.ClassName);
             }
 
             try
             {
                 using var response = await _flurlClient
                     .Request(_hostConfiguration.PostJobsEndpoint)
+                    .AllowHttpStatus(StatusCodes.Status400BadRequest.ToString())
                     .PostMultipartAsync(MultipartContent, cancellationToken);
 
                 if (response.StatusCode == StatusCodes.Status400BadRequest)
                 {
-                    var problemDetails = await response.GetJsonAsync<ProblemDetails>();
-                    return new Result<CreateJobHostResponse>(new HostException(problemDetails));
+                    var problemDetails = await response.GetJsonAsync<ExtendedProblemDetails>();
+                    throw new HostException(problemDetails);
                 }
 
                 return await response.GetJsonAsync<CreateJobHostResponse>();
@@ -157,7 +158,7 @@ namespace Parcs.Portal.Services
                 .PutAsync(cancellationToken: cancellationToken);
         }
 
-        public async Task<Result<bool>> PostRunAsync(RunJobHostRequest runJobHostRequest, CancellationToken cancellationToken = default)
+        public async Task<bool> PostRunAsync(RunJobHostRequest runJobHostRequest, CancellationToken cancellationToken = default)
         {
             var response = await _flurlClient
                 .Request(_hostConfiguration.PostAsynchronousRunsEndpoint)
@@ -165,8 +166,8 @@ namespace Parcs.Portal.Services
 
             if (response.StatusCode == StatusCodes.Status400BadRequest)
             {
-                var problemDetails = await response.GetJsonAsync<ProblemDetails>();
-                return new Result<bool>(new HostException(problemDetails));
+                var problemDetails = await response.GetJsonAsync<ExtendedProblemDetails>();
+                throw new HostException(problemDetails);
             }
 
             return true;

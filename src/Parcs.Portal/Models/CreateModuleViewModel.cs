@@ -12,6 +12,6 @@ namespace Parcs.Portal.Models
 
         [Required(ErrorMessage = "Binaries are required")]
         [MinLength(1, ErrorMessage = "At least one file is required")]
-        public IReadOnlyList<IBrowserFile> BinaryFiles { get; set; }
+        public IEnumerable<IBrowserFile> BinaryFiles { get; set; }
     }
 }
