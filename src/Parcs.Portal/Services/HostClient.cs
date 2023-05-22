@@ -50,7 +50,7 @@ namespace Parcs.Portal.Services
 
                 for (int i = 0; i < binaryFileStreams.Count; ++i)
                 {
-                    multipartContentBuilder.AddFile($"{nameof(CreateModuleHostRequest.BinaryFiles)}{i}", binaryFileStreams[i], binaryFiles[i].FileName);
+                    multipartContentBuilder.AddFile(nameof(CreateModuleHostRequest.BinaryFiles), binaryFileStreams[i], binaryFiles[i].Name);
                 }
             }
 

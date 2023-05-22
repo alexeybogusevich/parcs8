@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using System.Runtime.Serialization;
+using System.Text;
 
 namespace Parcs.Portal.Models.Host
 {
@@ -31,5 +32,7 @@ namespace Parcs.Portal.Models.Host
         }
 
         public ProblemDetails ProblemDetails { get; set; }
+
+        public override string ToString() => ProblemDetails.Detail;
     }
 }

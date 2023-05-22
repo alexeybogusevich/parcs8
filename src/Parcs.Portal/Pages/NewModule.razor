@@ -1,0 +1,47 @@
+﻿@page "/newmodule"
+@inherits NewModuleBase
+
+<Title value="PARCS Modules"></Title>
+
+@if (IsLoading)
+{
+    <div class="spinner"></div>
+}
+else
+{
+    <div class="page-wrapper">
+        <div class="content">
+            <div class="row">
+                <div class="col-lg-8 offset-lg-2">
+                    <h4 class="page-title">Create a module</h4>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-lg-8 offset-lg-2">
+                    <EditForm Model="@CreateModuleViewModel" OnValidSubmit="@(async () => await CreateModuleAsync())">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary />
+                        <div class="row">
+                            <div class="col-sm-12">
+                                <div class="form-group">
+                                    <label>Name <span class="text-danger">*</span></label>
+                                    <InputText @bind-Value="CreateModuleViewModel.Name" autofocus="" class="form-control" />
+                                    <ValidationMessage For="@(() => CreateModuleViewModel.Name)" />
+                                </div>
+                            </div>
+                            <div class="col-sm-12">
+                                <div class="form-group">
+                                    <label>Binaries <span class="text-danger">*</span></label>
+                                    <InputFile OnChange="OnFileChanged" multiple></InputFile>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="m-t-20 text-center">
+                            <button class="btn btn-primary submit-btn">Save</button>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+}
