@@ -31,6 +31,10 @@ namespace Parcs.Portal.Components
             try
             {
                 await HostClient.PostModuleAsync(createModuleRequest, cancellationTokenSource.Token);
+
+                HostErrors.Clear();
+
+                await JsRuntime.InvokeVoidAsync(JSExtensionMethods.BackToPreviousPage);
             }
             catch (HostException ex)
             {
@@ -44,11 +48,7 @@ namespace Parcs.Portal.Components
                 };
             }
 
-            HostErrors.Clear();
-
             IsLoading = false;
-
-            await JsRuntime.InvokeVoidAsync(JSExtensionMethods.BackToPreviousPage);
         }
 
         protected void OnFileChanged(InputFileChangeEventArgs e)
