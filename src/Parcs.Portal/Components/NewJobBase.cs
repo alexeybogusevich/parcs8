@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.JSInterop;
 using Parcs.Portal.Constants;
 using Parcs.Portal.Models;
+using Parcs.Portal.Models.Host;
 using Parcs.Portal.Models.Host.Requests;
 using Parcs.Portal.Models.Host.Responses;
 using Parcs.Portal.Services.Interfaces;
@@ -13,6 +14,8 @@ namespace Parcs.Portal.Components
     {
         [Inject]
         protected IHostClient HostClient { get; set; }
+
+        protected Dictionary<string, List<string>> HostErrors { get; set; } = new();
 
         [Parameter]
         public long ModuleId { get; set; } 
@@ -44,7 +47,23 @@ namespace Parcs.Portal.Components
                 ModuleId = ModuleId,
             };
 
-            await HostClient.PostJobAsync(createJobRequest, cancellationTokenSource.Token);
+            try
+            {
+                await HostClient.PostJobAsync(createJobRequest, cancellationTokenSource.Token);
+            }
+            catch (HostException ex)
+            {
+                HostErrors = ex.ProblemDetails.Errors;
+            }
+            catch
+            {
+                HostErrors = new Dictionary<string, List<string>>()
+                {
+                    { "Error", new List<string> { "An error occurred while communicating with the Host." } }
+                };
+            }
+
+            HostErrors.Clear();
 
             IsLoading = false;
 

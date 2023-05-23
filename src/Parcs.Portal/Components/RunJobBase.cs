@@ -4,6 +4,7 @@ using Microsoft.JSInterop;
 using Parcs.Portal.Configuration;
 using Parcs.Portal.Constants;
 using Parcs.Portal.Models;
+using Parcs.Portal.Models.Host;
 using Parcs.Portal.Models.Host.Requests;
 using Parcs.Portal.Services.Interfaces;
 
@@ -13,6 +14,8 @@ namespace Parcs.Portal.Components
     {
         [Inject]
         protected IHostClient HostClient { get; set; }
+
+        protected Dictionary<string, List<string>> HostErrors { get; set; } = new();
 
         [Inject]
         protected IOptions<PortalConfiguration> PortalOptions { get; set; }
@@ -45,7 +48,23 @@ namespace Parcs.Portal.Components
                 runJobRequest.Arguments.Add(NewArgumentKey, NewArgumentValue);
             }
 
-            await HostClient.PostJobRunAsync(runJobRequest, cancellationTokenSource.Token);
+            try
+            {
+                await HostClient.PostJobRunAsync(runJobRequest, cancellationTokenSource.Token);
+            }
+            catch (HostException ex)
+            {
+                HostErrors = ex.ProblemDetails.Errors;
+            }
+            catch
+            {
+                HostErrors = new Dictionary<string, List<string>>()
+                {
+                    { "Error", new List<string> { "An error occurred while communicating with the Host." } }
+                };
+            }
+
+            HostErrors.Clear();
 
             IsLoading = false;
 

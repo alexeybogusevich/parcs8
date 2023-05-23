@@ -21,6 +21,20 @@ else
                     <EditForm Model="@CreateJobViewModel" OnValidSubmit="@(async () => await CreateJobAsync())">
                         <DataAnnotationsValidator />
                         <ValidationSummary />
+                        @if (HostErrors.Any())
+                        {
+                            <div class="alert alert-danger">
+                                <ul>
+                                    @foreach (var error in HostErrors)
+                                    {
+                                        foreach (var errorMessage in error.Value)
+                                        {
+                                            <li>@error.Key: @errorMessage</li>
+                                        }
+                                    }
+                                </ul>
+                            </div>
+                        }
                         <div class="row">
                             <div class="col-sm-12">
                                 <div class="form-group">

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.JSInterop;
 using Parcs.Portal.Constants;
 using Parcs.Portal.Models;
+using Parcs.Portal.Models.Host;
 using Parcs.Portal.Models.Host.Requests;
 using Parcs.Portal.Services.Interfaces;
 
@@ -12,6 +13,8 @@ namespace Parcs.Portal.Components
     {
         [Inject]
         protected IHostClient HostClient { get; set; }
+
+        protected Dictionary<string, List<string>> HostErrors { get; set; } = new ();
 
         protected CreateModuleViewModel CreateModuleViewModel { get; set; } = new ();
 
@@ -25,7 +28,23 @@ namespace Parcs.Portal.Components
                 BinaryFiles = CreateModuleViewModel.BinaryFiles ?? Enumerable.Empty<IBrowserFile>(),
             };
 
-            await HostClient.PostModuleAsync(createModuleRequest, cancellationTokenSource.Token);
+            try
+            {
+                await HostClient.PostModuleAsync(createModuleRequest, cancellationTokenSource.Token);
+            }
+            catch (HostException ex)
+            {
+                HostErrors = ex.ProblemDetails.Errors;
+            }
+            catch
+            {
+                HostErrors = new Dictionary<string, List<string>>()
+                {
+                    { "Error", new List<string> { "An error occurred while communicating with the Host." } }
+                };
+            }
+
+            HostErrors.Clear();
 
             IsLoading = false;
 
