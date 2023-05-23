@@ -1,6 +1,7 @@
 ﻿using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Parcs.Core.Models;
+using Parcs.Core.Models.Enums;
 using Parcs.Core.Services.Interfaces;
 using Parcs.Data.Context;
 using Parcs.Host.Models.Queries;
@@ -8,7 +9,6 @@ using Parcs.Host.Models.Responses;
 using Parcs.Host.Models.Responses.Nested;
 using Parcs.Host.Services.Interfaces;
 using Parcs.Net;
-using System.Reflection;
 
 namespace Parcs.Host.Handlers
 {
@@ -16,13 +16,18 @@ namespace Parcs.Host.Handlers
     {
         private readonly ParcsDbContext _parcsDbContext;
         private readonly IModuleDirectoryPathBuilder _moduleDirectoryPathBuilder;
+        private readonly IJobDirectoryPathBuilder _jobDirectoryPathBuilder;
         private readonly IMetadataLoadContextProvider _metadataLoadContextProvider;
 
         public GetModuleQueryHandler(
-            ParcsDbContext parcsDbContext, IModuleDirectoryPathBuilder moduleDirectoryPathBuilder, IMetadataLoadContextProvider metadataLoadContextProvider)
+            ParcsDbContext parcsDbContext,
+            IModuleDirectoryPathBuilder moduleDirectoryPathBuilder,
+            IJobDirectoryPathBuilder jobDirectoryPathBuilder,
+            IMetadataLoadContextProvider metadataLoadContextProvider)
         {
             _parcsDbContext = parcsDbContext;
             _moduleDirectoryPathBuilder = moduleDirectoryPathBuilder;
+            _jobDirectoryPathBuilder = jobDirectoryPathBuilder;
             _metadataLoadContextProvider = metadataLoadContextProvider;
         }
 
@@ -56,14 +61,14 @@ namespace Parcs.Host.Handlers
                 moduleAssemblies.Add(new AssemblyMetadataResponse(assembly.GetName().Name, assemblyModules));
             }
 
-            return new GetModuleQueryResponse
+            var moduleResponse = new GetModuleQueryResponse
             {
                 Id  = module.Id,
                 Name = module.Name,
                 CreateDateUtc = module.CreateDateUtc,
                 Files = moduleFiles.Select(Path.GetFileName).ToList(),
                 Assemblies = moduleAssemblies,
-                Jobs = module.Jobs.Select(e => new GetJobQueryResponse
+                Jobs = module.Jobs.OrderByDescending(e => e.Id).Select(e => new GetJobQueryResponse
                 {
                     Id = e.Id,
                     AssemblyName = e.AssemblyName,
@@ -75,6 +80,13 @@ namespace Parcs.Host.Handlers
                     Failures = e.Failures.Select(f => new JobFailureResponse(f.Message, f.StackTrace, f.CreateDateUtc)).ToList(),
                 }),
             };
+
+            foreach (var job in moduleResponse.Jobs)
+            {
+                job.HasOutput = Directory.Exists(_jobDirectoryPathBuilder.Build(job.Id, JobDirectoryGroup.Output));
+            }
+
+            return moduleResponse;
         }
     }
 }

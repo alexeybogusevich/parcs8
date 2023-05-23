@@ -18,7 +18,7 @@ namespace Parcs.Host.Controllers
 
         [HttpPost]
         [ProducesResponseType((int)HttpStatusCode.Accepted)]
-        public async Task<IActionResult> ScheduleAsync([FromForm] RunJobAsynchronouslyCommand command, CancellationToken cancellationToken)
+        public async Task<IActionResult> ScheduleAsync([FromBody] RunJobAsynchronouslyCommand command, CancellationToken cancellationToken)
         {
             await _mediator.Send(command, cancellationToken);
             return Accepted();

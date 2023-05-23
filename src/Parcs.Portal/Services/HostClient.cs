@@ -167,10 +167,11 @@ namespace Parcs.Portal.Services
                 .PutAsync(cancellationToken: cancellationToken);
         }
 
-        public async Task<bool> PostRunAsync(RunJobHostRequest runJobHostRequest, CancellationToken cancellationToken = default)
+        public async Task<bool> PostJobRunAsync(RunJobHostRequest runJobHostRequest, CancellationToken cancellationToken = default)
         {
             var response = await _flurlClient
                 .Request(_hostConfiguration.PostAsynchronousRunsEndpoint)
+                .AllowHttpStatus(StatusCodes.Status400BadRequest.ToString())
                 .PostJsonAsync(runJobHostRequest, cancellationToken);
 
             if (response.StatusCode == StatusCodes.Status400BadRequest)

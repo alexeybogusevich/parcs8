@@ -1,0 +1,70 @@
+﻿@page "/jobs/{jobId:long}/start"
+
+@inherits RunJobBase
+
+<Title value="PARCS Jobs"></Title>
+
+@if (IsLoading)
+{
+    <div class="spinner"></div>
+}
+else
+{
+    <div class="page-wrapper">
+        <div class="content">
+            <div class="row">
+                <div class="col-lg-8 offset-lg-2">
+                    <h4 class="page-title">Start job @JobId</h4>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-lg-8 offset-lg-2">
+                    <EditForm Model="@RunJobViewModel" OnValidSubmit="@(async () => await RunJobAsync())">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary />
+                        <div class="row">
+                            <div class="col-sm-12">
+                                <div class="form-group">
+                                    <label>Number of points <span class="text-danger">*</span></label>
+                                    <InputNumber @bind-Value="RunJobViewModel.PointsNumber" autofocus="" class="form-control" />
+                                    <ValidationMessage For="@(() => RunJobViewModel.PointsNumber)" />
+                                </div>
+                            </div>
+                            <div class="col-sm-12">
+                                <div class="form-group">
+                                    <label>Arguments <span class="text-danger">*</span></label>
+                                    @foreach (var item in RunJobViewModel.Arguments)
+                                    {
+                                        <div class="row">
+                                            <div class="col-sm-5">
+                                                <InputText @bind-Value="item.Key" autofocus="" class="form-control" />
+                                            </div>
+                                            <div class="col-sm-5">
+                                                <InputText @bind-Value="item.Value" autofocus="" class="form-control" />
+                                            </div>
+                                        </div>
+                                    }
+                                    <p></p>
+                                    <div class="row">
+                                        <div class="col-sm-5">
+                                            <InputText @bind-Value="NewArgumentKey" class="form-control" placeholder="Key" />
+                                        </div>
+                                        <div class="col-sm-5">
+                                            <InputText @bind-Value="NewArgumentValue" class="form-control" placeholder="Value" />
+                                        </div>
+                                        <div class="col-sm-2 d-flex align-items-center">
+                                            <button class="btn btn-info" type="button" @onclick="AddNewArgument">Add</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="m-t-20 text-center">
+                            <button class="btn btn-primary submit-btn">Submit</button>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+}

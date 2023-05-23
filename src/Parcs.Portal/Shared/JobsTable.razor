@@ -67,6 +67,7 @@
                                 <div class="dropdown dropdown-action">
                                     <a href="#" class="action-icon dropdown-toggle" data-toggle="dropdown" aria-expanded="false"><i class="fa fa-ellipsis-v"></i></a>
                                     <div class="dropdown-menu dropdown-menu-right">
+                                        <a class="dropdown-item" href="#" data-toggle="modal" data-target="#start_job" @onclick="() => SetJobToRun(job)"><i class="fa fa-solid fa-play m-r-5"></i> Start</a>
                                         <a class="dropdown-item" href="#" data-toggle="modal" data-target="#clone_job" @onclick="() => SetJobToClone(job)"><i class="fa fa-solid fa-clone m-r-5"></i> Clone</a>
                                         @if (jobStatus == JobStatus.Started)
                                         {
@@ -110,7 +111,20 @@
                 <h3>Are you sure you want to clone this job?</h3>
                 <div class="m-t-20">
                     <a href="javascript:void(0);" class="btn btn-white" data-dismiss="modal" @onclick="ResetJobToClone">No</a>
-                    <button type="submit" class="btn btn-warning" data-dismiss="modal" @onclick="CloneAsync">Yes</button>
+                    <button type="submit" class="btn btn-warning" data-dismiss="modal" @onclick="CloneJobAsync">Yes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="start_job" class="modal fade delete-modal" role="dialog">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-body text-center">
+                <h3>Are you sure you want to start this job?</h3>
+                <div class="m-t-20">
+                    <a href="javascript:void(0);" class="btn btn-white" data-dismiss="modal" @onclick="ResetJobToRun">No</a>
+                    <button type="submit" class="btn btn-success" data-dismiss="modal" @onclick="RunJob">Yes</button>
                 </div>
             </div>
         </div>
@@ -123,7 +137,7 @@
                 <h3>Are you sure you want to cancel this job?</h3>
                 <div class="m-t-20">
                     <a href="javascript:void(0);" class="btn btn-white" data-dismiss="modal" @onclick="ResetJobToCancel">No</a>
-                    <button type="submit" class="btn btn-warning" data-dismiss="modal" @onclick="CancelAsync">Yes</button>
+                    <button type="submit" class="btn btn-warning" data-dismiss="modal" @onclick="CancelJobAsync">Yes</button>
                 </div>
             </div>
         </div>
@@ -137,7 +151,7 @@
                 <h3>Are you sure you want to delete this job?</h3>
                 <div class="m-t-20">
                     <a href="javascript:void(0);" class="btn btn-white" data-dismiss="modal" @onclick="ResetJobToDelete">No</a>
-                    <button type="submit" class="btn btn-danger" data-dismiss="modal" @onclick="DeleteAsync">Yes</button>
+                    <button type="submit" class="btn btn-danger" data-dismiss="modal" @onclick="DeleteJobAsync">Yes</button>
                 </div>
             </div>
         </div>

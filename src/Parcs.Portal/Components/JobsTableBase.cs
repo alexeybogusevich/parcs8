@@ -31,6 +31,8 @@ namespace Parcs.Portal.Components
 
         protected GetJobHostResponse JobToClone { get; set; }
 
+        protected GetJobHostResponse JobToRun { get; set; }
+
         protected PaginatedList<GetJobHostResponse> CurrentPage { get; set; }
 
         protected List<JobStatusResponse> DisplayedStatuses { get; set; } = new ();
@@ -126,7 +128,27 @@ namespace Parcs.Portal.Components
             JobToClone = null;
         }
 
-        protected async Task CloneAsync()
+        protected void SetJobToRun(GetJobHostResponse job)
+        {
+            JobToRun = job;
+        }
+
+        protected void ResetJobToRun()
+        {
+            JobToRun = null;
+        }
+
+        protected void RunJob()
+        {
+            if (JobToRun == null)
+            {
+                return;
+            }
+
+            NavigationManager.NavigateTo($"jobs/{JobToRun.Id}/start", true);
+        }
+
+        protected async Task CloneJobAsync()
         {
             if (JobToClone == null)
             {
@@ -137,7 +159,15 @@ namespace Parcs.Portal.Components
 
             await HostClient.PostCloneJobAsync(JobToClone.Id);
 
-            Jobs = (await HostClient.GetJobsAsync()).ToList();
+            if (ModuleId is long moduleId)
+            {
+                var module = await HostClient.GetModuleAsync(moduleId, cancellationTokenSource.Token);
+                Jobs = module.Jobs.ToList();
+            }
+            else
+            {
+                Jobs = (await HostClient.GetJobsAsync()).ToList();
+            }
 
             CurrentPage = PaginatedList<GetJobHostResponse>.Create(Jobs, CurrentPage.PageIndex, PageSize);
             SetAvailablePages();
@@ -147,7 +177,7 @@ namespace Parcs.Portal.Components
             IsLoading = false;
         }
 
-        protected async Task CancelAsync()
+        protected async Task CancelJobAsync()
         {
             if (JobToCancel == null)
             {
@@ -158,7 +188,15 @@ namespace Parcs.Portal.Components
 
             await HostClient.PutJobAsync(JobToCancel.Id);
 
-            Jobs = (await HostClient.GetJobsAsync()).ToList();
+            if (ModuleId is long moduleId)
+            {
+                var module = await HostClient.GetModuleAsync(moduleId, cancellationTokenSource.Token);
+                Jobs = module.Jobs.ToList();
+            }
+            else
+            {
+                Jobs = (await HostClient.GetJobsAsync()).ToList();
+            }
 
             CurrentPage = PaginatedList<GetJobHostResponse>.Create(Jobs, CurrentPage.PageIndex, PageSize);
             SetAvailablePages();
@@ -168,7 +206,7 @@ namespace Parcs.Portal.Components
             IsLoading = false;
         }
 
-        protected async Task DeleteAsync()
+        protected async Task DeleteJobAsync()
         {
             if (JobToDelete == null)
             {

@@ -25,7 +25,7 @@ namespace Parcs.Host.Handlers
 
         public async Task Handle(DeleteJobCommand request, CancellationToken cancellationToken)
         {
-            var job = await _parcsDbContext.Jobs.FirstOrDefaultAsync(CancellationToken.None);
+            var job = await _parcsDbContext.Jobs.FirstOrDefaultAsync(e => e.Id == request.JobId, CancellationToken.None);
 
             if (job is null)
             {

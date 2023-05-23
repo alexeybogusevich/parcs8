@@ -2,6 +2,6 @@
 {
     public class RecursiveModuleOptions : ModuleOptions
     {
-        public int MinimumMatrixSize { get; set; }
+        public int MinimumMatrixSize { get; set; } = 8;
     }
 }

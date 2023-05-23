@@ -7,7 +7,7 @@ namespace Parcs.Portal.Services.Interfaces
 {
     public interface IHostClient
     {
-        Task<bool> PostRunAsync(RunJobHostRequest runJobHostRequest, CancellationToken cancellationToken = default);
+        Task<bool> PostJobRunAsync(RunJobHostRequest runJobHostRequest, CancellationToken cancellationToken = default);
 
         Task<GetJobHostResponse> GetJobAsync(long jobId, CancellationToken cancellationToken = default);
 
