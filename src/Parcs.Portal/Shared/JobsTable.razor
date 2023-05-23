@@ -67,6 +67,7 @@
                                 <div class="dropdown dropdown-action">
                                     <a href="#" class="action-icon dropdown-toggle" data-toggle="dropdown" aria-expanded="false"><i class="fa fa-ellipsis-v"></i></a>
                                     <div class="dropdown-menu dropdown-menu-right">
+                                        <a class="dropdown-item" href="#" data-toggle="modal" data-target="#clone_job" @onclick="() => SetJobToClone(job)"><i class="fa fa-solid fa-clone m-r-5"></i> Clone</a>
                                         @if (jobStatus == JobStatus.Started)
                                         {
                                             <a class="dropdown-item" href="#" data-toggle="modal" data-target="#cancel_job" @onclick="() => SetJobToCancel(job)"><i class="fa fa-solid fa-stop m-r-5"></i> Cancel</a>
@@ -102,11 +103,23 @@
         </li>
     </ul>
 </div>
+<div id="clone_job" class="modal fade delete-modal" role="dialog">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-body text-center">
+                <h3>Are you sure you want to clone this job?</h3>
+                <div class="m-t-20">
+                    <a href="javascript:void(0);" class="btn btn-white" data-dismiss="modal" @onclick="ResetJobToClone">No</a>
+                    <button type="submit" class="btn btn-warning" data-dismiss="modal" @onclick="CloneAsync">Yes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 <div id="cancel_job" class="modal fade delete-modal" role="dialog">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-body text-center">
-                <img src="img/sent.png" alt="" width="50" height="46">
                 <h3>Are you sure you want to cancel this job?</h3>
                 <div class="m-t-20">
                     <a href="javascript:void(0);" class="btn btn-white" data-dismiss="modal" @onclick="ResetJobToCancel">No</a>

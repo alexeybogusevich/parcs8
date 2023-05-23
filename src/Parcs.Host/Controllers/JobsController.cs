@@ -49,6 +49,14 @@ namespace Parcs.Host.Controllers
             return Ok(response);
         }
 
+        [HttpPost("{JobId}")]
+        [ProducesResponseType(typeof(CloneJobCommandResponse), (int)HttpStatusCode.OK)]
+        public async Task<IActionResult> CloneAsync([FromRoute] CloneJobCommand command, CancellationToken cancellationToken)
+        {
+            var response = await _mediator.Send(command, cancellationToken);
+            return Ok(response);
+        }
+
         [HttpPut("{JobId}")]
         [ProducesResponseType((int)HttpStatusCode.NoContent)]
         public async Task<IActionResult> CancelAsync([FromRoute] CancelJobCommand command, CancellationToken cancellationToken)

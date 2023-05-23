@@ -17,6 +17,8 @@ namespace Parcs.Portal.Services.Interfaces
 
         Task<CreateJobHostResponse> PostJobAsync(CreateJobHostRequest createJobHostRequest, CancellationToken cancellationToken = default);
 
+        Task<CloneJobHostResponse> PostCloneJobAsync(long jobId, CancellationToken cancellationToken = default);
+
         Task PutJobAsync(long jobId, CancellationToken cancellationToken = default);
 
         Task<GetModuleHostResponse> GetModuleAsync(long id, CancellationToken cancellationToken = default);

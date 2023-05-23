@@ -22,6 +22,8 @@
 
         public string PostJobsEndpoint { get; set; }
 
+        public string PostCloneJobsEndpoint { get; set; }
+
         public string PutJobEndpoint { get; set; }
 
         public string PostAsynchronousRunsEndpoint { get; set; }

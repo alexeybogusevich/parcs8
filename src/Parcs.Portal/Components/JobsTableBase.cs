@@ -29,6 +29,8 @@ namespace Parcs.Portal.Components
 
         protected GetJobHostResponse JobToCancel { get; set; }
 
+        protected GetJobHostResponse JobToClone { get; set; }
+
         protected PaginatedList<GetJobHostResponse> CurrentPage { get; set; }
 
         protected List<JobStatusResponse> DisplayedStatuses { get; set; } = new ();
@@ -114,21 +116,26 @@ namespace Parcs.Portal.Components
             JobToCancel = null;
         }
 
-        protected async Task CancelAsync()
+        protected void SetJobToClone(GetJobHostResponse job)
         {
-            if (JobToCancel == null)
+            JobToClone = job;
+        }
+
+        protected void ResetJobToClone()
+        {
+            JobToClone = null;
+        }
+
+        protected async Task CloneAsync()
+        {
+            if (JobToClone == null)
             {
                 return;
             }
 
-            await HostClient.PutJobAsync(JobToCancel.Id);
+            IsLoading = true;
 
-            var cancelledJob = Jobs.FirstOrDefault(d => d.Id.Equals(JobToDelete.Id));
-
-            if (cancelledJob is null)
-            {
-                return;
-            }
+            await HostClient.PostCloneJobAsync(JobToClone.Id);
 
             Jobs = (await HostClient.GetJobsAsync()).ToList();
 
@@ -136,6 +143,29 @@ namespace Parcs.Portal.Components
             SetAvailablePages();
 
             JobToCancel = null;
+
+            IsLoading = false;
+        }
+
+        protected async Task CancelAsync()
+        {
+            if (JobToCancel == null)
+            {
+                return;
+            }
+
+            IsLoading = true;
+
+            await HostClient.PutJobAsync(JobToCancel.Id);
+
+            Jobs = (await HostClient.GetJobsAsync()).ToList();
+
+            CurrentPage = PaginatedList<GetJobHostResponse>.Create(Jobs, CurrentPage.PageIndex, PageSize);
+            SetAvailablePages();
+
+            JobToCancel = null;
+
+            IsLoading = false;
         }
 
         protected async Task DeleteAsync()

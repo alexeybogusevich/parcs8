@@ -151,6 +151,15 @@ namespace Parcs.Portal.Services
             }
         }
 
+        public async Task<CloneJobHostResponse> PostCloneJobAsync(long jobId, CancellationToken cancellationToken = default)
+        {
+            using var response = await _flurlClient
+                .Request(string.Format(_hostConfiguration.PostCloneJobsEndpoint, jobId))
+                .PostAsync(cancellationToken: cancellationToken);
+
+            return await response.GetJsonAsync<CloneJobHostResponse>();
+        }
+
         public Task PutJobAsync(long jobId, CancellationToken cancellationToken = default)
         {
             return _flurlClient

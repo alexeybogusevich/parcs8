@@ -63,6 +63,7 @@ namespace Parcs.Host.Extensions
                 .AddScoped<IFileSaver, FileSaver>()
                 .AddScoped<IFileReader, FileReader>()
                 .AddScoped<IFileEraser, FileEraser>()
+                .AddScoped<IFileMover, FileMover>()
                 .AddSingleton<IJobTracker, JobTracker>()
                 .AddSingleton<IInternalChannelManager, InternalChannelManager>()
                 .AddSingleton<IIsolatedLoadContextProvider, IsolatedLoadContextProvider>()
