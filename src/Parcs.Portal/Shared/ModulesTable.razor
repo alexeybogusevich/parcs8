@@ -31,7 +31,7 @@
                     @foreach (var module in CurrentPage.Items)
                     {
                         <tr>
-                            <td><a href="/module/@module.Id">@module.Id</a></td>
+                            <td>@module.Id</td>
                             <td><a href="/module/@module.Id">@module.Name</a></td>
                             <td>@module.CreateDateUtc.ToLocalTime()</td>
                             <td>@module.JobsNumber</td>
