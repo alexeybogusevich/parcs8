@@ -14,6 +14,6 @@ namespace Parcs.Host.Models.Responses
 
         public IEnumerable<AssemblyMetadataResponse> Assemblies { get; set; }
 
-        public IEnumerable<GetJobQueryResponse> Jobs { get; set; }
+        public List<GetJobQueryResponse> Jobs { get; set; }
     }
 }

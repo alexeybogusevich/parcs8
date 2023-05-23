@@ -8,6 +8,7 @@ builder.Services.AddServerSideBlazor();
 builder.Services.AddApplicationServices();
 builder.Services.AddApplicationOptions(builder.Configuration);
 builder.Services.AddHttpClients(builder.Configuration);
+builder.Services.AddApplicationInsightsTelemetry();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();

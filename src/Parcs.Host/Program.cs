@@ -13,6 +13,7 @@ builder.Services.AddApplicationOptions(builder.Configuration);
 builder.Services.AddAsynchronousJobProcessing();
 builder.Services.AddHttpClient();
 builder.Services.AddDatabase(builder.Configuration);
+builder.Services.AddApplicationInsightsTelemetry();
 
 var app = builder.Build();
 

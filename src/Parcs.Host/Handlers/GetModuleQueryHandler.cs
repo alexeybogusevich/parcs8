@@ -78,7 +78,7 @@ namespace Parcs.Host.Handlers
                     CreateDateUtc = e.CreateDateUtc,
                     Statuses = e.Statuses.Select(s => new JobStatusResponse((JobStatus)s.Status, s.CreateDateUtc)).ToList(),
                     Failures = e.Failures.Select(f => new JobFailureResponse(f.Message, f.StackTrace, f.CreateDateUtc)).ToList(),
-                }),
+                }).ToList(),
             };
 
             foreach (var job in moduleResponse.Jobs)
