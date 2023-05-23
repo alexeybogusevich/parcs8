@@ -1,6 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Parcs.Daemon.Extensions;
 using Parcs.Daemon.HostedServices;
 
@@ -11,7 +10,7 @@ await Host.CreateDefaultBuilder(args)
         services.AddHostedService<TcpServer>();
         services.AddApplicationServices();
         services.AddApplicationOptions(hostContext.Configuration);
-        services.AddLogging(options => options.AddApplicationInsights());
+        services.AddApplicationLogging(hostContext.Configuration);
         services.AddHttpClients(hostContext.Configuration);
     })
     .Build().RunAsync();

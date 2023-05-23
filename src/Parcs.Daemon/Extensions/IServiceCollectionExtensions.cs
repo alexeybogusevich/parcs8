@@ -10,6 +10,7 @@ using Parcs.Daemon.Configuration;
 using Parcs.Core.Configuration;
 using System.Threading.Channels;
 using Parcs.Core.Models;
+using Microsoft.Extensions.Logging;
 
 namespace Parcs.Daemon.Extensions
 {
@@ -63,12 +64,26 @@ namespace Parcs.Daemon.Extensions
         public static IServiceCollection AddApplicationOptions(this IServiceCollection services, IConfiguration configuration)
         {
             return services
+                .Configure<ApplicationInsightsConfiguration>(configuration.GetSection(ApplicationInsightsConfiguration.SectionName))
                 .Configure<DaemonsConfiguration>(configuration.GetSection(DaemonsConfiguration.SectionName))
                 .Configure<FileSystemConfiguration>(configuration.GetSection(FileSystemConfiguration.SectionName))
                 .Configure<HostingConfiguration>(configuration.GetSection(HostingConfiguration.SectionName))
                 .Configure<KubernetesConfiguration>(configuration.GetSection(KubernetesConfiguration.SectionName))
                 .Configure<DaemonConfiguration>(configuration.GetSection(DaemonConfiguration.SectionName))
                 .Configure<HostConfiguration>(configuration.GetSection(HostConfiguration.SectionName));
+        }
+
+        public static IServiceCollection AddApplicationLogging(this IServiceCollection services, IConfiguration configuration)
+        {
+            var applicationInsightsConfiguration = configuration
+                .GetSection(ApplicationInsightsConfiguration.SectionName)
+                .Get<ApplicationInsightsConfiguration>();
+
+            services.AddLogging(builder => builder.AddApplicationInsights(
+                configureTelemetryConfiguration: (config) => config.ConnectionString = applicationInsightsConfiguration.ConnectionString,
+                configureApplicationInsightsLoggerOptions: (options) => { }));
+
+            return services;
         }
     }
 }
