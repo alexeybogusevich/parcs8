@@ -25,14 +25,26 @@ else
                             <div class="col-sm-12">
                                 <div class="form-group">
                                     <label>Assembly <span class="text-danger">*</span></label>
-                                    <InputText @bind-Value="CreateJobViewModel.AssemblyName" autofocus="" class="form-control" />
+                                    <select id="select-assembly" class="form-control select" title="Choose from the list...">
+                                        <option selected disabled>Choose from the list...</option>
+                                        @foreach (var assembly in Module.Assemblies)
+                                        {
+                                            <option value="@assembly.Name">@assembly.Name</option>
+                                        }
+                                    </select>
                                     <ValidationMessage For="@(() => CreateJobViewModel.AssemblyName)" />
                                 </div>
                             </div>
                             <div class="col-sm-12">
                                 <div class="form-group">
                                     <label>Class <span class="text-danger">*</span></label>
-                                    <InputText @bind-Value="CreateJobViewModel.ClassName" autofocus="" class="form-control" />
+                                    <select id="select-class" class="form-control select" title="Choose from the list...">
+                                        <option selected disabled>Choose from the list...</option>
+                                        @foreach (var className in Module.Assemblies.FirstOrDefault(a => a.Name == CreateJobViewModel.AssemblyName)?.IModuleImplementations ?? Enumerable.Empty<string>())
+                                        {
+                                            <option value="@className">@className</option>
+                                        }
+                                    </select>
                                     <ValidationMessage For="@(() => CreateJobViewModel.AssemblyName)" />
                                 </div>
                             </div>
@@ -51,4 +63,20 @@ else
             </div>
         </div>
     </div>
+}
+
+@code
+{
+    [JSInvokable("Select2_ChangeAssembly")]
+    public void ChangeAssembly(string assemblyName)
+    {
+        CreateJobViewModel.AssemblyName = assemblyName;
+        StateHasChanged();
+    }
+
+    [JSInvokable("Select2_ChangeClass")]
+    public void ChangeClass(string className)
+    {
+        CreateJobViewModel.ClassName = className;
+    }
 }

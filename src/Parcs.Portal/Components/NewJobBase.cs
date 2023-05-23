@@ -4,6 +4,7 @@ using Microsoft.JSInterop;
 using Parcs.Portal.Constants;
 using Parcs.Portal.Models;
 using Parcs.Portal.Models.Host.Requests;
+using Parcs.Portal.Models.Host.Responses;
 using Parcs.Portal.Services.Interfaces;
 
 namespace Parcs.Portal.Components
@@ -16,7 +17,20 @@ namespace Parcs.Portal.Components
         [Parameter]
         public long ModuleId { get; set; } 
 
+        protected GetModuleHostResponse Module { get; set; }
+
+        protected List<string> CurrentAssemblyImplementations { get; set; } = new();
+
         protected CreateJobViewModel CreateJobViewModel { get; set; } = new ();
+
+        protected override async Task OnInitializedAsync()
+        {
+            IsLoading = true;
+
+            Module = await HostClient.GetModuleAsync(ModuleId, cancellationTokenSource.Token);
+
+            IsLoading = false;
+        }
 
         protected async Task CreateJobAsync()
         {
@@ -40,6 +54,19 @@ namespace Parcs.Portal.Components
         protected void OnFileChanged(InputFileChangeEventArgs e)
         {
             CreateJobViewModel.InputFiles = e.GetMultipleFiles();
+        }
+
+        protected override async Task OnAfterRenderAsync(bool firstRender)
+        {
+            await JsRuntime.InvokeVoidAsync(JSExtensionMethods.SetSelect2);
+
+            var dotNetReference = DotNetObjectReference.Create(this);
+
+            await JsRuntime.InvokeVoidAsync(
+                JSExtensionMethods.SetOnChangeSelect2, "select-class", dotNetReference, JSInvokableMethods.ChangeClass);
+
+            await JsRuntime.InvokeVoidAsync(
+                JSExtensionMethods.SetOnChangeSelect2, "select-assembly", dotNetReference, JSInvokableMethods.ChangeAssembly);
         }
     }
 }
