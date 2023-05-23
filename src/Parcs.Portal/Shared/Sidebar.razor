@@ -22,8 +22,9 @@
 
 @code {
     private string currentUri => navManager.ToBaseRelativePath(navManager.Uri);
+
+    private string modulesClass => currentUri.Contains("module") || string.IsNullOrWhiteSpace(currentUri) ? "active" : string.Empty;
     private string jobsClass => currentUri.Contains("job") ? "active" : string.Empty;
-    private string modulesClass => currentUri.Contains("module") ? "active" : string.Empty;
     private string infoClass => currentUri.Contains("info") ? "active" : string.Empty;
 
     private async Task CloseSidebarAsync()
