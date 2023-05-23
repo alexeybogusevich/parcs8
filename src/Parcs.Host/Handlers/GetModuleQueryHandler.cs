@@ -6,6 +6,9 @@ using Parcs.Data.Context;
 using Parcs.Host.Models.Queries;
 using Parcs.Host.Models.Responses;
 using Parcs.Host.Models.Responses.Nested;
+using Parcs.Host.Services.Interfaces;
+using Parcs.Net;
+using System.Reflection;
 
 namespace Parcs.Host.Handlers
 {
@@ -13,11 +16,14 @@ namespace Parcs.Host.Handlers
     {
         private readonly ParcsDbContext _parcsDbContext;
         private readonly IModuleDirectoryPathBuilder _moduleDirectoryPathBuilder;
+        private readonly IMetadataLoadContextProvider _metadataLoadContextProvider;
 
-        public GetModuleQueryHandler(ParcsDbContext parcsDbContext, IModuleDirectoryPathBuilder moduleDirectoryPathBuilder)
+        public GetModuleQueryHandler(
+            ParcsDbContext parcsDbContext, IModuleDirectoryPathBuilder moduleDirectoryPathBuilder, IMetadataLoadContextProvider metadataLoadContextProvider)
         {
             _parcsDbContext = parcsDbContext;
             _moduleDirectoryPathBuilder = moduleDirectoryPathBuilder;
+            _metadataLoadContextProvider = metadataLoadContextProvider;
         }
 
         public async Task<GetModuleQueryResponse> Handle(GetModuleQuery request, CancellationToken cancellationToken)
@@ -33,14 +39,30 @@ namespace Parcs.Host.Handlers
             }
 
             var moduleDirectory = _moduleDirectoryPathBuilder.Build(module.Id);
-            var moduleFiles = Directory.GetFiles(moduleDirectory).Select(Path.GetFileName).ToList();
+            var moduleFiles = Directory.GetFiles(moduleDirectory);
+            var moduleAssemblies = new List<AssemblyMetadataResponse>();
+
+            foreach (var assemblyPath in moduleFiles.Where(f => Path.GetFileName(f).Contains(".dll")).ToList())
+            {
+                using var assemblyMetadataContext = _metadataLoadContextProvider.Get(assemblyPath, typeof(IModule).Assembly.Location);
+
+                var assembly = assemblyMetadataContext.LoadFromAssemblyPath(assemblyPath);
+                var assemblyModules = assembly
+                    .GetTypes()
+                    .Where(t => t.GetInterface(nameof(IModule)) is not null)
+                    .Select(t => t.FullName)
+                    .ToList();
+
+                moduleAssemblies.Add(new AssemblyMetadataResponse(assembly.GetName().Name, assemblyModules));
+            }
 
             return new GetModuleQueryResponse
             {
                 Id  = module.Id,
                 Name = module.Name,
                 CreateDateUtc = module.CreateDateUtc,
-                Files = moduleFiles,
+                Files = moduleFiles.Select(Path.GetFileName).ToList(),
+                Assemblies = moduleAssemblies,
                 Jobs = module.Jobs.Select(e => new GetJobQueryResponse
                 {
                     Id = e.Id,

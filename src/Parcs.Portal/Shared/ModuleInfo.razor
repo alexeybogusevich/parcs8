@@ -56,6 +56,8 @@
             <ul class="nav nav-tabs nav-tabs-bottom">
                 <li class="nav-item"><a class="nav-link active" href="#jobs-tab1" data-toggle="tab">Jobs</a></li>
                 <li class="nav-item"><a class="nav-link" href="#files-tab2" data-toggle="tab">Files</a></li>
+                <li class="nav-item"><a class="nav-link" href="#assemblies-tab3" data-toggle="tab">Assemblies</a></li>
+                <li class="nav-item"><a class="nav-link" href="#classes-tab4" data-toggle="tab">IModule Implementations</a></li>
             </ul>
             <div class="tab-content">
                 <div class="tab-pane show active" id="jobs-tab1">
@@ -85,6 +87,52 @@
                                         {
                                             <tr>
                                                 <td>@file</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="tab-pane" id="assemblies-tab3">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="table-responsive">
+                                <table class="table table-border table-striped custom-table datatable mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Assembly</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var assembly in Module.Assemblies)
+                                        {
+                                            <tr>
+                                                <td>@assembly.Name</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="tab-pane" id="classes-tab4">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="table-responsive">
+                                <table class="table table-border table-striped custom-table datatable mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Class</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var className in Module.Assemblies.SelectMany(a => a.IModuleImplementations))
+                                        {
+                                            <tr>
+                                                <td>@className</td>
                                             </tr>
                                         }
                                     </tbody>

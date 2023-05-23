@@ -1,4 +1,6 @@
-﻿namespace Parcs.Host.Models.Responses
+﻿using Parcs.Host.Models.Responses.Nested;
+
+namespace Parcs.Host.Models.Responses
 {
     public class GetModuleQueryResponse
     {
@@ -9,6 +11,8 @@
         public DateTime CreateDateUtc { get; set; }
 
         public IEnumerable<string> Files { get; set; }
+
+        public IEnumerable<AssemblyMetadataResponse> Assemblies { get; set; }
 
         public IEnumerable<GetJobQueryResponse> Jobs { get; set; }
     }

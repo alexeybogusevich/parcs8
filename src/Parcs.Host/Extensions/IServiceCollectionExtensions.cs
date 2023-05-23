@@ -45,6 +45,7 @@ namespace Parcs.Host.Extensions
         public static IServiceCollection AddApplicationServices(this IServiceCollection services)
         {
             return services
+                .AddScoped<IMetadataLoadContextProvider, MetadataLoadContextProvider>()
                 .AddScoped<IAddressResolver, AddressResolver>()
                 .AddScoped<IAssemblyPathBuilder, AssemblyPathBuilder>()
                 .AddScoped<IDaemonResolutionStrategyFactory, DaemonResolutionStrategyFactory>()
