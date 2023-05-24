@@ -58,7 +58,7 @@ namespace Parcs.Portal.Components
             SetAvailablePages();
 
             HubConnection = new HubConnectionBuilder()
-                .WithUrl($"http://{PortalOptions.Value.Uri}/jobCompletionHub")
+                .WithUrl($"http://{PortalOptions.Value.SignalrUri}/jobCompletionHub")
                 .Build();
 
             HubConnection.On<long>(JobCompletionHubMethods.NotifyCompletion, (jobId) =>

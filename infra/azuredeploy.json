@@ -4,8 +4,8 @@
   "metadata": {
     "_generator": {
       "name": "bicep",
-      "version": "0.16.2.56959",
-      "templateHash": "1633382784095562381"
+      "version": "0.17.1.54307",
+      "templateHash": "13930682707571718401"
     }
   },
   "parameters": {
@@ -92,9 +92,6 @@
           },
           "aksClusterName": {
             "value": "[parameters('aksClusterName')]"
-          },
-          "resourceGroupName": {
-            "value": "[parameters('resourceGroupName')]"
           }
         },
         "template": {
@@ -103,8 +100,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.16.2.56959",
-              "templateHash": "781862693880222221"
+              "version": "0.17.1.54307",
+              "templateHash": "1518464994829323213"
             }
           },
           "parameters": {
@@ -160,67 +157,34 @@
               "metadata": {
                 "description": "The name of the AKS cluster."
               }
-            },
-            "resourceGroupName": {
-              "type": "string",
-              "metadata": {
-                "description": "The name of the resource group."
-              }
             }
           },
           "variables": {
-            "agentCount": 3,
-            "aksEngineVersion": "v0.60.0",
-            "aksEngineDownloadUrl": "https://github.com/Azure/aks-engine/releases/download/",
-            "aksEngineDownloadPath": "/aks-engine-v0.60.0-linux-amd64.tar.gz",
-            "kubeConfigFileName": "kubeconfig.json"
+            "agentCount": 1,
+            "agentVMSize": "Standard_DS2_v2",
+            "kubernetesVersion": "1.25.2"
           },
           "resources": [
             {
               "type": "Microsoft.ContainerService/managedClusters",
-              "apiVersion": "2023-01-02-preview",
+              "apiVersion": "2021-07-01",
               "name": "[parameters('aksClusterName')]",
               "location": "[parameters('resourceGroupLocation')]",
               "properties": {
-                "kubernetesVersion": "1.25.2",
+                "kubernetesVersion": "[variables('kubernetesVersion')]",
                 "enableRBAC": true,
                 "agentPoolProfiles": [
                   {
                     "name": "agentpool",
                     "count": "[variables('agentCount')]",
-                    "vmSize": "Standard_B2s"
+                    "vmSize": "[variables('agentVMSize')]"
                   }
                 ]
               }
-            },
-            {
-              "type": "Microsoft.Compute/virtualMachines/extensions",
-              "apiVersion": "2022-11-01",
-              "name": "[format('{0}/aksengine', parameters('aksClusterName'))]",
-              "location": "[parameters('resourceGroupLocation')]",
-              "properties": {
-                "publisher": "Microsoft.OSTCExtensions",
-                "type": "CustomScriptForLinux",
-                "typeHandlerVersion": "1.9",
-                "autoUpgradeMinorVersion": true,
-                "settings": {
-                  "fileUris": [
-                    "[format('{0}{1}{2}', variables('aksEngineDownloadUrl'), variables('aksEngineVersion'), variables('aksEngineDownloadPath'))]",
-                    "https://raw.githubusercontent.com/alexeybogusevich/parcs7/master/kube/deployment.yaml"
-                  ],
-                  "commandToExecute": "[format('bash aks-engine-deploy.sh -g {0} -c {1} -f {2}', parameters('resourceGroupName'), parameters('aksClusterName'), variables('kubeConfigFileName'))]"
-                }
-              },
-              "dependsOn": [
-                "[resourceId('Microsoft.ContainerService/managedClusters', parameters('aksClusterName'))]"
-              ]
             }
           ]
         }
-      },
-      "dependsOn": [
-        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', parameters('resourceGroupName'))]"
-      ]
+      }
     }
   ]
 }

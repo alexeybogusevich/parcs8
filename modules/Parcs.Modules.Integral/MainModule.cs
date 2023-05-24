@@ -11,10 +11,6 @@ namespace Parcs.Modules.Integral
         {
             var moduleOptions = moduleInfo.ArgumentsProvider.Bind<ModuleOptions>();
 
-            double a = 0;
-            double b = Math.PI / 2;
-            double h = moduleOptions.Precision;
-
             var pointsNumber = moduleInfo.ArgumentsProvider.GetPointsNumber();
             var points = new IPoint[pointsNumber];
             var channels = new IChannel[pointsNumber];
@@ -26,13 +22,13 @@ namespace Parcs.Modules.Integral
                 await points[i].ExecuteClassAsync<WorkerModule>();
             }
 
-            double y = a;
+            double y = moduleOptions.XStart;
             for (int i = 0; i < pointsNumber; ++i)
             {
                 await channels[i].WriteDataAsync(y);
-                await channels[i].WriteDataAsync(y + (b - a) / pointsNumber);
-                await channels[i].WriteDataAsync(h);
-                y += (b - a) / pointsNumber;
+                await channels[i].WriteDataAsync(y + (moduleOptions.XEnd - moduleOptions.XStart) / pointsNumber);
+                await channels[i].WriteDataAsync(moduleOptions.Precision);
+                y += (moduleOptions.XEnd - moduleOptions.XStart) / pointsNumber;
             }
 
             var stopwatch = new Stopwatch();

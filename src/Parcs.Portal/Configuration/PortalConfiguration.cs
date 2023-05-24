@@ -6,6 +6,8 @@
 
         public string Uri { get; set; }
 
+        public string SignalrUri { get; set; }
+
         public string JobCompletionEndpoint { get; set; }
     }
 }

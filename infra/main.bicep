@@ -60,6 +60,5 @@ module resources 'resources.bicep' = {
   params: {
     resourceGroupLocation: resourceGroupLocation
     aksClusterName: aksClusterName
-    resourceGroupName: rg.name
   }
 }

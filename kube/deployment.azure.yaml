@@ -216,7 +216,11 @@ spec:
         - name: Host__Uri
           value: parcs-hostapi-internal
         - name: Portal__Uri
-          value: parcs-hostapi-internal
+          value: parcs-portal
+        - name: Portal__SignalrUri
+          value: parcs-portal
+        - name: APPLICATIONINSIGHTS_CONNECTION_STRING
+          value: InstrumentationKey=ae0f86ac-ca24-4d8c-a73b-9827cb3219f1;IngestionEndpoint=https://westeurope-5.in.applicationinsights.azure.com/;LiveEndpoint=https://westeurope.livediagnostics.monitor.azure.com/
 ---
 apiVersion: v1
 kind: Service
