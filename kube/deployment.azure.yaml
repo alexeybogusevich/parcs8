@@ -212,6 +212,11 @@ spec:
           requests:
             cpu: 100m
             memory: 128Mi
+        env:
+        - name: Host__Uri
+          value: parcs-hostapi-internal
+        - name: Portal__Uri
+          value: parcs-hostapi-internal
 ---
 apiVersion: v1
 kind: Service

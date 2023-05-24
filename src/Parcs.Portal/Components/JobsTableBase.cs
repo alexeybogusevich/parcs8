@@ -5,13 +5,21 @@ using Parcs.Portal.Services.Interfaces;
 using Parcs.Portal.Models.Host.Responses.Nested;
 using Microsoft.JSInterop;
 using Parcs.Portal.Constants;
+using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.Extensions.Options;
+using Parcs.Portal.Configuration;
 
 namespace Parcs.Portal.Components
 {
-    public class JobsTableBase : PageBase
+    public class JobsTableBase : PageBase, IAsyncDisposable
     {
         [Inject]
         protected IHostClient HostClient { get; set; }
+
+        [Inject]
+        protected IOptions<PortalConfiguration> PortalOptions { get; set; }
+
+        protected HubConnection HubConnection { get; set; }
 
         protected int Counter = 1;
 
@@ -43,10 +51,22 @@ namespace Parcs.Portal.Components
 
         protected FiltersInput FiltersInput { get; set; } = new ();
 
-        protected override void OnParametersSet()
+        protected override async Task OnInitializedAsync()
         {
             CurrentPage = PaginatedList<GetJobHostResponse>.Create(Jobs, 1, PageSize);
+
             SetAvailablePages();
+
+            HubConnection = new HubConnectionBuilder()
+                .WithUrl($"http://{PortalOptions.Value.Uri}/jobCompletionHub")
+                .Build();
+
+            HubConnection.On<long>(JobCompletionHubMethods.NotifyCompletion, (jobId) =>
+            {
+                InvokeAsync(async () => await HandleJobCompletionAsync(jobId));
+            });
+
+            await HubConnection.StartAsync();
         }
 
         protected void SetAvailablePages()
@@ -249,6 +269,36 @@ namespace Parcs.Portal.Components
         protected void DownloadOutput(long jobId)
         {
             NavigationManager.NavigateTo($"/api/jobsOutput/{jobId}", true);
+        }
+
+        private async Task HandleJobCompletionAsync(long jobId)
+        {
+            var oldJob = Jobs.FirstOrDefault(d => d.Id.Equals(jobId));
+
+            if (oldJob is null)
+            {
+                return;
+            }
+
+            var newJob = await HostClient.GetJobAsync(jobId, cancellationTokenSource.Token);
+
+            Jobs.Remove(oldJob);
+            Jobs.Add(newJob);
+
+            CurrentPage = PaginatedList<GetJobHostResponse>.Create(Jobs.OrderByDescending(j => j.Id), CurrentPage.PageIndex, PageSize);
+            SetAvailablePages();
+
+            StateHasChanged();
+        }
+
+        public async ValueTask DisposeAsync()
+        {
+            if (HubConnection is not null)
+            {
+                await HubConnection.DisposeAsync();
+            }
+
+            GC.SuppressFinalize(this);
         }
     }
 }

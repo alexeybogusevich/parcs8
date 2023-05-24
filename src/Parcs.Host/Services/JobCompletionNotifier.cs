@@ -13,12 +13,13 @@ namespace Parcs.Host.Services
             _httpClientFactory = httpClientFactory;
         }
 
-        public Task NotifyAsync(JobCompletionNotification notification, string subscriberUrl, CancellationToken cancellationToken = default)
+        public async Task NotifyAsync(JobCompletionNotification notification, string subscriberUrl, CancellationToken cancellationToken = default)
         {
-            return Task.CompletedTask;
-
             using var flurlClient = new FlurlClient(_httpClientFactory.CreateClient());
-            return flurlClient.Request(subscriberUrl).PostJsonAsync(notification, cancellationToken);
+
+            await flurlClient
+                .Request(subscriberUrl)
+                .PostJsonAsync(notification, cancellationToken);
         }
     }
 }

@@ -1,4 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
+using Parcs.Portal.Constants;
+using Parcs.Portal.Hubs;
+using System.Net;
 
 namespace Parcs.Portal.Controllers
 {
@@ -6,10 +10,19 @@ namespace Parcs.Portal.Controllers
     [ApiController]
     public class CompletedJobsController : ControllerBase
     {
-        [HttpPost("jobId")]
-        public Task CreateAsync([FromRoute] long jobId, CancellationToken cancellationToken = default)
+        private readonly IHubContext<JobCompletionHub> _hubContext;
+
+        public CompletedJobsController(IHubContext<JobCompletionHub> hubContext)
         {
-            return Task.CompletedTask;
+            _hubContext = hubContext;
+        }
+
+        [HttpPost("{jobId}")]
+        [ProducesResponseType((int)HttpStatusCode.Accepted)]
+        public async Task<IActionResult> CreateAsync([FromRoute] long jobId, CancellationToken cancellationToken = default)
+        {
+            await _hubContext.Clients.All.SendAsync(JobCompletionHubMethods.NotifyCompletion, jobId, cancellationToken);
+            return Accepted();
         }
     }
 }

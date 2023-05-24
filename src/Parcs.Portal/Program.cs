@@ -1,4 +1,6 @@
+using Microsoft.AspNetCore.ResponseCompression;
 using Parcs.Portal.Extensions;
+using Parcs.Portal.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,8 +14,17 @@ builder.Services.AddApplicationInsightsTelemetry();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddSignalR();
+
+builder.Services.AddResponseCompression(opts =>
+{
+    opts.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(
+        new[] { "application/octet-stream" });
+});
 
 var app = builder.Build();
+
+app.UseResponseCompression();
 
 app.UseSwagger();
 app.UseSwaggerUI();
@@ -21,10 +32,7 @@ app.UseSwaggerUI();
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error");
-    app.UseHsts();
 }
-
-app.UseHttpsRedirection();
 
 app.UseStaticFiles();
 
@@ -32,6 +40,7 @@ app.UseRouting();
 app.MapControllers();
 
 app.MapBlazorHub();
+app.MapHub<JobCompletionHub>("/jobCompletionHub");
 app.MapFallbackToPage("/_Host");
 
 app.Run();

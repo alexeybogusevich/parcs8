@@ -49,7 +49,7 @@ namespace Parcs.Host.HostedServices
                 _logger.LogError(e, "Exception thrown during scheduled job processing.");
             }
 
-            await jobCompletionNotifier.NotifyAsync(new JobCompletionNotification(command.JobId), command.CallbackUrl, stoppingToken);
+            await jobCompletionNotifier.NotifyAsync(new JobCompletionNotification(command.JobId), command.CallbackUrl, CancellationToken.None);
         }
     }
 }

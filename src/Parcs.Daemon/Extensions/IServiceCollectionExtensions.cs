@@ -79,6 +79,11 @@ namespace Parcs.Daemon.Extensions
                 .GetSection(ApplicationInsightsConfiguration.SectionName)
                 .Get<ApplicationInsightsConfiguration>();
 
+            if (applicationInsightsConfiguration?.ConnectionString is null)
+            {
+                return services;
+            }
+
             services.AddLogging(builder => builder.AddApplicationInsights(
                 configureTelemetryConfiguration: (config) => config.ConnectionString = applicationInsightsConfiguration.ConnectionString,
                 configureApplicationInsightsLoggerOptions: (options) => { }));
