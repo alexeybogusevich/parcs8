@@ -37,7 +37,3 @@ This repository is licensed under the [MIT License](LICENSE). Feel free to use a
 
 ## Acknowledgements
 We would like to thank the contributors and maintainers of the PARCS-NET-K8 solution. Your efforts and support are greatly appreciated.
-
----
-
-Feel free to modify and customize the README according to your specific needs. Make sure to include any additional instructions or information that is relevant to your project.
