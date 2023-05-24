@@ -1,5 +1,3 @@
-Sure! Here's a sample README for your repository:
-
 # PARCS-NET-K8
 
 ## Overview
