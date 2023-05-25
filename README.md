@@ -4,11 +4,12 @@
 PARCS-NET-K8 is a solution for deploying and managing algorithmic modules that solve recursive parallel computation problems. This repository contains the necessary files and configurations to deploy the solution onto Azure as an AKS (Azure Kubernetes Service) service. It also provides a local development environment using Docker Compose.
 
 ## Deployment
+
 To deploy the solution onto Azure as an AKS service, follow these steps:
 
-1. Create a custom deployment from the ARM (Azure Resource Manager) template located at `infra/azuredeploy.json`. This template will provision the necessary Azure resources for the AKS cluster.
+1. Create a Kubernetes cluster (AKS) on Azure using the Azure Portal. This will provision the necessary resources for the AKS cluster. Make sure to configure the cluster according to your requirements.
 
-2. Configure the AKS cluster by applying the YAML file located at `kube/deployment.azure.yaml`. This file specifies the desired state of the AKS cluster and sets up the necessary configurations for the algorithmic modules.
+2. Apply the YAML file located at `kube/deployment.azure.yaml` to configure the AKS cluster. This file specifies the desired state of the cluster and sets up the necessary configurations for the algorithmic modules.
 
 ## Local Development
 For local development and debugging, you can use Docker Compose. Follow these steps:
