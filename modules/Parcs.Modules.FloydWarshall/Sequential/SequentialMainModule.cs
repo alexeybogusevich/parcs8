@@ -2,6 +2,7 @@
 using Parcs.Modules.FloydWarshall.Models;
 using Parcs.Net;
 using System.Diagnostics;
+using System.Text.Json;
 
 namespace Parcs.Modules.FloydWarshall.Sequential
 {
@@ -30,6 +31,9 @@ namespace Parcs.Modules.FloydWarshall.Sequential
             var finalMatrix = Floyd(initialMatrix);
 
             stopwatch.Stop();
+
+            var moduleOutput = new ModuleOutput { ElapsedSeconds = stopwatch.Elapsed.TotalSeconds };
+            await moduleInfo.OutputWriter.WriteToFileAsync(JsonSerializer.SerializeToUtf8Bytes(moduleOutput), moduleOptions.OutputFile);
 
             if (moduleOptions.SaveMatrixes)
             {

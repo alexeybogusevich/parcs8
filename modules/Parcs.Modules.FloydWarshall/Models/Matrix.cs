@@ -201,20 +201,44 @@ namespace Parcs.Modules.FloydWarshall.Models
             }
         }
 
-        public static Matrix LoadFromStream(Stream stream)
+        public static Matrix LoadFromStream(FileStream fileStream)
         {
-            using var reader = new BinaryReader(stream);
+            var lines = new List<string>();
 
-            var m = reader.ReadInt32();
-            var n = reader.ReadInt32();
+            using (var reader = new StreamReader(fileStream))
+            {
+                while (!reader.EndOfStream)
+                {
+                    lines.Add(reader.ReadLine());
+                }
+            }
+
+            if (lines.Count < 2)
+            {
+                throw new ArgumentException("Insufficient input: missing dimensions");
+            }
+
+            var m = int.Parse(lines[0].Trim());
+            var n = int.Parse(lines[1].Trim());
 
             var matrix = new Matrix(m, n);
 
+            if (lines.Count < 2 + m)
+            {
+                throw new ArgumentException("Insufficient input: missing matrix values");
+            }
+
             for (var i = 0; i < m; i++)
             {
+                var currentLine = lines[i + 2];
+                var currentRow = currentLine.Replace("-1", int.MaxValue.ToString())
+                    .Split(' ')
+                    .Select(int.Parse)
+                    .ToArray();
+
                 for (var j = 0; j < n; j++)
                 {
-                    matrix[i, j] = reader.ReadInt32();
+                    matrix[i, j] = currentRow[j];
                 }
             }
 
