@@ -9,7 +9,7 @@ To deploy the solution onto Azure as an AKS service, follow these steps:
 
 1. Create a Kubernetes cluster (AKS) on Azure using the Azure Portal. This will provision the necessary resources for the AKS cluster. Make sure to configure the cluster according to your requirements.
 
-2. Apply the YAML file located at `kube/deployment.azure.yaml` to configure the AKS cluster. This file specifies the desired state of the cluster and sets up the necessary configurations for the algorithmic modules.
+2. Apply the YAML file located at `kube/deployment.azure.yaml` to configure the AKS cluster. This file specifies the desired state of the cluster and sets up the necessary configurations.
 
 ## Local Development
 For local development and debugging, you can use Docker Compose. Follow these steps:
