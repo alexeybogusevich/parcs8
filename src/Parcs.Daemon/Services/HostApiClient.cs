@@ -6,21 +6,15 @@ using Parcs.Daemon.Services.Interfaces;
 
 namespace Parcs.Daemon.Services
 {
-    public class HostApiClient : IHostApiClient
+    public class HostApiClient(HttpClient httpClient, IOptions<HostConfiguration> options) : IHostApiClient
     {
-        private readonly FlurlClient _flurlClient;
-        private readonly HostConfiguration _configuration;
-
-        public HostApiClient(HttpClient httpClient, IOptions<HostConfiguration> options)
-        {
-            _flurlClient = new FlurlClient(httpClient);
-            _configuration = options.Value;
-        }
+        private readonly FlurlClient _flurlClient = new FlurlClient(httpClient);
+        private readonly HostConfiguration _configuration = options.Value;
 
         public Task PostJobFailureAsync(PostJobFailureApiRequest request, CancellationToken cancellationToken = default)
         {
             var requestPath = string.Format(_configuration.JobFailuresPath);
-            return _flurlClient.Request(requestPath).PostJsonAsync(request, cancellationToken);
+            return _flurlClient.Request(requestPath).PostJsonAsync(request, cancellationToken: cancellationToken);
         }
     }
 }

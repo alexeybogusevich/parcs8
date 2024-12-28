@@ -4,27 +4,18 @@ using Parcs.Core.Services.Interfaces;
 
 namespace Parcs.Core.Services
 {
-    public sealed class ModuleInfoFactory : IModuleInfoFactory
+    public sealed class ModuleInfoFactory(
+        IDaemonResolver daemonResolver,
+        IInputOutputFactory inputOutputFactory,
+        IArgumentsProviderFactory argumentsProviderFactory,
+        IInternalChannelManager internalChannelManager,
+        IAddressResolver addressResolver) : IModuleInfoFactory
     {
-        private readonly IDaemonResolver _daemonResolver;
-        private readonly IInputOutputFactory _inputOutputFactory;
-        private readonly IArgumentsProviderFactory _argumentsProviderFactory;
-        private readonly IInternalChannelManager _internalChannelManager;
-        private readonly IAddressResolver _addressResolver;
-
-        public ModuleInfoFactory(
-            IDaemonResolver daemonResolver,
-            IInputOutputFactory inputOutputFactory,
-            IArgumentsProviderFactory argumentsProviderFactory,
-            IInternalChannelManager internalChannelManager,
-            IAddressResolver addressResolver)
-        {
-            _daemonResolver = daemonResolver;
-            _inputOutputFactory = inputOutputFactory;
-            _argumentsProviderFactory = argumentsProviderFactory;
-            _internalChannelManager = internalChannelManager;
-            _addressResolver = addressResolver;
-        }
+        private readonly IDaemonResolver _daemonResolver = daemonResolver;
+        private readonly IInputOutputFactory _inputOutputFactory = inputOutputFactory;
+        private readonly IArgumentsProviderFactory _argumentsProviderFactory = argumentsProviderFactory;
+        private readonly IInternalChannelManager _internalChannelManager = internalChannelManager;
+        private readonly IAddressResolver _addressResolver = addressResolver;
 
         public IModuleInfo Create(
             JobMetadata jobMetadata,

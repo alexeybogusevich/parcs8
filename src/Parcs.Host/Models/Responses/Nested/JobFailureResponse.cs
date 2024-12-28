@@ -1,18 +1,11 @@
 ﻿namespace Parcs.Host.Models.Responses.Nested
 {
-    public class JobFailureResponse
+    public class JobFailureResponse(string message, string stackTrace, DateTime createDateUtc)
     {
-        public JobFailureResponse(string message, string stackTrace, DateTime createDateUtc)
-        {
-            Message = message;
-            StackTrace = stackTrace;
-            CreateDateUtc = createDateUtc;
-        }
+        public string Message { get; set; } = message;
 
-        public string Message { get; set; }
+        public string StackTrace { get; set; } = stackTrace;
 
-        public string StackTrace { get; set; }
-
-        public DateTime CreateDateUtc { get; set; }
+        public DateTime CreateDateUtc { get; set; } = createDateUtc;
     }
 }

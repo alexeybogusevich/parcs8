@@ -7,21 +7,13 @@ using Parcs.Core.Models;
 
 namespace Parcs.TCP.Daemon.Handlers
 {
-    public sealed class ExecuteClassSignalHandler : ISignalHandler
+    public sealed class ExecuteClassSignalHandler(
+        IJobContextAccessor jobContextAccessor, IModuleLoader moduleLoader, IModuleInfoFactory moduleInfoFactory, IHostApiClient hostApiClient) : ISignalHandler
     {
-        private readonly IJobContextAccessor _jobContextAccessor;
-        private readonly IModuleLoader _moduleLoader;
-        private readonly IModuleInfoFactory _moduleInfoFactory;
-        private readonly IHostApiClient _hostApiClient;
-
-        public ExecuteClassSignalHandler(
-            IJobContextAccessor jobContextAccessor, IModuleLoader moduleLoader, IModuleInfoFactory moduleInfoFactory, IHostApiClient hostApiClient)
-        {
-            _jobContextAccessor = jobContextAccessor;
-            _moduleLoader = moduleLoader;
-            _moduleInfoFactory = moduleInfoFactory;
-            _hostApiClient = hostApiClient;
-        }
+        private readonly IJobContextAccessor _jobContextAccessor = jobContextAccessor;
+        private readonly IModuleLoader _moduleLoader = moduleLoader;
+        private readonly IModuleInfoFactory _moduleInfoFactory = moduleInfoFactory;
+        private readonly IHostApiClient _hostApiClient = hostApiClient;
 
         public async Task HandleAsync(IManagedChannel managedChannel, CancellationToken cancellationToken = default)
         {

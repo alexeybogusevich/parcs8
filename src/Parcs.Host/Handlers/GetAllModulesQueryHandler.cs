@@ -6,14 +6,9 @@ using Parcs.Host.Models.Responses;
 
 namespace Parcs.Host.Handlers
 {
-    public class GetAllModulesQueryHandler : IRequestHandler<GetAllModulesQuery, IEnumerable<GetPlainModuleQueryResponse>>
+    public class GetAllModulesQueryHandler(ParcsDbContext parcsDbContext) : IRequestHandler<GetAllModulesQuery, IEnumerable<GetPlainModuleQueryResponse>>
     {
-        private readonly ParcsDbContext _parcsDbContext;
-
-        public GetAllModulesQueryHandler(ParcsDbContext parcsDbContext)
-        {
-            _parcsDbContext = parcsDbContext;
-        }
+        private readonly ParcsDbContext _parcsDbContext = parcsDbContext;
 
         public async Task<IEnumerable<GetPlainModuleQueryResponse>> Handle(GetAllModulesQuery request, CancellationToken cancellationToken)
         {

@@ -8,21 +8,14 @@ using Parcs.Data.Entities;
 
 namespace Parcs.Host.Handlers
 {
-    public sealed class CreateModuleCommandHandler : IRequestHandler<CreateModuleCommand, CreateModuleCommandResponse>
+    public sealed class CreateModuleCommandHandler(
+        IFileSaver fileSaver,
+        IModuleDirectoryPathBuilder moduleDirectoryPathBuilder,
+        ParcsDbContext parcsDbContext) : IRequestHandler<CreateModuleCommand, CreateModuleCommandResponse>
     {
-        private readonly IFileSaver _fileSaver;
-        private readonly IModuleDirectoryPathBuilder _moduleDirectoryPathBuilder;
-        private readonly ParcsDbContext _parcsDbContext;
-
-        public CreateModuleCommandHandler(
-            IFileSaver fileSaver,
-            IModuleDirectoryPathBuilder moduleDirectoryPathBuilder,
-            ParcsDbContext parcsDbContext)
-        {
-            _fileSaver = fileSaver;
-            _moduleDirectoryPathBuilder = moduleDirectoryPathBuilder;
-            _parcsDbContext = parcsDbContext;
-        }
+        private readonly IFileSaver _fileSaver = fileSaver;
+        private readonly IModuleDirectoryPathBuilder _moduleDirectoryPathBuilder = moduleDirectoryPathBuilder;
+        private readonly ParcsDbContext _parcsDbContext = parcsDbContext;
 
         public async Task<CreateModuleCommandResponse> Handle(CreateModuleCommand request, CancellationToken cancellationToken)
         {

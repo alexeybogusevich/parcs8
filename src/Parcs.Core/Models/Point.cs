@@ -3,21 +3,13 @@ using Parcs.Net;
 
 namespace Parcs.Core.Models
 {
-    public sealed class Point : IPoint
+    public sealed class Point(long jobId, long moduleId, IManagedChannel managedChannel, IArgumentsProvider argumentsProvider) : IPoint
     {
-        private readonly long _jobId;
-        private readonly long _moduleId;
-        private readonly IArgumentsProvider _argumentsProvider;
-        private IManagedChannel _managedChannel;
+        private readonly long _jobId = jobId;
+        private readonly long _moduleId = moduleId;
+        private readonly IArgumentsProvider _argumentsProvider = argumentsProvider;
+        private IManagedChannel _managedChannel = managedChannel;
         private bool _managedChannelInitialized = false;
-
-        public Point(long jobId, long moduleId, IManagedChannel managedChannel, IArgumentsProvider argumentsProvider)
-        {
-            _jobId = jobId;
-            _moduleId = moduleId;
-            _managedChannel = managedChannel;
-            _argumentsProvider = argumentsProvider;
-        }
 
         public Guid Id { get; init; } = Guid.NewGuid();
 

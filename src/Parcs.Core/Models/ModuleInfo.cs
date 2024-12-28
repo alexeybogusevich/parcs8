@@ -5,50 +5,36 @@ using System.Net;
 
 namespace Parcs.Core.Models
 {
-    public sealed class ModuleInfo : IModuleInfo
+    public sealed class ModuleInfo(
+        JobMetadata jobMetadata,
+        IChannel parentChannel,
+        IInputOutputFactory inputOutputFactory,
+        IArgumentsProvider argumentsProvider,
+        IDaemonResolver daemonResolver,
+        IInternalChannelManager internalChannelManager,
+        IAddressResolver addressResolver,
+        CancellationToken cancellationToken) : IModuleInfo
     {
-        private readonly long _jobId;
-        private readonly long _moduleId;
+        private readonly long _jobId = jobMetadata.JobId;
+        private readonly long _moduleId = jobMetadata.ModuleId;
 
-        private readonly List<Point> _createdPoints = new ();
-        private readonly Dictionary<string, int> _pointsOnDaemons = new();
-        private readonly CancellationToken _cancellationToken;
+        private readonly List<Point> _createdPoints = [];
+        private readonly Dictionary<string, int> _pointsOnDaemons = [];
+        private readonly CancellationToken _cancellationToken = cancellationToken;
 
-        private readonly IDaemonResolver _daemonResolver;
-        private readonly IInternalChannelManager _internalChannelManager;
-        private readonly IAddressResolver _addressResolver;
-
-        public ModuleInfo(
-            JobMetadata jobMetadata,
-            IChannel parentChannel,
-            IInputOutputFactory inputOutputFactory,
-            IArgumentsProvider argumentsProvider,
-            IDaemonResolver daemonResolver,
-            IInternalChannelManager internalChannelManager,
-            IAddressResolver addressResolver,
-            CancellationToken cancellationToken)
-        {
-            _jobId = jobMetadata.JobId;
-            _moduleId = jobMetadata.ModuleId;
-            _daemonResolver = daemonResolver;
-            _internalChannelManager = internalChannelManager;
-            _addressResolver = addressResolver;
-            _cancellationToken = cancellationToken;
-            Parent = parentChannel;
-            InputReader = inputOutputFactory.CreateReader(jobMetadata.JobId);
-            OutputWriter = inputOutputFactory.CreateWriter(jobMetadata.JobId, cancellationToken);
-            ArgumentsProvider = argumentsProvider;
-        }
+        private readonly IDaemonResolver _daemonResolver = daemonResolver;
+        private readonly IInternalChannelManager _internalChannelManager = internalChannelManager;
+        private readonly IAddressResolver _addressResolver = addressResolver;
 
         public bool IsHost => Parent is null;
 
-        public IChannel Parent { get; }
+        public IChannel Parent { get; } = parentChannel;
 
-        public IInputReader InputReader { get; }
+        public IInputReader InputReader { get; } = inputOutputFactory.CreateReader(jobMetadata.JobId);
 
-        public IOutputWriter OutputWriter { get; }
+        public IOutputWriter OutputWriter { get; } = inputOutputFactory.CreateWriter(jobMetadata.JobId, cancellationToken);
 
-        public IArgumentsProvider ArgumentsProvider { get; }
+        public IArgumentsProvider ArgumentsProvider { get; } = argumentsProvider;
 
         public async Task<IPoint> CreatePointAsync()
         {

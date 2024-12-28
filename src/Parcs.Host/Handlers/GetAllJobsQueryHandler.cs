@@ -10,16 +10,10 @@ using Parcs.Core.Models.Enums;
 
 namespace Parcs.Host.Handlers
 {
-    public class GetAllJobsQueryHandler : IRequestHandler<GetAllJobsQuery, IEnumerable<GetJobQueryResponse>>
+    public class GetAllJobsQueryHandler(ParcsDbContext parcsDbContext, IJobDirectoryPathBuilder jobDirectoryPathBuilder) : IRequestHandler<GetAllJobsQuery, IEnumerable<GetJobQueryResponse>>
     {
-        private readonly ParcsDbContext _parcsDbContext;
-        private readonly IJobDirectoryPathBuilder _jobDirectoryPathBuilder;
-
-        public GetAllJobsQueryHandler(ParcsDbContext parcsDbContext, IJobDirectoryPathBuilder jobDirectoryPathBuilder)
-        {
-            _parcsDbContext = parcsDbContext;
-            _jobDirectoryPathBuilder = jobDirectoryPathBuilder;
-        }
+        private readonly ParcsDbContext _parcsDbContext = parcsDbContext;
+        private readonly IJobDirectoryPathBuilder _jobDirectoryPathBuilder = jobDirectoryPathBuilder;
 
         public async Task<IEnumerable<GetJobQueryResponse>> Handle(GetAllJobsQuery request, CancellationToken cancellationToken)
         {

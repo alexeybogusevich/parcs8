@@ -26,8 +26,8 @@ namespace Parcs.Modules.MatrixesMultiplication.Sequential
 
             if (moduleOptions.SaveMatrixes)
             {
-                await using var fileStreamC = moduleInfo.OutputWriter.GetStreamForFile(moduleOptions.MatrixCOutputFilename);
-                await matrixA.WriteToStreamAsync(fileStreamC, cancellationToken);
+                await using var fileStream = moduleInfo.OutputWriter.GetStreamForFile(moduleOptions.MatrixCOutputFilename);
+                await matrixA.WriteToStreamAsync(fileStream, cancellationToken);
             }
         }
     }

@@ -1,6 +1,5 @@
 ﻿using Parcs.Net;
 using System.Diagnostics;
-using System.Text;
 using System.Text.Json;
 
 namespace Parcs.Modules.Integral
@@ -22,13 +21,13 @@ namespace Parcs.Modules.Integral
                 await points[i].ExecuteClassAsync<WorkerModule>();
             }
 
-            double y = moduleOptions.XStart;
+            double x = moduleOptions.XStart;
             for (int i = 0; i < pointsNumber; ++i)
             {
-                await channels[i].WriteDataAsync(y);
-                await channels[i].WriteDataAsync(y + (moduleOptions.XEnd - moduleOptions.XStart) / pointsNumber);
+                await channels[i].WriteDataAsync(x);
+                await channels[i].WriteDataAsync(x + (moduleOptions.XEnd - moduleOptions.XStart) / pointsNumber);
                 await channels[i].WriteDataAsync(moduleOptions.Precision);
-                y += (moduleOptions.XEnd - moduleOptions.XStart) / pointsNumber;
+                x += (moduleOptions.XEnd - moduleOptions.XStart) / pointsNumber;
             }
 
             var stopwatch = new Stopwatch();

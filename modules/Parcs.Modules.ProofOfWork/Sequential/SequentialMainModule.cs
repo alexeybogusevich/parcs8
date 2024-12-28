@@ -8,6 +8,8 @@ namespace Parcs.Modules.ProofOfWork.Sequential
     {
         public async Task RunAsync(IModuleInfo moduleInfo, CancellationToken cancellationToken = default)
         {
+            Console.WriteLine($"SEQUENTIAL: Started at {DateTime.UtcNow}");
+
             var moduleOptions = moduleInfo.ArgumentsProvider.Bind<ModuleOptions>();
 
             long? resultNonce = null;
@@ -36,6 +38,8 @@ namespace Parcs.Modules.ProofOfWork.Sequential
             };
 
             await moduleInfo.OutputWriter.WriteToFileAsync(JsonSerializer.SerializeToUtf8Bytes(moduleOutput), moduleOptions.OutputFilename);
+
+            Console.WriteLine($"SEQUENTIAL: Finished at {DateTime.UtcNow}");
         }
     }
 }

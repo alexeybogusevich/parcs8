@@ -5,16 +5,10 @@ using Parcs.Net;
 
 namespace Parcs.Daemon.Services
 {
-    public class ChannelOrchestrator : IChannelOrchestrator
+    public class ChannelOrchestrator(ISignalHandlerFactory signalHandlerFactory, ILogger<ChannelOrchestrator> logger) : IChannelOrchestrator
     {
-        private readonly ISignalHandlerFactory _signalHandlerFactory;
-        private readonly ILogger<ChannelOrchestrator> _logger;
-
-        public ChannelOrchestrator(ISignalHandlerFactory signalHandlerFactory, ILogger<ChannelOrchestrator> logger)
-        {
-            _signalHandlerFactory = signalHandlerFactory;
-            _logger = logger;
-        }
+        private readonly ISignalHandlerFactory _signalHandlerFactory = signalHandlerFactory;
+        private readonly ILogger<ChannelOrchestrator> _logger = logger;
 
         public async Task OrchestrateAsync(IManagedChannel managedChannel, CancellationToken cancellationToken = default)
         {

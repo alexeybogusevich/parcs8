@@ -6,19 +6,12 @@ using Parcs.Data.Context;
 
 namespace Parcs.Host.Handlers
 {
-    public sealed class DeleteAllModulesCommandHandler : IRequestHandler<DeleteAllModulesCommand>
+    public sealed class DeleteAllModulesCommandHandler(
+        ParcsDbContext parcsDbContext, IModuleDirectoryPathBuilder moduleDirectoryPathBuilder, IFileEraser fileEraser) : IRequestHandler<DeleteAllModulesCommand>
     {
-        private readonly ParcsDbContext _parcsDbContext;
-        private readonly IModuleDirectoryPathBuilder _moduleDirectoryPathBuilder;
-        private readonly IFileEraser _fileEraser;
-
-        public DeleteAllModulesCommandHandler(
-            ParcsDbContext parcsDbContext, IModuleDirectoryPathBuilder moduleDirectoryPathBuilder, IFileEraser fileEraser)
-        {
-            _parcsDbContext = parcsDbContext;
-            _moduleDirectoryPathBuilder = moduleDirectoryPathBuilder;
-            _fileEraser = fileEraser;
-        }
+        private readonly ParcsDbContext _parcsDbContext = parcsDbContext;
+        private readonly IModuleDirectoryPathBuilder _moduleDirectoryPathBuilder = moduleDirectoryPathBuilder;
+        private readonly IFileEraser _fileEraser = fileEraser;
 
         public async Task Handle(DeleteAllModulesCommand request, CancellationToken cancellationToken)
         {

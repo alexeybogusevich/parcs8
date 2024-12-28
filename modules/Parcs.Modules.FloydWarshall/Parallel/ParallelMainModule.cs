@@ -10,7 +10,11 @@ namespace Parcs.Modules.FloydWarshall.Parallel
     {
         public async Task RunAsync(IModuleInfo moduleInfo, CancellationToken cancellationToken = default)
         {
+            Console.WriteLine($"PARALLEL: Started at {DateTime.UtcNow}");
+
             var moduleOptions = moduleInfo.ArgumentsProvider.Bind<ModuleOptions>();
+
+            await moduleInfo.OutputWriter.WriteToFileAsync(JsonSerializer.SerializeToUtf8Bytes("Started MAIN at {DateTime.UtcNow}"), moduleOptions.OutputFile);
 
             var initialMatrix = GetInitialDistancesMatrix(moduleInfo, moduleOptions);
 
@@ -51,6 +55,8 @@ namespace Parcs.Modules.FloydWarshall.Parallel
                 await using var fileStream = moduleInfo.OutputWriter.GetStreamForFile(moduleOptions.OutputFile);
                 await finalMatrix.WriteToStreamAsync(fileStream, cancellationToken);
             }
+
+            Console.WriteLine($"PARALLEL: Finished at {DateTime.UtcNow}");
         }
 
         private static Matrix GetInitialDistancesMatrix(IModuleInfo moduleInfo, ModuleOptions moduleOptions)

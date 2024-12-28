@@ -6,17 +6,11 @@ using System.Text.Json;
 
 namespace Parcs.Core.Models
 {
-    public sealed class NetworkChannel : IManagedChannel
+    public sealed class NetworkChannel(TcpClient tcpClient) : IManagedChannel
     {
-        private TcpClient _tcpClient;
-        private NetworkStream _networkStream;
+        private TcpClient _tcpClient = tcpClient;
+        private NetworkStream _networkStream = tcpClient.GetStream();
         private CancellationToken _cancellationToken = default;
-
-        public NetworkChannel(TcpClient tcpClient)
-        {
-            _networkStream = tcpClient.GetStream();
-            _tcpClient = tcpClient;
-        }
 
         public bool IsConnected => _tcpClient is not null && _tcpClient.Connected;
 

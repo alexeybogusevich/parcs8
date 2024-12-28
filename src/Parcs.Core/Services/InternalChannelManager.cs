@@ -6,15 +6,10 @@ using System.Threading.Channels;
 
 namespace Parcs.Core.Services
 {
-    public class InternalChannelManager : IInternalChannelManager
+    public class InternalChannelManager(ChannelWriter<InternalChannelReference> channelWriter) : IInternalChannelManager
     {
         private readonly ConcurrentDictionary<Guid, Tuple<InternalChannel, InternalChannel>> _activeInternalChannels = new ();
-        private readonly ChannelWriter<InternalChannelReference> _channelWriter;
-
-        public InternalChannelManager(ChannelWriter<InternalChannelReference> channelWriter)
-        {
-            _channelWriter = channelWriter;
-        }
+        private readonly ChannelWriter<InternalChannelReference> _channelWriter = channelWriter;
 
         public Guid Create()
         {

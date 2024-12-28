@@ -8,14 +8,9 @@ namespace Parcs.Portal.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class CompletedJobsController : ControllerBase
+    public class CompletedJobsController(IHubContext<JobCompletionHub> hubContext) : ControllerBase
     {
-        private readonly IHubContext<JobCompletionHub> _hubContext;
-
-        public CompletedJobsController(IHubContext<JobCompletionHub> hubContext)
-        {
-            _hubContext = hubContext;
-        }
+        private readonly IHubContext<JobCompletionHub> _hubContext = hubContext;
 
         [HttpPost("{jobId}")]
         [ProducesResponseType((int)HttpStatusCode.Accepted)]

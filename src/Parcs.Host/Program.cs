@@ -7,6 +7,7 @@ builder.Services.AddValidation();
 builder.Services.AddProblemDetails();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddHealthChecks();
 
 builder.Services.AddApplicationServices();
 builder.Services.AddApplicationOptions(builder.Configuration);
@@ -25,5 +26,6 @@ app.UseSwaggerUI();
 app.UseGlobalExceptionHandler();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHealthChecks("health");
 
 app.Run();

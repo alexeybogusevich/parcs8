@@ -1,12 +1,7 @@
 ﻿namespace Parcs.Host.Models.Responses
 {
-    public class CloneJobCommandResponse
+    public class CloneJobCommandResponse(long id)
     {
-        public CloneJobCommandResponse(long id)
-        {
-            Id = id;
-        }
-
-        public long Id { get; set; } 
+        public long Id { get; set; } = id;
     }
 }

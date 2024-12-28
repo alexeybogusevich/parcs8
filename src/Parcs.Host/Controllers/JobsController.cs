@@ -9,14 +9,9 @@ namespace Parcs.Host.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class JobsController : ControllerBase
+    public class JobsController(IMediator mediator) : ControllerBase
     {
-        private readonly IMediator _mediator;
-
-        public JobsController(IMediator mediator)
-        {
-            _mediator = mediator;
-        }
+        private readonly IMediator _mediator = mediator;
 
         [HttpGet]
         [ProducesResponseType(typeof(IEnumerable<GetPlainJobQueryResponse>), (int)HttpStatusCode.OK)]

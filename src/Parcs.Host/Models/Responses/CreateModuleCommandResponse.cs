@@ -1,12 +1,7 @@
 ﻿namespace Parcs.Host.Models.Responses
 {
-    public class CreateModuleCommandResponse
+    public class CreateModuleCommandResponse(long moduleId)
     {
-        public CreateModuleCommandResponse(long moduleId)
-        {
-            ModuleId = moduleId;
-        }
-
-        public long ModuleId { get; set; }
+        public long ModuleId { get; set; } = moduleId;
     }
 }

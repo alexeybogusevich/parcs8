@@ -6,14 +6,9 @@ namespace Parcs.Host.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class JobFailuresController : ControllerBase
+    public class JobFailuresController(IMediator mediator) : ControllerBase
     {
-        private readonly IMediator _mediator;
-
-        public JobFailuresController(IMediator mediator)
-        {
-            _mediator = mediator;
-        }
+        private readonly IMediator _mediator = mediator;
 
         [HttpPost]
         public async Task<IActionResult> CreateAsync([FromBody] CreateJobFailureCommand command, CancellationToken cancellationToken)

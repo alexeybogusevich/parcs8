@@ -43,11 +43,11 @@ namespace Parcs.Portal.Components
 
         protected PaginatedList<GetJobHostResponse> CurrentPage { get; set; }
 
-        protected List<JobStatusResponse> DisplayedStatuses { get; set; } = new ();
+        protected List<JobStatusResponse> DisplayedStatuses { get; set; } = [];
 
-        protected List<JobFailureResponse> DisplayedFailures { get; set; } = new ();
+        protected List<JobFailureResponse> DisplayedFailures { get; set; } = [];
 
-        protected List<int> AvailablePages { get; set; } = new ();
+        protected List<int> AvailablePages { get; set; } = [];
 
         protected FiltersInput FiltersInput { get; set; } = new ();
 
@@ -252,7 +252,7 @@ namespace Parcs.Portal.Components
 
         protected void HideStatuses()
         {
-            DisplayedStatuses = new ();
+            DisplayedStatuses = [];
         }
 
         protected async Task ShowFailuresAsync(IEnumerable<JobFailureResponse> failrues)
@@ -263,7 +263,7 @@ namespace Parcs.Portal.Components
 
         protected void HideFailures()
         {
-            DisplayedFailures = new ();
+            DisplayedFailures = [];
         }
 
         protected void DownloadOutput(long jobId)

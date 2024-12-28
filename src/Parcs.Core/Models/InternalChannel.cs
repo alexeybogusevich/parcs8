@@ -4,20 +4,13 @@ using System.Threading.Channels;
 
 namespace Parcs.Core.Models
 {
-    public sealed class InternalChannel : IManagedChannel
+    public sealed class InternalChannel(
+        ChannelReader<IInternalChannelData> channelReader, ChannelWriter<IInternalChannelData> channelWriter, Action disposeAction) : IManagedChannel
     {
         private CancellationToken _cancellationToken = default;
-        private readonly ChannelReader<IInternalChannelData> _channelReader;
-        private readonly ChannelWriter<IInternalChannelData> _channelWriter;
-        private readonly Action _disposeAction;
-
-        public InternalChannel(
-            ChannelReader<IInternalChannelData> channelReader, ChannelWriter<IInternalChannelData> channelWriter, Action disposeAction)
-        {
-            _channelReader = channelReader;
-            _channelWriter = channelWriter;
-            _disposeAction = disposeAction;
-        }
+        private readonly ChannelReader<IInternalChannelData> _channelReader = channelReader;
+        private readonly ChannelWriter<IInternalChannelData> _channelWriter = channelWriter;
+        private readonly Action _disposeAction = disposeAction;
 
         public bool IsConnected => _channelReader is not null && _channelWriter is not null && _channelReader.Completion.IsCompleted is false;
 

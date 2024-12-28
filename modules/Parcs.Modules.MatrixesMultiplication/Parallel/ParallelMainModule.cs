@@ -7,7 +7,7 @@ namespace Parcs.Modules.MatrixesMultiplication.Parallel
 {
     public class ParallelMainModule : IModule
     {
-        private readonly List<int> _allowedPointsNumbers = new() { 1, 2, 4, 8, };
+        private readonly List<int> _allowedPointsNumbers = [1, 2, 4, 8,];
 
         public async Task RunAsync(IModuleInfo moduleInfo, CancellationToken cancellationToken = default)
         {

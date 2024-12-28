@@ -5,18 +5,12 @@ using Parcs.Core.Services.Interfaces;
 
 namespace Parcs.Core.Services
 {
-    public sealed class DaemonResolver : IDaemonResolver
+    public sealed class DaemonResolver(
+        IOptions<HostingConfiguration> hostingOptions,
+        IDaemonResolutionStrategyFactory daemonResolutionStrategyFactory) : IDaemonResolver
     {
-        private readonly HostingConfiguration _hostingConfiguration;
-        private readonly IDaemonResolutionStrategyFactory _daemonResolutionStrategyFactory;
-
-        public DaemonResolver(
-            IOptions<HostingConfiguration> hostingOptions,
-            IDaemonResolutionStrategyFactory daemonResolutionStrategyFactory)
-        {
-            _hostingConfiguration = hostingOptions.Value;
-            _daemonResolutionStrategyFactory = daemonResolutionStrategyFactory;
-        }
+        private readonly HostingConfiguration _hostingConfiguration = hostingOptions.Value;
+        private readonly IDaemonResolutionStrategyFactory _daemonResolutionStrategyFactory = daemonResolutionStrategyFactory;
 
         public IEnumerable<Daemon> GetAvailableDaemons()
         {

@@ -9,21 +9,13 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Parcs.Host.Handlers
 {
-    public class RunJobSynchronouslyCommandHandler : IRequestHandler<RunJobSynchronouslyCommand, RunJobSynchronouslyCommandResponse>
+    public class RunJobSynchronouslyCommandHandler(
+        ParcsDbContext parcsDbContext, IModuleInfoFactory moduleInfoFactory, IJobTracker jobTracker, IModuleLoader moduleLoader) : IRequestHandler<RunJobSynchronouslyCommand, RunJobSynchronouslyCommandResponse>
     {
-        private readonly ParcsDbContext _parcsDbContext;
-        private readonly IModuleInfoFactory _moduleInfoFactory;
-        private readonly IJobTracker _jobTracker;
-        private readonly IModuleLoader _moduleLoader;
-
-        public RunJobSynchronouslyCommandHandler(
-            ParcsDbContext parcsDbContext, IModuleInfoFactory moduleInfoFactory, IJobTracker jobTracker, IModuleLoader moduleLoader)
-        {
-            _parcsDbContext = parcsDbContext;
-            _moduleInfoFactory = moduleInfoFactory;
-            _jobTracker = jobTracker;
-            _moduleLoader = moduleLoader;
-        }
+        private readonly ParcsDbContext _parcsDbContext = parcsDbContext;
+        private readonly IModuleInfoFactory _moduleInfoFactory = moduleInfoFactory;
+        private readonly IJobTracker _jobTracker = jobTracker;
+        private readonly IModuleLoader _moduleLoader = moduleLoader;
 
         public async Task<RunJobSynchronouslyCommandResponse> Handle(RunJobSynchronouslyCommand command, CancellationToken cancellationToken)
         {

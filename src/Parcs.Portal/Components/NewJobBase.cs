@@ -15,14 +15,14 @@ namespace Parcs.Portal.Components
         [Inject]
         protected IHostClient HostClient { get; set; }
 
-        protected Dictionary<string, List<string>> HostErrors { get; set; } = new();
+        protected Dictionary<string, List<string>> HostErrors { get; set; } = [];
 
         [Parameter]
         public long ModuleId { get; set; } 
 
         protected GetModuleHostResponse Module { get; set; }
 
-        protected List<string> CurrentAssemblyImplementations { get; set; } = new();
+        protected List<string> CurrentAssemblyImplementations { get; set; } = [];
 
         protected CreateJobViewModel CreateJobViewModel { get; set; } = new ();
 

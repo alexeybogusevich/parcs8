@@ -5,14 +5,9 @@ using Parcs.Core.Services.Interfaces;
 
 namespace Parcs.Core.Services
 {
-    public class ConfigurationDaemonResolutionStrategy : IDaemonResolutionStrategy
+    public class ConfigurationDaemonResolutionStrategy(IOptions<DaemonsConfiguration> options) : IDaemonResolutionStrategy
     {
-        private readonly DaemonsConfiguration _daemonsConfiguration;
-
-        public ConfigurationDaemonResolutionStrategy(IOptions<DaemonsConfiguration> options)
-        {
-            _daemonsConfiguration = options.Value;
-        }
+        private readonly DaemonsConfiguration _daemonsConfiguration = options.Value;
 
         public IEnumerable<Daemon> Resolve() => _daemonsConfiguration.PreconfiguredInstances;
     }

@@ -1,15 +1,9 @@
 ﻿namespace Parcs.Portal.Models
 {
-    public class ArgumentPair
+    public class ArgumentPair(string key, string value)
     {
-        public ArgumentPair(string key, string value)
-        {
-            Key = key;
-            Value = value;
-        }
+        public string Key { get; set; } = key;
 
-        public string Key { get; set; }
-
-        public string Value { get; set; }
+        public string Value { get; set; } = value;
     }
 }

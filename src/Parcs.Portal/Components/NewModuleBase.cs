@@ -14,7 +14,7 @@ namespace Parcs.Portal.Components
         [Inject]
         protected IHostClient HostClient { get; set; }
 
-        protected Dictionary<string, List<string>> HostErrors { get; set; } = new ();
+        protected Dictionary<string, List<string>> HostErrors { get; set; } = [];
 
         protected CreateModuleViewModel CreateModuleViewModel { get; set; } = new ();
 

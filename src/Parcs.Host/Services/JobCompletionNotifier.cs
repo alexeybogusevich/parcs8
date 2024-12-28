@@ -4,14 +4,9 @@ using Parcs.Host.Services.Interfaces;
 
 namespace Parcs.Host.Services
 {
-    public sealed class JobCompletionNotifier : IJobCompletionNotifier
+    public sealed class JobCompletionNotifier(IHttpClientFactory httpClientFactory) : IJobCompletionNotifier
     {
-        private readonly IHttpClientFactory _httpClientFactory;
-
-        public JobCompletionNotifier(IHttpClientFactory httpClientFactory)
-        {
-            _httpClientFactory = httpClientFactory;
-        }
+        private readonly IHttpClientFactory _httpClientFactory = httpClientFactory;
 
         public async Task NotifyAsync(JobCompletionNotification notification, string subscriberUrl, CancellationToken cancellationToken = default)
         {
@@ -19,7 +14,7 @@ namespace Parcs.Host.Services
 
             await flurlClient
                 .Request(subscriberUrl)
-                .PostJsonAsync(notification, cancellationToken);
+                .PostJsonAsync(notification, cancellationToken: cancellationToken);
         }
     }
 }

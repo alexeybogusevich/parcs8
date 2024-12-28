@@ -3,7 +3,7 @@ using Parcs.Net;
 using System.Diagnostics;
 using System.Text.Json;
 
-namespace Parcs.Modules.MatrixesMultiplication.Parallel
+namespace Parcs.Modules.MatrixesMultiplication.Recursive
 {
     public class RecursiveMainModule : IModule
     {
@@ -13,7 +13,7 @@ namespace Parcs.Modules.MatrixesMultiplication.Parallel
 
             var matrixA = new Matrix(moduleOptions.MatrixSize, moduleOptions.MatrixSize, true);
             var matrixB = new Matrix(moduleOptions.MatrixSize, moduleOptions.MatrixSize, true);
-            
+
             var rootPoint = await moduleInfo.CreatePointAsync();
             var rootChannel = await rootPoint.CreateChannelAsync();
 

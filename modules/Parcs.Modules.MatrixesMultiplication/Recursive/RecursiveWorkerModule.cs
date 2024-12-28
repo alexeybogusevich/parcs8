@@ -1,7 +1,7 @@
 ﻿using Parcs.Modules.MatrixesMultiplication.Models;
 using Parcs.Net;
 
-namespace Parcs.Modules.MatrixesMultiplication.Parallel
+namespace Parcs.Modules.MatrixesMultiplication.Recursive
 {
     public class RecursiveWorkerModule : IModule
     {

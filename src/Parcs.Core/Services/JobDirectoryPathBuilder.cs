@@ -6,14 +6,9 @@ using Parcs.Core.Services.Interfaces;
 
 namespace Parcs.Core.Services
 {
-    public sealed class JobDirectoryPathBuilder : IJobDirectoryPathBuilder
+    public sealed class JobDirectoryPathBuilder(IOptions<FileSystemConfiguration> options) : IJobDirectoryPathBuilder
     {
-        private readonly FileSystemConfiguration _fileSystemConfiguration;
-
-        public JobDirectoryPathBuilder(IOptions<FileSystemConfiguration> options)
-        {
-            _fileSystemConfiguration = options.Value;
-        }
+        private readonly FileSystemConfiguration _fileSystemConfiguration = options.Value;
 
         public string Build(long jobId)
         {

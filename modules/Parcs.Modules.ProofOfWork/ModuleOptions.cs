@@ -1,14 +1,16 @@
-﻿namespace Parcs.Modules.ProofOfWork
+﻿using Parcs.Net;
+
+namespace Parcs.Modules.ProofOfWork
 {
-    public class ModuleOptions
+    public class ModuleOptions : IModuleOptions
     {
         public int Difficulty { get; set; } = 5;
 
         public string Prompt { get; set; } = "Hello world!";
 
-        public long NonceBatchSize { get; set; } = 1000;
+        public long NonceBatchSize { get; set; } = 10_000_000;
 
-        public long MaximumNonce { get; set; } = 1000000;
+        public long MaximumNonce { get; set; } = 80_000_000;
 
         public string OutputFilename { get; set; } = "Output.txt";
     }

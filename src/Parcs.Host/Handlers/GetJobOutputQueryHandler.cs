@@ -11,24 +11,16 @@ using Parcs.Host.Configuration;
 
 namespace Parcs.Host.Handlers
 {
-    public sealed class GetJobOutputQueryHandler : IRequestHandler<GetJobOutputQuery, GetJobOutputQueryResponse>
+    public sealed class GetJobOutputQueryHandler(
+        ParcsDbContext parcsDbContext,
+        IJobDirectoryPathBuilder jobDirectoryPathBuilder,
+        IFileArchiver fileArchiver,
+        IOptions<JobOutputConfiguration> options) : IRequestHandler<GetJobOutputQuery, GetJobOutputQueryResponse>
     {
-        private readonly ParcsDbContext _parcsDbContext;
-        private readonly IJobDirectoryPathBuilder _jobDirectoryPathBuilder;
-        private readonly IFileArchiver _fileArchiver;
-        private readonly JobOutputConfiguration _configuration;
-
-        public GetJobOutputQueryHandler(
-            ParcsDbContext parcsDbContext,
-            IJobDirectoryPathBuilder jobDirectoryPathBuilder,
-            IFileArchiver fileArchiver,
-            IOptions<JobOutputConfiguration> options)
-        {
-            _parcsDbContext = parcsDbContext;
-            _jobDirectoryPathBuilder = jobDirectoryPathBuilder;
-            _fileArchiver = fileArchiver;
-            _configuration = options.Value;
-        }
+        private readonly ParcsDbContext _parcsDbContext = parcsDbContext;
+        private readonly IJobDirectoryPathBuilder _jobDirectoryPathBuilder = jobDirectoryPathBuilder;
+        private readonly IFileArchiver _fileArchiver = fileArchiver;
+        private readonly JobOutputConfiguration _configuration = options.Value;
 
         public async Task<GetJobOutputQueryResponse> Handle(GetJobOutputQuery request, CancellationToken cancellationToken)
         {

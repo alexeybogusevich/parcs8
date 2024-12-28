@@ -7,14 +7,9 @@ namespace Parcs.Host.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class SynchronousJobRunsController : ControllerBase
+    public class SynchronousJobRunsController(IMediator mediator) : ControllerBase
     {
-        private readonly IMediator _mediator;
-
-        public SynchronousJobRunsController(IMediator mediator)
-        {
-            _mediator = mediator;
-        }
+        private readonly IMediator _mediator = mediator;
 
         [HttpPost]
         [ProducesResponseType(typeof(FileContentResult), (int)HttpStatusCode.OK)]

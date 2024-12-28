@@ -2,13 +2,8 @@
 
 namespace Parcs.Host.Models.Responses
 {
-    public class RunJobSynchronouslyCommandResponse
+    public class RunJobSynchronouslyCommandResponse(JobStatus? jobStatus)
     {
-        public RunJobSynchronouslyCommandResponse(JobStatus? jobStatus)
-        {
-            JobStatus = jobStatus;
-        }
-
-        public JobStatus? JobStatus { get; set; }
+        public JobStatus? JobStatus { get; set; } = jobStatus;
     }
 }

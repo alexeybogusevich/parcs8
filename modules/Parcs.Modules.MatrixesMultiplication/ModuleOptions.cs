@@ -1,6 +1,8 @@
-﻿namespace Parcs.Modules.MatrixesMultiplication
+﻿using Parcs.Net;
+
+namespace Parcs.Modules.MatrixesMultiplication
 {
-    public class ModuleOptions
+    public class ModuleOptions : IModuleOptions
     {
         public int MatrixSize { get; set; } = 16;
 

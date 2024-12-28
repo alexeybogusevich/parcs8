@@ -5,14 +5,9 @@ using Parcs.Core.Services.Interfaces;
 
 namespace Parcs.Core.Services
 {
-    public sealed class ModuleDirectoryPathBuilder : IModuleDirectoryPathBuilder
+    public sealed class ModuleDirectoryPathBuilder(IOptions<FileSystemConfiguration> options) : IModuleDirectoryPathBuilder
     {
-        private readonly FileSystemConfiguration _fileSystemConfiguration;
-
-        public ModuleDirectoryPathBuilder(IOptions<FileSystemConfiguration> options)
-        {
-            _fileSystemConfiguration = options.Value;
-        }
+        private readonly FileSystemConfiguration _fileSystemConfiguration = options.Value;
 
         public string Build()
         {

@@ -4,14 +4,9 @@ using Parcs.Core.Services.Interfaces;
 
 namespace Parcs.Core.Services
 {
-    public class DaemonResolutionStrategyFactory : IDaemonResolutionStrategyFactory
+    public class DaemonResolutionStrategyFactory(IServiceProvider serviceProvider) : IDaemonResolutionStrategyFactory
     {
-        private readonly IServiceProvider _serviceProvider;
-
-        public DaemonResolutionStrategyFactory(IServiceProvider serviceProvider)
-        {
-            _serviceProvider = serviceProvider;
-        }
+        private readonly IServiceProvider _serviceProvider = serviceProvider;
 
         public IDaemonResolutionStrategy Create(HostingEnvironment hostingEnvironment)
         {

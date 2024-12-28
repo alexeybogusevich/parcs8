@@ -7,8 +7,12 @@ namespace Parcs.Modules.FloydWarshall.Parallel
     {
         public async Task RunAsync(IModuleInfo moduleInfo, CancellationToken cancellationToken = default)
         {
+            Console.WriteLine($"WORKER: Started at {DateTime.UtcNow}");
+
             var currentNumber = await moduleInfo.Parent.ReadIntAsync();
             var chunk = await moduleInfo.Parent.ReadObjectAsync<Matrix>();
+
+            Console.WriteLine($"WORKER: Received chunk at {DateTime.UtcNow}");
 
             for (int k = 0; k < chunk.Width; k++)
             {
@@ -33,7 +37,11 @@ namespace Parcs.Modules.FloydWarshall.Parallel
                 }
             }
 
+            Console.WriteLine($"WORKER: Started at {DateTime.UtcNow}");
+
             await moduleInfo.Parent.WriteObjectAsync(chunk);
+
+            Console.WriteLine($"WORKER: Wrote at {DateTime.UtcNow}");
         }
 
         static int MinWeight(int a, int b, int c)

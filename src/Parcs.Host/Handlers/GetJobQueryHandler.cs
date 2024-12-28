@@ -10,16 +10,10 @@ using Parcs.Core.Services.Interfaces;
 
 namespace Parcs.Host.Handlers
 {
-    public sealed class GetJobQueryHandler : IRequestHandler<GetJobQuery, GetJobQueryResponse>
+    public sealed class GetJobQueryHandler(ParcsDbContext parcsDbContext, IJobDirectoryPathBuilder jobDirectoryPathBuilder) : IRequestHandler<GetJobQuery, GetJobQueryResponse>
     {
-        private readonly ParcsDbContext _parcsDbContext;
-        private readonly IJobDirectoryPathBuilder _jobDirectoryPathBuilder;
-
-        public GetJobQueryHandler(ParcsDbContext parcsDbContext, IJobDirectoryPathBuilder jobDirectoryPathBuilder)
-        {
-            _parcsDbContext = parcsDbContext;
-            _jobDirectoryPathBuilder = jobDirectoryPathBuilder;
-        }
+        private readonly ParcsDbContext _parcsDbContext = parcsDbContext;
+        private readonly IJobDirectoryPathBuilder _jobDirectoryPathBuilder = jobDirectoryPathBuilder;
 
         public async Task<GetJobQueryResponse> Handle(GetJobQuery request, CancellationToken cancellationToken)
         {

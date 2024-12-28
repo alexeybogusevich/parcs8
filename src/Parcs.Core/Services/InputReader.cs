@@ -2,14 +2,9 @@
 
 namespace Parcs.Core.Services
 {
-    public sealed class InputReader : IInputReader
+    public sealed class InputReader(string basePath) : IInputReader
     {
-        private readonly string _basePath;
-
-        public InputReader(string basePath)
-        {
-            _basePath = basePath;
-        }
+        private readonly string _basePath = basePath;
 
         public IEnumerable<string> GetFilenames() => Directory.GetFiles(_basePath).Select(Path.GetFileName);
 

@@ -3,14 +3,9 @@ using System.Reflection;
 
 namespace Parcs.Core.Services
 {
-    public class TypeLoader<T> : ITypeLoader<T> where T : class
+    public class TypeLoader<T>(IIsolatedLoadContextProvider isolatedLoadContextProvider) : ITypeLoader<T> where T : class
     {
-        private readonly IIsolatedLoadContextProvider _isolatedLoadContextProvider;
-
-        public TypeLoader(IIsolatedLoadContextProvider isolatedLoadContextProvider)
-        {
-            _isolatedLoadContextProvider = isolatedLoadContextProvider;
-        }
+        private readonly IIsolatedLoadContextProvider _isolatedLoadContextProvider = isolatedLoadContextProvider;
 
         public T Load(string assemblyPath, string className = null)
         {

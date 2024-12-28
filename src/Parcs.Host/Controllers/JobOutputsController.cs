@@ -7,14 +7,9 @@ namespace Parcs.Host.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class JobOutputsController : ControllerBase
+    public class JobOutputsController(IMediator mediator) : ControllerBase
     {
-        private readonly IMediator _mediator;
-
-        public JobOutputsController(IMediator mediator)
-        {
-            _mediator = mediator;
-        }
+        private readonly IMediator _mediator = mediator;
 
         [HttpGet("{JobId}")]
         [ProducesResponseType(typeof(FileContentResult), (int)HttpStatusCode.OK)]

@@ -7,14 +7,9 @@ namespace Parcs.Host.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class AsynchronousJobRunsController : ControllerBase
+    public class AsynchronousJobRunsController(IMediator mediator) : ControllerBase
     {
-        private readonly IMediator _mediator;
-
-        public AsynchronousJobRunsController(IMediator mediator)
-        {
-            _mediator = mediator;
-        }
+        private readonly IMediator _mediator = mediator;
 
         [HttpPost]
         [ProducesResponseType((int)HttpStatusCode.Accepted)]

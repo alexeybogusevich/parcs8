@@ -7,16 +7,10 @@ using Parcs.Host.Services.Interfaces;
 
 namespace Parcs.Host.Handlers
 {
-    public class CancelJobCommandHandler : IRequestHandler<CancelJobCommand>
+    public class CancelJobCommandHandler(ParcsDbContext parcsDbContext, IJobTracker jobTracker) : IRequestHandler<CancelJobCommand>
     {
-        private readonly ParcsDbContext _parcsDbContext;
-        private readonly IJobTracker _jobTracker;
-
-        public CancelJobCommandHandler(ParcsDbContext parcsDbContext, IJobTracker jobTracker)
-        {
-            _parcsDbContext = parcsDbContext;
-            _jobTracker = jobTracker;
-        }
+        private readonly ParcsDbContext _parcsDbContext = parcsDbContext;
+        private readonly IJobTracker _jobTracker = jobTracker;
 
         public async Task Handle(CancelJobCommand request, CancellationToken cancellationToken)
         {

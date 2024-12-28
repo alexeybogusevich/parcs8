@@ -8,6 +8,8 @@ namespace Parcs.Modules.ProofOfWork.Parallel
     {
         public async Task RunAsync(IModuleInfo moduleInfo, CancellationToken cancellationToken = default)
         {
+            Console.WriteLine($"PARALLEL: Started at {DateTime.UtcNow}");
+
             var moduleOptions = moduleInfo.ArgumentsProvider.Bind<ModuleOptions>();
 
             var pointsNumber = moduleInfo.ArgumentsProvider.GetPointsNumber();
@@ -36,6 +38,8 @@ namespace Parcs.Modules.ProofOfWork.Parallel
                     await channels[i].WriteDataAsync(nonceStart + moduleOptions.NonceBatchSize * i);
                     await channels[i].WriteDataAsync(nonceStart + moduleOptions.NonceBatchSize * i + moduleOptions.NonceBatchSize);
                 }
+                
+                Console.WriteLine($"PARALLEL: Sent at {DateTime.UtcNow}. Nonce start: {nonceStart}");
 
                 nonceStart += moduleOptions.NonceBatchSize * pointsNumber;
 
@@ -60,6 +64,8 @@ namespace Parcs.Modules.ProofOfWork.Parallel
             };
 
             await moduleInfo.OutputWriter.WriteToFileAsync(JsonSerializer.SerializeToUtf8Bytes(moduleOutput), moduleOptions.OutputFilename);
+
+            Console.WriteLine($"PARALLEL: Finished at {DateTime.UtcNow}");
         }
     }
 }

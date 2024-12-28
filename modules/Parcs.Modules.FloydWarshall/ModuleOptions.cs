@@ -1,6 +1,8 @@
-﻿namespace Parcs.Modules.FloydWarshall
+﻿using Parcs.Net;
+
+namespace Parcs.Modules.FloydWarshall
 {
-    public class ModuleOptions
+    public class ModuleOptions : IModuleOptions
     {
         public int VerticesNumber { get; set; } = 16;
 

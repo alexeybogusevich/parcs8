@@ -5,14 +5,9 @@ namespace Parcs.Portal.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class JobsOutputController : ControllerBase
+    public class JobsOutputController(IHostClient hostClient) : ControllerBase
     {
-        private readonly IHostClient _hostClient;
-
-        public JobsOutputController(IHostClient hostClient)
-        {
-            _hostClient = hostClient;
-        }
+        private readonly IHostClient _hostClient = hostClient;
 
         [HttpGet("{jobId}")]
         [Produces("text/plain")]

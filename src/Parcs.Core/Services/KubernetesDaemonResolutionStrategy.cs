@@ -7,14 +7,9 @@ using System.Net;
 
 namespace Parcs.Core.Services
 {
-    public class KubernetesDaemonResolutionStrategy : IDaemonResolutionStrategy
+    public class KubernetesDaemonResolutionStrategy(IOptions<KubernetesConfiguration> options) : IDaemonResolutionStrategy
     {
-        private readonly KubernetesConfiguration _configuration;
-
-        public KubernetesDaemonResolutionStrategy(IOptions<KubernetesConfiguration> options)
-        {
-            _configuration = options.Value;
-        }
+        private readonly KubernetesConfiguration _configuration = options.Value;
 
         public IEnumerable<Daemon> Resolve()
         {

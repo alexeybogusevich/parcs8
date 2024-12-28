@@ -6,19 +6,12 @@ using System.Threading.Channels;
 
 namespace Parcs.Daemon.HostedServices
 {
-    public class InternalServer : IHostedService
+    public class InternalServer(
+        ChannelReader<InternalChannelReference> channelReader, IInternalChannelManager internalChannelManager, IChannelOrchestrator channelOrchestrator) : IHostedService
     {
-        private readonly ChannelReader<InternalChannelReference> _channelReader;
-        private readonly IInternalChannelManager _internalChannelManager;
-        private readonly IChannelOrchestrator _channelOrchestrator;
-
-        public InternalServer(
-            ChannelReader<InternalChannelReference> channelReader, IInternalChannelManager internalChannelManager, IChannelOrchestrator channelOrchestrator)
-        {
-            _channelReader = channelReader;
-            _internalChannelManager = internalChannelManager;
-            _channelOrchestrator = channelOrchestrator;
-        }
+        private readonly ChannelReader<InternalChannelReference> _channelReader = channelReader;
+        private readonly IInternalChannelManager _internalChannelManager = internalChannelManager;
+        private readonly IChannelOrchestrator _channelOrchestrator = channelOrchestrator;
 
         public Task StartAsync(CancellationToken cancellationToken)
         {

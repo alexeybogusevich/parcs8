@@ -23,7 +23,7 @@ namespace Parcs.Portal.Components
 
         protected PaginatedList<GetPlainModuleHostResponse> CurrentPage { get; set; }
 
-        protected List<int> AvailablePages { get; set; } = new ();
+        protected List<int> AvailablePages { get; set; } = [];
 
         protected FiltersInput FiltersInput { get; set; } = new ();
 

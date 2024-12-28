@@ -1,12 +1,7 @@
 ﻿namespace Parcs.Host.Models.Domain
 {
-    public sealed class JobCompletionNotification
+    public sealed class JobCompletionNotification(long jobId)
     {
-        public JobCompletionNotification(long jobId)
-        {
-            JobId = jobId;
-        }
-
-        public long JobId { get; set; }
+        public long JobId { get; set; } = jobId;
     }
 }

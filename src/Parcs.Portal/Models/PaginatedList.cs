@@ -8,8 +8,7 @@
         {
             PageIndex = pageIndex;
             TotalPages = (int)Math.Ceiling(count / (double)pageSize);
-            Items = new List<T>();
-            Items.AddRange(items);
+            Items = [.. items];
         }
 
         public int PageIndex { get; set; }

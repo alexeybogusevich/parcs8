@@ -7,21 +7,14 @@ using System.Threading.Channels;
 
 namespace Parcs.Host.HostedServices
 {
-    public class AsynchronousJobRunner : BackgroundService
+    public class AsynchronousJobRunner(
+        IServiceScopeFactory serviceScopeFactory,
+        ChannelReader<RunJobAsynchronouslyCommand> channelReader,
+        ILogger<AsynchronousJobRunner> logger) : BackgroundService
     {
-        private readonly IServiceScopeFactory _serviceScopeFactory;
-        private readonly ChannelReader<RunJobAsynchronouslyCommand> _channelReader;
-        private readonly ILogger<AsynchronousJobRunner> _logger;
-
-        public AsynchronousJobRunner(
-            IServiceScopeFactory serviceScopeFactory,
-            ChannelReader<RunJobAsynchronouslyCommand> channelReader,
-            ILogger<AsynchronousJobRunner> logger)
-        {
-            _serviceScopeFactory = serviceScopeFactory;
-            _channelReader = channelReader;
-            _logger = logger;
-        }
+        private readonly IServiceScopeFactory _serviceScopeFactory = serviceScopeFactory;
+        private readonly ChannelReader<RunJobAsynchronouslyCommand> _channelReader = channelReader;
+        private readonly ILogger<AsynchronousJobRunner> _logger = logger;
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {

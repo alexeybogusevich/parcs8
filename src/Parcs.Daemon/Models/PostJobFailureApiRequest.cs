@@ -1,18 +1,11 @@
 ﻿namespace Parcs.Daemon.Models
 {
-    public class PostJobFailureApiRequest
+    public class PostJobFailureApiRequest(long jobId, string message, string stackTrace)
     {
-        public PostJobFailureApiRequest(long jobId, string message, string stackTrace)
-        {
-            JobId = jobId;
-            Message = message;
-            StackTrace = stackTrace;
-        }
+        public long JobId { get; set; } = jobId;
 
-        public long JobId { get; set; }
+        public string Message { get; set; } = message;
 
-        public string Message { get; set; }
-
-        public string StackTrace { get; set; }
+        public string StackTrace { get; set; } = stackTrace;
     }
 }

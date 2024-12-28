@@ -12,24 +12,16 @@ using Parcs.Net;
 
 namespace Parcs.Host.Handlers
 {
-    public class GetModuleQueryHandler : IRequestHandler<GetModuleQuery, GetModuleQueryResponse>
+    public class GetModuleQueryHandler(
+        ParcsDbContext parcsDbContext,
+        IModuleDirectoryPathBuilder moduleDirectoryPathBuilder,
+        IJobDirectoryPathBuilder jobDirectoryPathBuilder,
+        IMetadataLoadContextProvider metadataLoadContextProvider) : IRequestHandler<GetModuleQuery, GetModuleQueryResponse>
     {
-        private readonly ParcsDbContext _parcsDbContext;
-        private readonly IModuleDirectoryPathBuilder _moduleDirectoryPathBuilder;
-        private readonly IJobDirectoryPathBuilder _jobDirectoryPathBuilder;
-        private readonly IMetadataLoadContextProvider _metadataLoadContextProvider;
-
-        public GetModuleQueryHandler(
-            ParcsDbContext parcsDbContext,
-            IModuleDirectoryPathBuilder moduleDirectoryPathBuilder,
-            IJobDirectoryPathBuilder jobDirectoryPathBuilder,
-            IMetadataLoadContextProvider metadataLoadContextProvider)
-        {
-            _parcsDbContext = parcsDbContext;
-            _moduleDirectoryPathBuilder = moduleDirectoryPathBuilder;
-            _jobDirectoryPathBuilder = jobDirectoryPathBuilder;
-            _metadataLoadContextProvider = metadataLoadContextProvider;
-        }
+        private readonly ParcsDbContext _parcsDbContext = parcsDbContext;
+        private readonly IModuleDirectoryPathBuilder _moduleDirectoryPathBuilder = moduleDirectoryPathBuilder;
+        private readonly IJobDirectoryPathBuilder _jobDirectoryPathBuilder = jobDirectoryPathBuilder;
+        private readonly IMetadataLoadContextProvider _metadataLoadContextProvider = metadataLoadContextProvider;
 
         public async Task<GetModuleQueryResponse> Handle(GetModuleQuery request, CancellationToken cancellationToken)
         {

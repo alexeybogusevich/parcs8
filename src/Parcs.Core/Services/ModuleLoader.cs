@@ -3,21 +3,14 @@ using Parcs.Core.Services.Interfaces;
 
 namespace Parcs.Core.Services
 {
-    public sealed class ModuleLoader : IModuleLoader
+    public sealed class ModuleLoader(
+        ITypeLoader<IModule> typeLoader,
+        IModuleDirectoryPathBuilder moduleDirectoryPathBuilder,
+        IAssemblyPathBuilder assemblyPathBuilder) : IModuleLoader
     {
-        private readonly ITypeLoader<IModule> _typeLoader;
-        private readonly IModuleDirectoryPathBuilder _moduleDirectoryPathBuilder;
-        private readonly IAssemblyPathBuilder _assemblyPathBuilder;
-
-        public ModuleLoader(
-            ITypeLoader<IModule> typeLoader,
-            IModuleDirectoryPathBuilder moduleDirectoryPathBuilder,
-            IAssemblyPathBuilder assemblyPathBuilder)
-        {
-            _typeLoader = typeLoader;
-            _moduleDirectoryPathBuilder = moduleDirectoryPathBuilder;
-            _assemblyPathBuilder = assemblyPathBuilder;
-        }
+        private readonly ITypeLoader<IModule> _typeLoader = typeLoader;
+        private readonly IModuleDirectoryPathBuilder _moduleDirectoryPathBuilder = moduleDirectoryPathBuilder;
+        private readonly IAssemblyPathBuilder _assemblyPathBuilder = assemblyPathBuilder;
 
         public IModule Load(long moduleId, string assemblyName, string className = null)
         {

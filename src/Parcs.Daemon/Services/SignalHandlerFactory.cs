@@ -7,14 +7,9 @@ using Parcs.Daemon.Handlers.Interfaces;
 
 namespace Parcs.Daemon.Services
 {
-    internal sealed class SignalHandlerFactory : ISignalHandlerFactory
+    internal sealed class SignalHandlerFactory(IServiceProvider serviceProvider) : ISignalHandlerFactory
     {
-        private readonly IServiceProvider _serviceProvider;
-
-        public SignalHandlerFactory(IServiceProvider serviceProvider)
-        {
-            _serviceProvider = serviceProvider;
-        }
+        private readonly IServiceProvider _serviceProvider = serviceProvider;
 
         public ISignalHandler Create(Signal signal)
         {

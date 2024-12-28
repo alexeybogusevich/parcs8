@@ -2,16 +2,10 @@
 
 namespace Parcs.Host.Models.Responses.Nested
 {
-    public class JobStatusResponse
+    public class JobStatusResponse(JobStatus status, DateTime createDateUtc)
     {
-        public JobStatusResponse(JobStatus status, DateTime createDateUtc)
-        {
-            Status = status;
-            CreateDateUtc = createDateUtc;
-        }
+        public JobStatus Status { get; set; } = status;
 
-        public JobStatus Status { get; set; }
-
-        public DateTime CreateDateUtc { get; set; }
+        public DateTime CreateDateUtc { get; set; } = createDateUtc;
     }
 }

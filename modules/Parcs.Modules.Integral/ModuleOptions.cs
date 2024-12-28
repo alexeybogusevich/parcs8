@@ -1,6 +1,8 @@
-﻿namespace Parcs.Modules.Integral
+﻿using Parcs.Net;
+
+namespace Parcs.Modules.Integral
 {
-    public class ModuleOptions
+    public class ModuleOptions : IModuleOptions
     {
         public double XStart { get; set; } = 0;
 

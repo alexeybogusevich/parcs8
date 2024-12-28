@@ -7,21 +7,13 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Parcs.Host.Handlers
 {
-    public sealed class DeleteJobCommandHandler : IRequestHandler<DeleteJobCommand>
+    public sealed class DeleteJobCommandHandler(
+        ParcsDbContext parcsDbContext, IJobTracker jobTracker, IJobDirectoryPathBuilder jobDirectoryPathBuilder, IFileEraser fileEraser) : IRequestHandler<DeleteJobCommand>
     {
-        private readonly ParcsDbContext _parcsDbContext;
-        private readonly IJobTracker _jobTracker;
-        private readonly IJobDirectoryPathBuilder _jobDirectoryPathBuilder;
-        private readonly IFileEraser _fileEraser;
-
-        public DeleteJobCommandHandler(
-            ParcsDbContext parcsDbContext, IJobTracker jobTracker, IJobDirectoryPathBuilder jobDirectoryPathBuilder, IFileEraser fileEraser)
-        {
-            _parcsDbContext = parcsDbContext;
-            _jobTracker = jobTracker;
-            _jobDirectoryPathBuilder = jobDirectoryPathBuilder;
-            _fileEraser = fileEraser;
-        }
+        private readonly ParcsDbContext _parcsDbContext = parcsDbContext;
+        private readonly IJobTracker _jobTracker = jobTracker;
+        private readonly IJobDirectoryPathBuilder _jobDirectoryPathBuilder = jobDirectoryPathBuilder;
+        private readonly IFileEraser _fileEraser = fileEraser;
 
         public async Task Handle(DeleteJobCommand request, CancellationToken cancellationToken)
         {

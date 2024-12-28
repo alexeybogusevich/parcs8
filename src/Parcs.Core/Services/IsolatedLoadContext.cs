@@ -6,7 +6,7 @@ namespace Parcs.Core.Services
     public class IsolatedLoadContext : AssemblyLoadContext
     {
         private readonly AssemblyDependencyResolver _resolver;
-        private readonly List<string> _sharedAssemblyNames = new ();
+        private readonly List<string> _sharedAssemblyNames = [];
 
         public IsolatedLoadContext(string assemblyPath)
         {

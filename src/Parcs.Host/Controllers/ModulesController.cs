@@ -9,14 +9,9 @@ namespace Parcs.Host.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class ModulesController : ControllerBase
+    public class ModulesController(IMediator mediator) : ControllerBase
     {
-        private readonly IMediator _mediator;
-
-        public ModulesController(IMediator mediator)
-        {
-            _mediator = mediator;
-        }
+        private readonly IMediator _mediator = mediator;
 
         [HttpGet]
         [ProducesResponseType(typeof(IEnumerable<GetPlainModuleQueryResponse>), (int)HttpStatusCode.OK)]

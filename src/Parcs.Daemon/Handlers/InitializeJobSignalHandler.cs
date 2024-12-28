@@ -4,14 +4,9 @@ using Parcs.Core.Models.Interfaces;
 
 namespace Parcs.Daemon.Handlers
 {
-    public sealed class InitializeJobSignalHandler : ISignalHandler
+    public sealed class InitializeJobSignalHandler(IJobContextAccessor jobContextAccessor) : ISignalHandler
     {
-        private readonly IJobContextAccessor _jobContextAccessor;
-
-        public InitializeJobSignalHandler(IJobContextAccessor jobContextAccessor)
-        {
-            _jobContextAccessor = jobContextAccessor;
-        }
+        private readonly IJobContextAccessor _jobContextAccessor = jobContextAccessor;
 
         public async Task HandleAsync(IManagedChannel managedChannel, CancellationToken cancellationToken = default)
         {

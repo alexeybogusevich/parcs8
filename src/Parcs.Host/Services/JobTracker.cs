@@ -7,15 +7,10 @@ using System.Net.Sockets;
 
 namespace Parcs.Host.Services
 {
-    public sealed class JobTracker : IJobTracker
+    public sealed class JobTracker(IServiceScopeFactory serviceScopeFactory) : IJobTracker
     {
-        private readonly IServiceScopeFactory _serviceScopeFactory;
+        private readonly IServiceScopeFactory _serviceScopeFactory = serviceScopeFactory;
         private readonly ConcurrentDictionary<long, CancellationTokenSource> _trackedJobs = new();
-
-        public JobTracker(IServiceScopeFactory serviceScopeFactory)
-        {
-            _serviceScopeFactory = serviceScopeFactory;
-        }
 
         public void StartTracking(long jobId)
         {

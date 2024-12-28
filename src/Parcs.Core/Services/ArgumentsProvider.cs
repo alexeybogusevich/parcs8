@@ -2,16 +2,10 @@
 
 namespace Parcs.Core.Services
 {
-    public class ArgumentsProvider : IArgumentsProvider
+    public class ArgumentsProvider(int pointsNumber, IDictionary<string, string> argumentsDictionary) : IArgumentsProvider
     {
-        private readonly int _pointsNumber;
-        private readonly IDictionary<string, string> _argumentsDictionary;
-
-        public ArgumentsProvider(int pointsNumber, IDictionary<string, string> argumentsDictionary)
-        {
-            _pointsNumber = pointsNumber;
-            _argumentsDictionary = argumentsDictionary;
-        }
+        private readonly int _pointsNumber = pointsNumber;
+        private readonly IDictionary<string, string> _argumentsDictionary = argumentsDictionary;
 
         public int GetPointsNumber() => _pointsNumber;
 

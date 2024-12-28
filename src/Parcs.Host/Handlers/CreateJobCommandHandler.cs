@@ -10,24 +10,16 @@ using Parcs.Core.Models;
 
 namespace Parcs.Host.Handlers
 {
-    public sealed class CreateJobCommandHandler : IRequestHandler<CreateJobCommand, CreateJobCommandResponse>
+    public sealed class CreateJobCommandHandler(
+        ParcsDbContext parcsDbContext,
+        IJobTracker jobTracker,
+        IJobDirectoryPathBuilder jobDirectoryPathBuilder,
+        IFileSaver fileSaver) : IRequestHandler<CreateJobCommand, CreateJobCommandResponse>
     {
-        private readonly ParcsDbContext _parcsDbContext;
-        private readonly IJobTracker _jobTracker;
-        private readonly IJobDirectoryPathBuilder _jobDirectoryPathBuilder;
-        private readonly IFileSaver _fileSaver;
-
-        public CreateJobCommandHandler(
-            ParcsDbContext parcsDbContext,
-            IJobTracker jobTracker,
-            IJobDirectoryPathBuilder jobDirectoryPathBuilder,
-            IFileSaver fileSaver)
-        {
-            _parcsDbContext = parcsDbContext;
-            _jobTracker = jobTracker;
-            _jobDirectoryPathBuilder = jobDirectoryPathBuilder;
-            _fileSaver = fileSaver;
-        }
+        private readonly ParcsDbContext _parcsDbContext = parcsDbContext;
+        private readonly IJobTracker _jobTracker = jobTracker;
+        private readonly IJobDirectoryPathBuilder _jobDirectoryPathBuilder = jobDirectoryPathBuilder;
+        private readonly IFileSaver _fileSaver = fileSaver;
 
         public async Task<CreateJobCommandResponse> Handle(CreateJobCommand request, CancellationToken cancellationToken)
         {
@@ -36,10 +28,10 @@ namespace Parcs.Host.Handlers
                 ModuleId = request.ModuleId,
                 AssemblyName = request.AssemblyName,
                 ClassName = request.ClassName,
-                Statuses = new List<JobStatusEntity>
-                {
+                Statuses =
+                [
                     new JobStatusEntity { Status = (short)JobStatus.Created },
-                },
+                ],
             };
 
             await _parcsDbContext.Jobs.AddAsync(job, cancellationToken);

@@ -1,24 +1,15 @@
 ﻿namespace Parcs.Daemon.Models
 {
-    public class JobContext
+    public class JobContext(long jobId, long moduleId, int pointsNumber, IDictionary<string, string> arguments)
     {
-        public JobContext(long jobId, long moduleId, int pointsNumber, IDictionary<string, string> arguments)
-        {
-            JobId = jobId;
-            ModuleId = moduleId;
-            PointsNumber = pointsNumber;
-            Arguments = arguments;
-            CancellationTokenSource = new();
-        }
+        public long JobId { get; init; } = jobId;
 
-        public long JobId { get; init; }
+        public long ModuleId { get; init; } = moduleId;
 
-        public long ModuleId { get; init; }
+        public int PointsNumber { get; init; } = pointsNumber;
 
-        public int PointsNumber { get; init; }
+        public IDictionary<string, string> Arguments { get; init; } = arguments;
 
-        public IDictionary<string, string> Arguments { get; init; }
-
-        public CancellationTokenSource CancellationTokenSource { get; init; }
+        public CancellationTokenSource CancellationTokenSource { get; init; } = new();
     }
 }

@@ -38,6 +38,7 @@ services:
       - parcsnet
     depends_on:
       - parcs.hostapi
+      - datadog-agent
 
   parcs.database:
     image: postgres:latest
@@ -46,10 +47,33 @@ services:
       - parcs.database:/var/lib/postgresql/data/
     networks:
       - parcsnet
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  datadog-agent:
+    image: "gcr.io/datadoghq/agent:latest"
+    environment:
+      DD_APM_ENABLED: "true"
+      DD_APM_NON_LOCAL_TRAFFIC: "true"
+      DD_DOGSTATSD_NON_LOCAL_TRAFFIC: "true"
+      DD_API_KEY: "2262af34d5d5f801e79e7de39c19f9d3"
+      DD_LOG_LEVEL: "DEBUG"
+      DD_HOSTNAME: "parcs"
+      DD_SITE: "datadoghq.eu"
+    volumes:
+    - type: volume
+      source: datadog-storage
+      target: /etc/datadog-agent
+    networks:
+      - parcsnet
 
 volumes:
   parcs.database:
   parcs.storage:
+  datadog-storage:
 
 networks:
   parcsnet:
