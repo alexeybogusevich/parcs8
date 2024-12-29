@@ -15,6 +15,6 @@ namespace Parcs.Portal.Models
         [MinLength(1, ErrorMessage = "Class name should be at least 1 characters long")]
         public string ClassName { get; set; }
 
-        public IEnumerable<IBrowserFile> InputFiles { get; set; } = Enumerable.Empty<IBrowserFile>();
+        public IEnumerable<IBrowserFile> InputFiles { get; set; } = [];
     }
 }

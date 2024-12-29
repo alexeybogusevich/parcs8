@@ -25,7 +25,7 @@ namespace Parcs.Portal.Components
             var createModuleRequest = new CreateModuleHostRequest
             {
                 Name = CreateModuleViewModel.Name,
-                BinaryFiles = CreateModuleViewModel.BinaryFiles ?? Enumerable.Empty<IBrowserFile>(),
+                BinaryFiles = CreateModuleViewModel.BinaryFiles ?? [],
             };
 
             try

@@ -6,6 +6,7 @@ using Parcs.Portal.Constants;
 using Parcs.Portal.Models;
 using Parcs.Portal.Models.Host;
 using Parcs.Portal.Models.Host.Requests;
+using Parcs.Portal.Models.Host.Responses;
 using Parcs.Portal.Services.Interfaces;
 
 namespace Parcs.Portal.Components
@@ -23,11 +24,22 @@ namespace Parcs.Portal.Components
         [Parameter]
         public long JobId { get; set; }
 
+        public GetJobHostResponse JobHostResponse { get; set; }
+
         protected RunJobViewModel RunJobViewModel { get; set; } = new ();
 
         protected string NewArgumentKey { get; set; }
 
         protected string NewArgumentValue { get; set; }
+
+        protected override async Task OnInitializedAsync()
+        {
+            IsLoading = true;
+
+            JobHostResponse = await HostClient.GetJobAsync(JobId, cancellationTokenSource.Token);
+
+            IsLoading = false;
+        }
 
         protected async Task RunJobAsync()
         {

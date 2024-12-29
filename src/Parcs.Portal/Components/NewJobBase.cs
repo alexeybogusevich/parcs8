@@ -43,7 +43,7 @@ namespace Parcs.Portal.Components
             {
                 ClassName = CreateJobViewModel.ClassName,
                 AssemblyName = CreateJobViewModel.AssemblyName,
-                InputFiles = CreateJobViewModel.InputFiles ?? Enumerable.Empty<IBrowserFile>(),
+                InputFiles = CreateJobViewModel.InputFiles ?? [],
                 ModuleId = ModuleId,
             };
 

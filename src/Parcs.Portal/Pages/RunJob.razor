@@ -61,7 +61,13 @@ else
                                     <p></p>
                                     <div class="row">
                                         <div class="col-sm-5">
-                                            <InputText @bind-Value="NewArgumentKey" class="form-control" placeholder="Key" />
+                                            <InputSelect @bind-Value="NewArgumentKey" class="form-control">
+                                                <option value="" disabled selected>Select Option</option>
+                                                @foreach (var option in JobHostResponse.Options)
+                                                {
+                                                    <option value="@option">@option</option>
+                                                }
+                                            </InputSelect>
                                         </div>
                                         <div class="col-sm-5">
                                             <InputText @bind-Value="NewArgumentValue" class="form-control" placeholder="Value" />
@@ -73,7 +79,7 @@ else
                                 </div>
                             </div>
                         </div>
-                        <div class="m-t-20 text-center">
+                        <div class="m-t-20">
                             <button class="btn btn-primary submit-btn">Submit</button>
                         </div>
                     </EditForm>

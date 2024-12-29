@@ -21,5 +21,7 @@ namespace Parcs.Portal.Models.Host.Responses
         public IEnumerable<JobStatusResponse> Statuses { get; set; }
 
         public IEnumerable<JobFailureResponse> Failures { get; set; }
+
+        public IEnumerable<string> Options { get; set; }
     }
 }

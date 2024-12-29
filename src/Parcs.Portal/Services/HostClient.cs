@@ -35,8 +35,6 @@ namespace Parcs.Portal.Services
             var response = _flurlClient
                 .Request(string.Format(_hostConfiguration.GetModuleEndpoint, id));
 
-            var stringResponse = await response.GetStringAsync();
-
             return await response
                 .GetJsonAsync<GetModuleHostResponse>(cancellationToken: cancellationToken);
         }
