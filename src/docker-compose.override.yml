@@ -31,17 +31,6 @@ services:
       - ASPNETCORE_URLS=https://+:443;http://+:80
       - Portal__Uri=parcs.portal
       - Host__Uri=parcs.hostapi
-      - DD_API_KEY=2262af34d5d5f801e79e7de39c19f9d3
-      - DD_SITE=datadoghq.eu
-      - DD_LOGS_INJECTION=true
-      - DD_LOGS_DIRECT_SUBMISSION_INTEGRATIONS=ILogger
-      - DD_ENV=core-local
-      - DD_SERVICE=DatadogContainerExample
-      - DD_VERSION=1.0.0
-      - DD_AGENT_HOST=datadog-agent
-      - DD_TRACE_ROUTE_TEMPLATE_RESOURCE_NAMES_ENABLED=true
-      - DD_RUNTIME_METRICS_ENABLED=true
-      - DD_LOG_LEVEL=DEBUG 
     ports:
       - "5002:80"
       - "5003:443"

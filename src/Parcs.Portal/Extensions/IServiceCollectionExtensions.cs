@@ -2,6 +2,8 @@
 using Parcs.Portal.Services;
 using Parcs.Core.Configuration;
 using Parcs.Portal.Configuration;
+using Polly.Extensions.Http;
+using Polly;
 
 namespace Parcs.Portal.Extensions
 {
@@ -28,10 +30,15 @@ namespace Parcs.Portal.Extensions
                 .GetSection(HostConfiguration.SectionName)
                 .Get<HostConfiguration>();
 
+            var retryPolicy = HttpPolicyExtensions
+                .HandleTransientHttpError()
+                .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)));
+
             services.AddHttpClient<IHostClient, HostClient>(client =>
             {
                 client.BaseAddress = new Uri($"http://{hostConfiguration.Uri}:80");
-            });
+            })
+            .AddPolicyHandler(retryPolicy);
 
             return services;
         }

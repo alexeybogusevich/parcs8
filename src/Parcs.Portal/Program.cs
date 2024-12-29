@@ -11,6 +11,7 @@ builder.Services.AddApplicationServices();
 builder.Services.AddApplicationOptions(builder.Configuration);
 builder.Services.AddHttpClients(builder.Configuration);
 builder.Services.AddApplicationInsightsTelemetry();
+builder.Services.AddHealthChecks();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -41,5 +42,6 @@ app.MapControllers();
 app.MapBlazorHub();
 app.MapHub<JobCompletionHub>("/jobCompletionHub");
 app.MapFallbackToPage("/_Host");
+app.MapHealthChecks("health");
 
 app.Run();
