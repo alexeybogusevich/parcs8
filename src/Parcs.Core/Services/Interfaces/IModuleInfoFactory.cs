@@ -7,14 +7,12 @@ namespace Parcs.Core.Services.Interfaces
     {
         IModuleInfo Create(
             JobMetadata jobMetadata,
-            int pointsNumber,
             IDictionary<string, string> arguments,
             IChannel parentChannel = null,
             CancellationToken cancellationToken = default);
 
         IModuleInfo Create(
             JobMetadata jobMetadata,
-            int pointsNumber,
             IDictionary<string, string> arguments,
             CancellationToken cancellationToken = default);
     }

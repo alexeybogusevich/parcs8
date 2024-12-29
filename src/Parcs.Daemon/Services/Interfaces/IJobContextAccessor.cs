@@ -6,7 +6,7 @@ namespace Parcs.Daemon.Services.Interfaces
     {
         bool TryGet(long jobId, out JobContext jobContext);
 
-        void Add(long jobId, long moduleId, int pointsNumber, IDictionary<string, string> arguments);
+        void Add(long jobId, long moduleId, IDictionary<string, string> arguments);
 
         void Remove(long jobId);
     }

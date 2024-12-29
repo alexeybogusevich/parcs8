@@ -1,6 +1,7 @@
 ﻿using Parcs.Net;
 using Parcs.Core.Models;
 using Parcs.Core.Services.Interfaces;
+using Microsoft.Extensions.Logging;
 
 namespace Parcs.Core.Services
 {
@@ -9,22 +10,23 @@ namespace Parcs.Core.Services
         IInputOutputFactory inputOutputFactory,
         IArgumentsProviderFactory argumentsProviderFactory,
         IInternalChannelManager internalChannelManager,
-        IAddressResolver addressResolver) : IModuleInfoFactory
+        IAddressResolver addressResolver,
+        ILogger<ModuleInfoFactory> logger) : IModuleInfoFactory
     {
         private readonly IDaemonResolver _daemonResolver = daemonResolver;
         private readonly IInputOutputFactory _inputOutputFactory = inputOutputFactory;
         private readonly IArgumentsProviderFactory _argumentsProviderFactory = argumentsProviderFactory;
         private readonly IInternalChannelManager _internalChannelManager = internalChannelManager;
         private readonly IAddressResolver _addressResolver = addressResolver;
+        private readonly ILogger<ModuleInfoFactory> _logger = logger;
 
         public IModuleInfo Create(
             JobMetadata jobMetadata,
-            int pointsNumber,
             IDictionary<string, string> arguments,
             IChannel parentChannel = null,
             CancellationToken cancellationToken = default)
         {
-            var argumentsProvider = _argumentsProviderFactory.Create(pointsNumber, arguments);
+            var argumentsProvider = _argumentsProviderFactory.Create(arguments);
 
             return new ModuleInfo(
                 jobMetadata,
@@ -34,13 +36,13 @@ namespace Parcs.Core.Services
                 _daemonResolver,
                 _internalChannelManager,
                 _addressResolver,
+                _logger,
                 cancellationToken);
         }
 
         public IModuleInfo Create(
             JobMetadata jobMetadata,
-            int pointsNumber,
             IDictionary<string, string> arguments,
-            CancellationToken cancellationToken = default) => Create(jobMetadata, pointsNumber, arguments, null, cancellationToken);
+            CancellationToken cancellationToken = default) => Create(jobMetadata, arguments, null, cancellationToken);
     }
 }

@@ -1,4 +1,5 @@
-﻿using Parcs.Net;
+﻿using Microsoft.Extensions.Logging;
+using Parcs.Net;
 using System.Diagnostics;
 using System.Text.Json;
 
@@ -8,15 +9,14 @@ namespace Parcs.Modules.ProofOfWork.Parallel
     {
         public async Task RunAsync(IModuleInfo moduleInfo, CancellationToken cancellationToken = default)
         {
-            Console.WriteLine($"PARALLEL: Started at {DateTime.UtcNow}");
+            moduleInfo.Logger.LogInformation("PARALLEL: Started at {Time}", DateTime.UtcNow);
 
-            var moduleOptions = moduleInfo.ArgumentsProvider.Bind<ModuleOptions>();
+            var moduleOptions = moduleInfo.BindModuleOptions<ModuleOptions>();
 
-            var pointsNumber = moduleInfo.ArgumentsProvider.GetPointsNumber();
-            var channels = new IChannel[pointsNumber];
-            var points = new IPoint[pointsNumber];
+            var channels = new IChannel[moduleOptions.PointsNumber];
+            var points = new IPoint[moduleOptions.PointsNumber];
 
-            for (int i = 0; i < pointsNumber; ++i)
+            for (int i = 0; i < moduleOptions.PointsNumber; ++i)
             {
                 points[i] = await moduleInfo.CreatePointAsync();
                 channels[i] = await points[i].CreateChannelAsync();
@@ -30,7 +30,7 @@ namespace Parcs.Modules.ProofOfWork.Parallel
 
             while (resultNonce is null && nonceStart < moduleOptions.MaximumNonce)
             {
-                for (int i = 0; i < pointsNumber; ++i)
+                for (int i = 0; i < moduleOptions.PointsNumber; ++i)
                 {
                     await points[i].ExecuteClassAsync<ParallelWorkerModule>();
                     await channels[i].WriteDataAsync(moduleOptions.Difficulty);
@@ -41,9 +41,9 @@ namespace Parcs.Modules.ProofOfWork.Parallel
                 
                 Console.WriteLine($"PARALLEL: Sent at {DateTime.UtcNow}. Nonce start: {nonceStart}");
 
-                nonceStart += moduleOptions.NonceBatchSize * pointsNumber;
+                nonceStart += moduleOptions.NonceBatchSize * moduleOptions.PointsNumber;
 
-                for (int i = 0; i < pointsNumber; ++i)
+                for (int i = 0; i < moduleOptions.PointsNumber; ++i)
                 {
                     if (await channels[i].ReadBooleanAsync())
                     {
@@ -65,7 +65,7 @@ namespace Parcs.Modules.ProofOfWork.Parallel
 
             await moduleInfo.OutputWriter.WriteToFileAsync(JsonSerializer.SerializeToUtf8Bytes(moduleOutput), moduleOptions.OutputFilename);
 
-            Console.WriteLine($"PARALLEL: Finished at {DateTime.UtcNow}");
+            moduleInfo.Logger.LogInformation("PARALLEL: Finished at {Time}", DateTime.UtcNow);
         }
     }
 }

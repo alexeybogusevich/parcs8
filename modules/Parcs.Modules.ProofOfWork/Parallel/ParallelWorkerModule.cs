@@ -1,4 +1,5 @@
-﻿using Parcs.Net;
+﻿using Microsoft.Extensions.Logging;
+using Parcs.Net;
 
 namespace Parcs.Modules.ProofOfWork.Parallel
 {
@@ -6,17 +7,17 @@ namespace Parcs.Modules.ProofOfWork.Parallel
     {
         public async Task RunAsync(IModuleInfo moduleInfo, CancellationToken cancellationToken = default)
         {
-            Console.WriteLine($"WORKER: Started at {DateTime.UtcNow}");
+            moduleInfo.Logger.LogInformation("WORKER: Started at {Time}", DateTime.UtcNow);
 
             var difficulty = await moduleInfo.Parent.ReadIntAsync();
 
-            Console.WriteLine($"WORKER: Received difficulty at {DateTime.UtcNow}");
+            moduleInfo.Logger.LogInformation("WORKER: Received difficulty at {Time}", DateTime.UtcNow);
 
             var prompt = await moduleInfo.Parent.ReadStringAsync();
             var nonceStart = await moduleInfo.Parent.ReadLongAsync();
             var nonceEnd = await moduleInfo.Parent.ReadLongAsync();
 
-            Console.WriteLine($"WORKER: Received all data at {DateTime.UtcNow}");
+            moduleInfo.Logger.LogInformation("WORKER: Received all data at {Time}", DateTime.UtcNow);
 
             var leadingZeros = new string(Enumerable.Repeat('0', difficulty).ToArray());
 
@@ -33,7 +34,7 @@ namespace Parcs.Modules.ProofOfWork.Parallel
 
             await moduleInfo.Parent.WriteDataAsync(false);
 
-            Console.WriteLine($"WORKER: Finished at {DateTime.UtcNow}");
+            moduleInfo.Logger.LogInformation("WORKER: Finished at {Time}", DateTime.UtcNow);
         }
     }
 }

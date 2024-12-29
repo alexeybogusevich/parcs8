@@ -15,5 +15,7 @@ namespace Parcs.Modules.MatrixesMultiplication
         public string MatrixBOutputFilename { get; set; } = "MatrixB.txt";
 
         public string MatrixCOutputFilename { get; set; } = "MatrixC.txt";
+
+        public int PointsNumber { get; set;} = 1;
     }
 }

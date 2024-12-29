@@ -35,7 +35,7 @@ namespace Parcs.Host.Handlers
             }
 
             var jobMetadata = new JobMetadata(job.Id, job.ModuleId);
-            var moduleInfo = _moduleInfoFactory.Create(jobMetadata, command.PointsNumber, command.Arguments, jobCancellationToken);
+            var moduleInfo = _moduleInfoFactory.Create(jobMetadata, command.Arguments, jobCancellationToken);
 
             try
             {

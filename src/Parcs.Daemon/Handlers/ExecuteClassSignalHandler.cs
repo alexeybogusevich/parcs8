@@ -24,7 +24,7 @@ namespace Parcs.TCP.Daemon.Handlers
                 throw new ArgumentException($"A job with id {jobId} can't be found");
             }
 
-            var (_, moduleId, pointsNumber, arguments, jobCancellationToken) = jobContext;
+            var (_, moduleId, arguments, jobCancellationToken) = jobContext;
 
             var jobMetadata = new JobMetadata(jobId, moduleId);
             var assemblyName = await managedChannel.ReadStringAsync();
@@ -33,7 +33,7 @@ namespace Parcs.TCP.Daemon.Handlers
             try
             {
                 var module = _moduleLoader.Load(moduleId, assemblyName, className);
-                await using var moduleInfo = _moduleInfoFactory.Create(jobMetadata, pointsNumber, arguments, managedChannel, jobCancellationToken);
+                await using var moduleInfo = _moduleInfoFactory.Create(jobMetadata, arguments, managedChannel, jobCancellationToken);
                 await module.RunAsync(moduleInfo, jobCancellationToken);
             }
             catch (Exception ex)

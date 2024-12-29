@@ -8,13 +8,11 @@ namespace Parcs.Daemon.Extensions
             this JobContext jobContext,
             out long jobId,
             out long moduleId,
-            out int pointsNumber,
             out IDictionary<string, string> arguments,
             out CancellationToken cancellationToken)
         {
             jobId = jobContext.JobId;
             moduleId = jobContext.ModuleId;
-            pointsNumber = jobContext.PointsNumber;
             arguments = jobContext.Arguments;
             cancellationToken = jobContext.CancellationTokenSource.Token;
         }

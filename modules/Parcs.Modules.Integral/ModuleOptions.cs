@@ -11,5 +11,7 @@ namespace Parcs.Modules.Integral
         public double Precision { get; set; } = 0.00000001;
 
         public string OutputFilename { get; set; } = "Output.txt";
+
+        public int PointsNumber { get; set; } = 1;
     }
 }

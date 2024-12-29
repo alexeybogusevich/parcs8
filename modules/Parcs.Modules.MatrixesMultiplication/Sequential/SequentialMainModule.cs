@@ -9,7 +9,7 @@ namespace Parcs.Modules.MatrixesMultiplication.Sequential
     {
         public async Task RunAsync(IModuleInfo moduleInfo, CancellationToken cancellationToken = default)
         {
-            var moduleOptions = moduleInfo.ArgumentsProvider.Bind<ModuleOptions>();
+            var moduleOptions = moduleInfo.BindModuleOptions<ModuleOptions>();
 
             var matrixA = new Matrix(moduleOptions.MatrixSize, moduleOptions.MatrixSize, true);
             var matrixB = new Matrix(moduleOptions.MatrixSize, moduleOptions.MatrixSize, true);

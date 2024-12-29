@@ -7,26 +7,24 @@ namespace Parcs.Modules.MatrixesMultiplication.Parallel
 {
     public class ParallelMainModule : IModule
     {
-        private readonly List<int> _allowedPointsNumbers = [1, 2, 4, 8,];
+        private readonly List<int> _allowedPointsNumbers = [1, 2, 4, 8];
 
         public async Task RunAsync(IModuleInfo moduleInfo, CancellationToken cancellationToken = default)
         {
-            var moduleOptions = moduleInfo.ArgumentsProvider.Bind<ModuleOptions>();
+            var moduleOptions = moduleInfo.BindModuleOptions<ModuleOptions>();
 
             var matrixA = new Matrix(moduleOptions.MatrixSize, moduleOptions.MatrixSize, true);
             var matrixB = new Matrix(moduleOptions.MatrixSize, moduleOptions.MatrixSize, true);
 
-            var pointsNumber = moduleInfo.ArgumentsProvider.GetPointsNumber();
-
-            if (_allowedPointsNumbers.Contains(pointsNumber) is false)
+            if (_allowedPointsNumbers.Contains(moduleOptions.PointsNumber) is false)
             {
                 throw new ArgumentException($"Invalid number of points. Allowed values: {string.Join(", ", _allowedPointsNumbers)}");
             }
 
-            var points = new IPoint[pointsNumber];
-            var channels = new IChannel[pointsNumber];
+            var points = new IPoint[moduleOptions.PointsNumber];
+            var channels = new IChannel[moduleOptions.PointsNumber];
 
-            for (int i = 0; i < pointsNumber; ++i)
+            for (int i = 0; i < moduleOptions.PointsNumber; ++i)
             {
                 points[i] = await moduleInfo.CreatePointAsync();
                 channels[i] = await points[i].CreateChannelAsync();
@@ -36,9 +34,9 @@ namespace Parcs.Modules.MatrixesMultiplication.Parallel
             var stopwatch = new Stopwatch();
             stopwatch.Start();
 
-            var matrixABPairs = pointsNumber switch
+            var matrixABPairs = moduleOptions.PointsNumber switch
             {
-                1 => new Tuple<Matrix, Matrix>[] { new(matrixA, matrixB) },
+                1 => [new(matrixA, matrixB)],
                 2 => MatrixDivisioner.Divide2(matrixA, matrixB).ToArray(),
                 4 => MatrixDivisioner.Divide4(matrixA, matrixB).ToArray(),
                 8 => MatrixDivisioner.Divide8(matrixA, matrixB).ToArray(),
@@ -58,7 +56,7 @@ namespace Parcs.Modules.MatrixesMultiplication.Parallel
                 matrixCPairs.Add(await channels[i].ReadObjectAsync<Matrix>());
             }
 
-            var matrixC = pointsNumber switch
+            var matrixC = moduleOptions.PointsNumber switch
             {
                 1 => matrixCPairs.First(),
                 2 => MatrixDivisioner.Join2(new Matrix(matrixA.Height, matrixB.Width), matrixCPairs),

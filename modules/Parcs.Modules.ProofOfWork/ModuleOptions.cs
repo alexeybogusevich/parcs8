@@ -13,5 +13,7 @@ namespace Parcs.Modules.ProofOfWork
         public long MaximumNonce { get; set; } = 80_000_000;
 
         public string OutputFilename { get; set; } = "Output.txt";
+
+        public int PointsNumber { get; set; } = 1;
     }
 }

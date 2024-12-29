@@ -9,7 +9,7 @@ namespace Parcs.Modules.MatrixesMultiplication.Recursive
     {
         public async Task RunAsync(IModuleInfo moduleInfo, CancellationToken cancellationToken = default)
         {
-            var moduleOptions = moduleInfo.ArgumentsProvider.Bind<RecursiveModuleOptions>();
+            var moduleOptions = moduleInfo.BindModuleOptions<RecursiveModuleOptions>();
 
             var matrixA = new Matrix(moduleOptions.MatrixSize, moduleOptions.MatrixSize, true);
             var matrixB = new Matrix(moduleOptions.MatrixSize, moduleOptions.MatrixSize, true);

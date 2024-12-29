@@ -49,7 +49,6 @@ namespace Parcs.Portal.Components
             {
                 JobId = JobId,
                 Arguments = RunJobViewModel.Arguments.DistinctBy(a => a.Key).ToDictionary(a => a.Key, a => a.Value),
-                PointsNumber = RunJobViewModel.PointsNumber,
                 CallbackUrl = string.Format($"http://{PortalOptions.Value.Uri}/{PortalOptions.Value.JobCompletionEndpoint}", JobId),
             };
 

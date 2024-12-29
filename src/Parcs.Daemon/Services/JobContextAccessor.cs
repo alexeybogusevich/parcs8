@@ -8,9 +8,9 @@ namespace Parcs.Daemon.Services
     {
         private readonly ConcurrentDictionary<long, JobContext> _activeContexts = new();
 
-        public void Add(long jobId, long moduleId, int pointsNumber, IDictionary<string, string> arguments)
+        public void Add(long jobId, long moduleId, IDictionary<string, string> arguments)
         {
-            _ = _activeContexts.TryAdd(jobId, new JobContext(jobId, moduleId, pointsNumber, arguments));
+            _ = _activeContexts.TryAdd(jobId, new JobContext(jobId, moduleId, arguments));
         }
 
         public bool TryGet(long jobId, out JobContext jobContext)

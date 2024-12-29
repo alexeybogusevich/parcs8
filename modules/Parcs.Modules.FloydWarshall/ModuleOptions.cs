@@ -11,5 +11,7 @@ namespace Parcs.Modules.FloydWarshall
         public string InputFile { get; set; }
 
         public string OutputFile { get; set; } = "Output.txt";
+
+        public int PointsNumber { get; set; } = 1;
     }
 }

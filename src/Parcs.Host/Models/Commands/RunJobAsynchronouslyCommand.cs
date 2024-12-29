@@ -10,7 +10,7 @@ namespace Parcs.Host.Models.Commands
         }
 
         public RunJobAsynchronouslyCommand(RunJobCommand baseCommand, string callbackUrl)
-            : base(baseCommand.JobId, baseCommand.PointsNumber, baseCommand.Arguments)
+            : base(baseCommand.JobId, baseCommand.Arguments)
         {
             CallbackUrl = callbackUrl;
         }

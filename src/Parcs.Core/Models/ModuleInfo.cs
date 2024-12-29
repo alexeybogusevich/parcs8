@@ -2,6 +2,7 @@
 using Parcs.Core.Services.Interfaces;
 using System.Net.Sockets;
 using System.Net;
+using Microsoft.Extensions.Logging;
 
 namespace Parcs.Core.Models
 {
@@ -13,6 +14,7 @@ namespace Parcs.Core.Models
         IDaemonResolver daemonResolver,
         IInternalChannelManager internalChannelManager,
         IAddressResolver addressResolver,
+        ILogger logger,
         CancellationToken cancellationToken) : IModuleInfo
     {
         private readonly long _jobId = jobMetadata.JobId;
@@ -25,6 +27,7 @@ namespace Parcs.Core.Models
         private readonly IDaemonResolver _daemonResolver = daemonResolver;
         private readonly IInternalChannelManager _internalChannelManager = internalChannelManager;
         private readonly IAddressResolver _addressResolver = addressResolver;
+        private readonly IArgumentsProvider _argumentsProvider = argumentsProvider;
 
         public bool IsHost => Parent is null;
 
@@ -34,7 +37,7 @@ namespace Parcs.Core.Models
 
         public IOutputWriter OutputWriter { get; } = inputOutputFactory.CreateWriter(jobMetadata.JobId, cancellationToken);
 
-        public IArgumentsProvider ArgumentsProvider { get; } = argumentsProvider;
+        public ILogger Logger { get; } = logger;
 
         public async Task<IPoint> CreatePointAsync()
         {
@@ -44,7 +47,7 @@ namespace Parcs.Core.Models
 
             if (IsHost is false && nextDaemonAddresses.Any(IPAddress.IsLoopback))
             {
-                return CreateInternalPoint();
+                return GetInternalPoint();
             }
 
             return await CreateNetworkPointAsync(nextDaemonAddresses, nextDaemon.Port);
@@ -58,20 +61,20 @@ namespace Parcs.Core.Models
             var networkChannel = new NetworkChannel(tcpClient);
             networkChannel.SetCancellation(_cancellationToken);
 
-            var networkPoint = new Point(_jobId, _moduleId, networkChannel, ArgumentsProvider);
+            var networkPoint = new Point(_jobId, _moduleId, networkChannel, _argumentsProvider);
             _createdPoints.Add(networkPoint);
 
             return networkPoint;
         }
 
-        private IPoint CreateInternalPoint()
+        private IPoint GetInternalPoint()
         {
             var internalChannelId = _internalChannelManager.Create();
 
             _ = _internalChannelManager.TryGet(internalChannelId, out var internalChannelPair);
             internalChannelPair.Item1.SetCancellation(_cancellationToken);
 
-            var internalPoint = new Point(_jobId, _moduleId, internalChannelPair.Item1, ArgumentsProvider);
+            var internalPoint = new Point(_jobId, _moduleId, internalChannelPair.Item1, _argumentsProvider);
             _createdPoints.Add(internalPoint);
 
             return internalPoint;
@@ -96,9 +99,11 @@ namespace Parcs.Core.Models
             return availableDaemons.FirstOrDefault(d => d.HostUrl == leastPointsDaemon.Key);
         }
 
+        public T BindModuleOptions<T>() where T : class, IModuleOptions, new() => _argumentsProvider.Bind<T>();
+
         public async ValueTask DisposeAsync()
         {
-            if (_createdPoints.Any() is false)
+            if (_createdPoints.Count == 0)
             {
                 return;
             }

@@ -1,7 +1,9 @@
-﻿namespace Parcs.Modules.Sample.Models
+﻿using Parcs.Net;
+
+namespace Parcs.Modules.Sample.Models
 {
-    public class ModuleOptions
+    public class ModuleOptions : IModuleOptions
     {
-        public int PointsCount { get; set; }
+        public int PointsNumber { get; set; }
     }
 }

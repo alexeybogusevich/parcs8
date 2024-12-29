@@ -32,7 +32,7 @@ namespace Parcs.Modules.Sample
                 await channel.WriteDataAsync(true);
                 await channel.WriteDataAsync("Hello world");
                 await channel.WriteDataAsync((byte)1);
-                await channel.WriteDataAsync(new byte[] { 1, 0, 1 });
+                await channel.WriteDataAsync([1, 0, 1]);
                 await channel.WriteDataAsync(123L);
                 await channel.WriteDataAsync(22);
                 await channel.WriteObjectAsync(new SampleClass { Id = Guid.NewGuid(), Name = "Test" });

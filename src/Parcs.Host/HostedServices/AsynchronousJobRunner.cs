@@ -33,7 +33,7 @@ namespace Parcs.Host.HostedServices
 
             try
             {
-                var runJobCommand = new RunJobCommand(command.JobId, command.PointsNumber, command.Arguments);
+                var runJobCommand = new RunJobCommand(command.JobId, command.Arguments);
                 var synchronousJobCommand = new RunJobSynchronouslyCommand(runJobCommand);
                 _ = await mediator.Send(synchronousJobCommand, stoppingToken);
             }

@@ -21,10 +21,9 @@ namespace Parcs.Daemon.Handlers
             }
 
             var moduleId = await managedChannel.ReadLongAsync();
-            var pointsNumber = await managedChannel.ReadIntAsync();
             var arguments = await managedChannel.ReadObjectAsync<IDictionary<string, string>>();
 
-            _jobContextAccessor.Add(jobId, moduleId, pointsNumber, arguments);
+            _jobContextAccessor.Add(jobId, moduleId, arguments);
             _ = _jobContextAccessor.TryGet(jobId, out var jobContext);
 
             managedChannel.SetCancellation(jobContext.CancellationTokenSource.Token);

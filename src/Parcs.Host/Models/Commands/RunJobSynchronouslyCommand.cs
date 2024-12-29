@@ -11,7 +11,7 @@ namespace Parcs.Host.Models.Commands
         }
 
         public RunJobSynchronouslyCommand(RunJobCommand baseCommand)
-            : base(baseCommand.JobId, baseCommand.PointsNumber, baseCommand.Arguments)
+            : base(baseCommand.JobId, baseCommand.Arguments)
         {
         }
     }

@@ -10,9 +10,7 @@ namespace Parcs.Modules.FloydWarshall.Sequential
     {
         public async Task RunAsync(IModuleInfo moduleInfo, CancellationToken cancellationToken = default)
         {
-            Console.WriteLine($"SEQUENTIAL: Started at {DateTime.UtcNow}");
-
-            var moduleOptions = moduleInfo.ArgumentsProvider.Bind<ModuleOptions>();
+            var moduleOptions = moduleInfo.BindModuleOptions<ModuleOptions>();
 
             Matrix initialMatrix;
 

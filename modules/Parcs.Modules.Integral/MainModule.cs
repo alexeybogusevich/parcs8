@@ -8,13 +8,12 @@ namespace Parcs.Modules.Integral
     {
         public async Task RunAsync(IModuleInfo moduleInfo, CancellationToken cancellationToken = default)
         {
-            var moduleOptions = moduleInfo.ArgumentsProvider.Bind<ModuleOptions>();
+            var moduleOptions = moduleInfo.BindModuleOptions<ModuleOptions>();
 
-            var pointsNumber = moduleInfo.ArgumentsProvider.GetPointsNumber();
-            var points = new IPoint[pointsNumber];
-            var channels = new IChannel[pointsNumber];
+            var points = new IPoint[moduleOptions.PointsNumber];
+            var channels = new IChannel[moduleOptions.PointsNumber];
 
-            for (int i = 0; i < pointsNumber; ++i)
+            for (int i = 0; i < moduleOptions.PointsNumber; ++i)
             {
                 points[i] = await moduleInfo.CreatePointAsync();
                 channels[i] = await points[i].CreateChannelAsync();
@@ -22,19 +21,19 @@ namespace Parcs.Modules.Integral
             }
 
             double x = moduleOptions.XStart;
-            for (int i = 0; i < pointsNumber; ++i)
+            for (int i = 0; i < moduleOptions.PointsNumber; ++i)
             {
                 await channels[i].WriteDataAsync(x);
-                await channels[i].WriteDataAsync(x + (moduleOptions.XEnd - moduleOptions.XStart) / pointsNumber);
+                await channels[i].WriteDataAsync(x + (moduleOptions.XEnd - moduleOptions.XStart) / moduleOptions.PointsNumber);
                 await channels[i].WriteDataAsync(moduleOptions.Precision);
-                x += (moduleOptions.XEnd - moduleOptions.XStart) / pointsNumber;
+                x += (moduleOptions.XEnd - moduleOptions.XStart) / moduleOptions.PointsNumber;
             }
 
             var stopwatch = new Stopwatch();
             stopwatch.Start();
 
             double result = 0;
-            for (int i = pointsNumber - 1; i >= 0; --i)
+            for (int i = moduleOptions.PointsNumber - 1; i >= 0; --i)
             {
                 result += await channels[i].ReadDoubleAsync();
             }

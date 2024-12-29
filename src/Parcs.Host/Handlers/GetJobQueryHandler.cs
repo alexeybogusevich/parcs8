@@ -49,6 +49,7 @@ namespace Parcs.Host.Handlers
                     .Where(t => t.GetInterface(nameof(IModuleOptions)) is not null)
                     .SelectMany(t => t.GetProperties())
                     .Select(p => p.Name)
+                    .Distinct()
                     .ToArray();
 
                 moduleOptions.AddRange(assemblyModuleOptions);

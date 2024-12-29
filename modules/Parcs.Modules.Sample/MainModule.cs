@@ -1,4 +1,5 @@
-﻿using Parcs.Modules.Sample.Models;
+﻿using Microsoft.Extensions.Logging;
+using Parcs.Modules.Sample.Models;
 using Parcs.Net;
 using System.Text;
 
@@ -15,7 +16,7 @@ namespace Parcs.Modules.Sample
                 Console.WriteLine(await streamReader.ReadToEndAsync(cancellationToken));
             }
 
-            var pointsNumber = moduleInfo.ArgumentsProvider.GetPointsNumber();
+            var pointsNumber = moduleInfo.BindModuleOptions<ModuleOptions>().PointsNumber;
             var channels = new IChannel[pointsNumber];
             var points = new IPoint[pointsNumber];
 
@@ -32,7 +33,7 @@ namespace Parcs.Modules.Sample
                 await channels[i].WriteDataAsync(true);
                 await channels[i].WriteDataAsync("Hello world");
                 await channels[i].WriteDataAsync((byte)1);
-                await channels[i].WriteDataAsync(new byte[] { 1, 0, 1 });
+                await channels[i].WriteDataAsync([1, 0, 1]);
                 await channels[i].WriteDataAsync(123L);
                 await channels[i].WriteDataAsync(22);
                 await channels[i].WriteObjectAsync(new SampleClass { Id = Guid.NewGuid(), Name = "Test" });
@@ -51,6 +52,8 @@ namespace Parcs.Modules.Sample
             {
                 await points[i].DeleteAsync();
             }
+
+            moduleInfo.Logger.LogInformation("This is a sample logging statement.");
         }
     }
 }

@@ -33,7 +33,6 @@ namespace Parcs.Core.Models
             }
 
             await _managedChannel.WriteDataAsync(_moduleId);
-            await _managedChannel.WriteDataAsync(_argumentsProvider.GetPointsNumber());
             await _managedChannel.WriteObjectAsync(_argumentsProvider.GetArguments());
 
             _managedChannelInitialized = true;

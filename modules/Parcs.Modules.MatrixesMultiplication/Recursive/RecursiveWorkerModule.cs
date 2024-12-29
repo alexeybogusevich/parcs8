@@ -7,7 +7,7 @@ namespace Parcs.Modules.MatrixesMultiplication.Recursive
     {
         public async Task RunAsync(IModuleInfo moduleInfo, CancellationToken cancellationToken = default)
         {
-            var moduleOptions = moduleInfo.ArgumentsProvider.Bind<RecursiveModuleOptions>();
+            var moduleOptions = moduleInfo.BindModuleOptions<RecursiveModuleOptions>();
 
             var matrixA = await moduleInfo.Parent.ReadObjectAsync<Matrix>();
             var matrixB = await moduleInfo.Parent.ReadObjectAsync<Matrix>();

@@ -4,6 +4,6 @@ namespace Parcs.Core.Services.Interfaces
 {
     public interface IArgumentsProviderFactory
     {
-        IArgumentsProvider Create(int pointsNumber, IDictionary<string, string> arguments);
+        IArgumentsProvider Create(IDictionary<string, string> arguments);
     }
 }

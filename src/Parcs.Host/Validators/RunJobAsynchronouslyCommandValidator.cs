@@ -7,10 +7,6 @@ namespace Parcs.Host.Validators
     {
         public RunJobAsynchronouslyCommandValidator()
         {
-            RuleFor(c => c.PointsNumber)
-                .GreaterThan(0)
-                .WithMessage("The number of points must be greater than zero.");
-
             RuleFor(c => c.CallbackUrl)
                 .NotEmpty()
                 .WithMessage("Callback URL is required.")
