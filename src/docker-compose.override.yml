@@ -39,6 +39,5 @@ services:
     ports:
     - "5432:5432"
     environment:
-      - POSTGRES_DB=parcs
-      - POSTGRES_USER=parcs_admin
-      - POSTGRES_PASSWORD=p5sAuuhrSxs9GHxD
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
