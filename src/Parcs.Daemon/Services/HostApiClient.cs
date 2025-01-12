@@ -8,7 +8,7 @@ namespace Parcs.Daemon.Services
 {
     public class HostApiClient(HttpClient httpClient, IOptions<HostConfiguration> options) : IHostApiClient
     {
-        private readonly FlurlClient _flurlClient = new FlurlClient(httpClient);
+        private readonly FlurlClient _flurlClient = new(httpClient);
         private readonly HostConfiguration _configuration = options.Value;
 
         public Task PostJobFailureAsync(PostJobFailureApiRequest request, CancellationToken cancellationToken = default)

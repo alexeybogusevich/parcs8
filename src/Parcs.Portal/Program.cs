@@ -4,19 +4,21 @@ using Parcs.Portal.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Host.AddElasticSearchLogging(builder.Configuration);
 builder.Services.AddRazorPages();
 builder.Services.AddControllers();
 builder.Services.AddServerSideBlazor();
+
 builder.Services.AddApplicationServices();
 builder.Services.AddApplicationOptions(builder.Configuration);
+builder.Services.AddApplicationHealthChecks(builder.Configuration);
+
 builder.Services.AddHttpClients(builder.Configuration);
 builder.Services.AddApplicationInsightsTelemetry();
-builder.Services.AddHealthChecks();
-
 builder.Services.AddEndpointsApiExplorer();
+
 builder.Services.AddSwaggerGen();
 builder.Services.AddSignalR();
-
 builder.Services.AddResponseCompression(opts =>
 {
     opts.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(["application/octet-stream"]);

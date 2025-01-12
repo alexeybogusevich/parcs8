@@ -22,61 +22,61 @@ namespace Parcs.Core.Models
         public ValueTask WriteSignalAsync(Signal signal)
         {
             var internalChannelData = new InternalChannelData<Signal>(signal);
-            return _channelWriter.WriteAsync(internalChannelData, _cancellationToken);
+            return WriteInternalChannelDataAsync(internalChannelData);
         }
 
         public ValueTask WriteDataAsync(bool data)
         {
             var internalChannelData = new InternalChannelData<bool>(data);
-            return _channelWriter.WriteAsync(internalChannelData, _cancellationToken);
+            return WriteInternalChannelDataAsync(internalChannelData);
         }
 
         public ValueTask WriteDataAsync(byte data)
         {
             var internalChannelData = new InternalChannelData<byte>(data);
-            return _channelWriter.WriteAsync(internalChannelData, _cancellationToken);
+            return WriteInternalChannelDataAsync(internalChannelData);
         }
 
         public ValueTask WriteDataAsync(byte[] data)
         {
             var internalChannelData = new InternalChannelData<byte[]>(data);
-            return _channelWriter.WriteAsync(internalChannelData, _cancellationToken);
+            return WriteInternalChannelDataAsync(internalChannelData);
         }
 
         public ValueTask WriteDataAsync(int data)
         {
             var internalChannelData = new InternalChannelData<int>(data);
-            return _channelWriter.WriteAsync(internalChannelData, _cancellationToken);
+            return WriteInternalChannelDataAsync(internalChannelData);
         }
 
         public ValueTask WriteDataAsync(long data)
         {
             var internalChannelData = new InternalChannelData<long>(data);
-            return _channelWriter.WriteAsync(internalChannelData, _cancellationToken);
+            return WriteInternalChannelDataAsync(internalChannelData);
         }
 
         public ValueTask WriteDataAsync(double data)
         {
             var internalChannelData = new InternalChannelData<double>(data);
-            return _channelWriter.WriteAsync(internalChannelData, _cancellationToken);
+            return WriteInternalChannelDataAsync(internalChannelData);
         }
 
         public ValueTask WriteDataAsync(string data)
         {
             var internalChannelData = new InternalChannelData<string>(data);
-            return _channelWriter.WriteAsync(internalChannelData, _cancellationToken);
+            return WriteInternalChannelDataAsync(internalChannelData);
         }
 
         public ValueTask WriteDataAsync(Guid data)
         {
             var internalChannelData = new InternalChannelData<Guid>(data);
-            return _channelWriter.WriteAsync(internalChannelData, _cancellationToken);
+            return WriteInternalChannelDataAsync(internalChannelData);
         }
 
         public ValueTask WriteObjectAsync<T>(T @object)
         {
             var internalChannelData = new InternalChannelData<T>(@object);
-            return _channelWriter.WriteAsync(internalChannelData, _cancellationToken);
+            return WriteInternalChannelDataAsync(internalChannelData);
         }
 
         public async Task<Signal> ReadSignalAsync()
@@ -137,6 +137,11 @@ namespace Parcs.Core.Models
         {
             var internalChannelData = await TryReceiveAsync<T>();
             return internalChannelData.Payload;
+        }
+
+        private async ValueTask WriteInternalChannelDataAsync<T>(T internalChannelData) where T : IInternalChannelData
+        {
+            await _channelWriter.WriteAsync(internalChannelData, _cancellationToken);
         }
 
         private async Task<InternalChannelData<T>> TryReceiveAsync<T>()

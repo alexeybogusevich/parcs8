@@ -24,6 +24,18 @@ namespace Parcs.Portal.Extensions
                 .Configure<PortalConfiguration>(configuration.GetSection(PortalConfiguration.SectionName));
         }
 
+        public static IServiceCollection AddApplicationHealthChecks(this IServiceCollection services, IConfiguration configuration)
+        {
+            var elasticsearchConfiguration = configuration
+                .GetSection(ElasticsearchConfiguration.SectionName)
+                .Get<ElasticsearchConfiguration>();
+
+            services.AddHealthChecks()
+                .AddElasticsearch(elasticsearchConfiguration.BaseUrl, "elasticsearch");
+
+            return services;
+        }
+
         public static IServiceCollection AddHttpClients(this IServiceCollection services, IConfiguration configuration)
         {
             var hostConfiguration = configuration

@@ -10,7 +10,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Datadog.Trace" Version="3.7.0" />
+	<PackageReference Include="AspNetCore.HealthChecks.Elasticsearch" Version="8.0.1" />
+	<PackageReference Include="Elastic.Serilog.Sinks" Version="8.11.1" />
+	<PackageReference Include="Datadog.Trace" Version="3.7.0" />
     <PackageReference Include="Datadog.Trace.Bundle" Version="3.7.0" />
     <PackageReference Include="Flurl.Http" Version="4.0.2" />
     <PackageReference Include="LanguageExt.Core" Version="4.4.9" />
@@ -20,6 +22,9 @@
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.21.0" />
     <PackageReference Include="Quick.AspNetCore.Components.Web.Extensions" Version="6.0.2" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.9.0" />
+	<PackageReference Include="Serilog.AspNetCore" Version="8.0.3" />
+	<PackageReference Include="Serilog.Enrichers.Environment" Version="3.0.1" />
+	<PackageReference Include="Serilog.Sinks.Debug" Version="3.0.0" />
   </ItemGroup>
 
   <ItemGroup>

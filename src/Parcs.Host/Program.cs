@@ -2,6 +2,7 @@ using Parcs.Host.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Host.AddElasticSearchLogging(builder.Configuration);
 builder.Services.AddApiControllers();
 builder.Services.AddValidation();
 builder.Services.AddProblemDetails();

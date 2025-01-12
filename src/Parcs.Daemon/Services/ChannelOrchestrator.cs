@@ -19,6 +19,7 @@ namespace Parcs.Daemon.Services
                 while (true)
                 {
                     var signal = await managedChannel.ReadSignalAsync();
+                    _logger.LogDebug("Received signal: {Signal}", signal);
 
                     if (signal == Signal.CloseConnection)
                     {
@@ -30,12 +31,14 @@ namespace Parcs.Daemon.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Exception thrown: {Message}.", ex.Message);
+                _logger.LogError(ex, "Exception thrown during orchestration: {Message}.", ex.Message);
             }
             finally
             {
                 managedChannel.Dispose();
             }
+
+            _logger.LogDebug("Orchestration exited.");
         }
     }
 }

@@ -24,11 +24,9 @@ namespace Parcs.Core.Models
             await _managedChannel.WriteDataAsync(_jobId);
 
             var isJobInitialized = await _managedChannel.ReadBooleanAsync();
-
             if (isJobInitialized)
             {
                 _managedChannelInitialized = true;
-
                 return _managedChannel;
             }
 

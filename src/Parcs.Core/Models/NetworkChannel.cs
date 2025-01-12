@@ -19,6 +19,69 @@ namespace Parcs.Core.Models
             _cancellationToken = cancellationToken;
         }
 
+        public ValueTask WriteSignalAsync(Signal signal)
+        {
+            var bytes = new byte[] { (byte)signal };
+            return WriteBytesAsync(bytes);
+        }
+
+        public ValueTask WriteDataAsync(bool data)
+        {
+            var bytes = BitConverter.GetBytes(data);
+            return WriteBytesAsync(bytes);
+        }
+
+        public ValueTask WriteDataAsync(byte data)
+        {
+            var bytes = new byte[] { data };
+            return WriteBytesAsync(bytes);
+        }
+
+        public async ValueTask WriteDataAsync(byte[] data)
+        {
+            await WriteDataAsync(data.Length);
+            await WriteBytesAsync(data);
+        }
+
+        public ValueTask WriteDataAsync(int data)
+        {
+            var bytes = BitConverter.GetBytes(data);
+            return WriteBytesAsync(bytes);
+        }
+
+        public ValueTask WriteDataAsync(long data)
+        {
+            var bytes = BitConverter.GetBytes(data);
+            return WriteBytesAsync(bytes);
+        }
+
+        public ValueTask WriteDataAsync(double data)
+        {
+            var bytes = BitConverter.GetBytes(data);
+            return WriteBytesAsync(bytes);
+        }
+
+        public async ValueTask WriteDataAsync(string data)
+        {
+            var bytes = Encoding.UTF8.GetBytes(data);
+            await WriteDataAsync(bytes.Length);
+            await WriteBytesAsync(bytes);
+        }
+
+        public async ValueTask WriteDataAsync(Guid data)
+        {
+            var bytes = data.ToByteArray();
+            await WriteDataAsync(bytes.Length);
+            await WriteBytesAsync(bytes);
+        }
+
+        public async ValueTask WriteObjectAsync<T>(T @object)
+        {
+            var bytes = JsonSerializer.SerializeToUtf8Bytes(@object);
+            await WriteDataAsync(bytes.Length);
+            await WriteBytesAsync(bytes);
+        }
+
         public async Task<Signal> ReadSignalAsync()
         {
             var size = sizeof(byte);
@@ -89,66 +152,8 @@ namespace Parcs.Core.Models
             return Encoding.UTF8.GetString(buffer);
         }
 
-        public ValueTask WriteSignalAsync(Signal signal)
+        private async ValueTask WriteBytesAsync(byte[] bytes)
         {
-            var bytes = new byte[] { (byte)signal };
-            return _networkStream.WriteAsync(bytes, _cancellationToken);
-        }
-
-        public ValueTask WriteDataAsync(bool data)
-        {
-            var bytes = BitConverter.GetBytes(data);
-            return _networkStream.WriteAsync(bytes, _cancellationToken);
-        }
-
-        public ValueTask WriteDataAsync(byte data)
-        {
-            var bytes = new byte[] { data };
-            return _networkStream.WriteAsync(bytes, _cancellationToken);
-        }
-
-        public async ValueTask WriteDataAsync(byte[] data)
-        {
-            await WriteDataAsync(data.Length);
-            await _networkStream.WriteAsync(data, _cancellationToken);
-        }
-
-        public ValueTask WriteDataAsync(int data)
-        {
-            var bytes = BitConverter.GetBytes(data);
-            return _networkStream.WriteAsync(bytes, _cancellationToken);
-        }
-
-        public ValueTask WriteDataAsync(long data)
-        {
-            var bytes = BitConverter.GetBytes(data);
-            return _networkStream.WriteAsync(bytes, _cancellationToken);
-        }
-
-        public ValueTask WriteDataAsync(double data)
-        {
-            var bytes = BitConverter.GetBytes(data);
-            return _networkStream.WriteAsync(bytes, _cancellationToken);
-        }
-
-        public async ValueTask WriteDataAsync(string data)
-        {
-            var bytes = Encoding.UTF8.GetBytes(data);
-            await WriteDataAsync(bytes.Length);
-            await _networkStream.WriteAsync(bytes, _cancellationToken);
-        }
-
-        public async ValueTask WriteDataAsync(Guid data)
-        {
-            var bytes = data.ToByteArray();
-            await WriteDataAsync(bytes.Length);
-            await _networkStream.WriteAsync(bytes, _cancellationToken);
-        }
-
-        public async ValueTask WriteObjectAsync<T>(T @object)
-        {
-            var bytes = JsonSerializer.SerializeToUtf8Bytes(@object);
-            await WriteDataAsync(bytes.Length);
             await _networkStream.WriteAsync(bytes, _cancellationToken);
         }
 
@@ -162,7 +167,6 @@ namespace Parcs.Core.Models
             while (offset < size)
             {
                 var bytesRead = await _networkStream.ReadAsync(buffer.AsMemory(offset, count), _cancellationToken);
-
                 if (bytesRead == 0)
                 {
                     break;

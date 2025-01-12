@@ -57,11 +57,15 @@ namespace Parcs.Modules.ProofOfWork.Parallel
 
             var moduleOutput = new ModuleOutput
             {
-                Found = resultNonce is not null,
                 ElapsedSeconds = stopWatch.Elapsed.TotalSeconds,
-                ResultNonce = resultNonce,
-                ResultHash = resultNonce is null ? null : HashService.GetHashValue($"{moduleOptions.Prompt}{resultNonce}"),
             };
+
+            if (resultNonce != null)
+            {
+                moduleOutput.Found = true;
+                moduleOutput.ResultNonce = resultNonce;
+                moduleOutput.ResultHash = HashService.GetHashValue($"{moduleOptions.Prompt}{resultNonce}");
+            }
 
             await moduleInfo.OutputWriter.WriteToFileAsync(JsonSerializer.SerializeToUtf8Bytes(moduleOutput), moduleOptions.OutputFilename);
 

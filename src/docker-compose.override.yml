@@ -6,6 +6,7 @@ services:
       - Daemons__PreconfiguredInstances__0__HostUrl=parcs.daemon
       - Daemons__PreconfiguredInstances__0__Port=1111
       - HostApi__Uri=parcs.hostapi
+      - Elasticsearch__BaseUrl=http://elasticsearch:9200
 
   parcs.hostapi:
     environment:
@@ -18,6 +19,7 @@ services:
       - Database__Username=parcs_admin
       - Database__Password=p5sAuuhrSxs9GHxD
       - Database__Port=5432
+      - Elasticsearch__BaseUrl=http://elasticsearch:9200
     ports:
       - "5000:80"
       - "5001:443"
@@ -31,9 +33,23 @@ services:
       - ASPNETCORE_URLS=https://+:443;http://+:80
       - Portal__Uri=parcs.portal
       - Host__Uri=parcs.hostapi
+      - Elasticsearch__BaseUrl=http://elasticsearch:9200
     ports:
       - "5002:80"
       - "5003:443"
+
+  elasticsearch:
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+    ports:
+      - "9200:9200" 
+
+  kibana:
+    environment:
+      - ELASTICSEARCH_URL=elasticsearch
+    ports:
+      - "5601:5601"
 
   parcs.database:
     ports:

@@ -9,9 +9,12 @@ using Parcs.Daemon.Services.Interfaces;
 
 namespace Parcs.Daemon.HostedServices
 {
-    public class TcpServer(IChannelOrchestrator channelOrchestrator, IOptions<DaemonConfiguration> nodeOptions, ILogger<TcpServer> logger) : IHostedService
+    public class TcpServer(
+        IChannelOrchestrator channelOrchestrator,
+        IOptions<DaemonConfiguration> nodeOptions,
+        ILogger<TcpServer> logger) : IHostedService
     {
-        private readonly TcpListener _tcpListener = new TcpListener(new IPEndPoint(IPAddress.Any, nodeOptions.Value.Port));
+        private readonly TcpListener _tcpListener = new(new IPEndPoint(IPAddress.Any, nodeOptions.Value.Port));
         private readonly IChannelOrchestrator _channelOrchestrator = channelOrchestrator;
         private readonly ILogger<TcpServer> _logger = logger;
 

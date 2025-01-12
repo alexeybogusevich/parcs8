@@ -10,12 +10,17 @@ using Microsoft.EntityFrameworkCore;
 namespace Parcs.Host.Handlers
 {
     public class RunJobSynchronouslyCommandHandler(
-        ParcsDbContext parcsDbContext, IModuleInfoFactory moduleInfoFactory, IJobTracker jobTracker, IModuleLoader moduleLoader) : IRequestHandler<RunJobSynchronouslyCommand, RunJobSynchronouslyCommandResponse>
+        ParcsDbContext parcsDbContext,
+        IModuleInfoFactory moduleInfoFactory,
+        IJobTracker jobTracker,
+        IModuleLoader moduleLoader,
+        ILogger<RunJobSynchronouslyCommandHandler> logger) : IRequestHandler<RunJobSynchronouslyCommand, RunJobSynchronouslyCommandResponse>
     {
         private readonly ParcsDbContext _parcsDbContext = parcsDbContext;
         private readonly IModuleInfoFactory _moduleInfoFactory = moduleInfoFactory;
         private readonly IJobTracker _jobTracker = jobTracker;
         private readonly IModuleLoader _moduleLoader = moduleLoader;
+        private readonly ILogger<RunJobSynchronouslyCommandHandler> _logger = logger;
 
         public async Task<RunJobSynchronouslyCommandResponse> Handle(RunJobSynchronouslyCommand command, CancellationToken cancellationToken)
         {
@@ -49,13 +54,15 @@ namespace Parcs.Host.Handlers
                 await _parcsDbContext.JobStatuses.AddAsync(new(job.Id, (short)JobStatus.Completed), CancellationToken.None);
                 await _parcsDbContext.SaveChangesAsync(CancellationToken.None);
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException ex)
             {
+                _logger.LogWarning(ex, "Running job {JobId} synchronously cancelled.", job.Id);
                 await _parcsDbContext.JobStatuses.AddAsync(new(job.Id, (short)JobStatus.Cancelled), CancellationToken.None);
                 await _parcsDbContext.SaveChangesAsync(CancellationToken.None);
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Running job {JobId} synchronously failed.", job.Id);
                 await _parcsDbContext.JobFailures.AddAsync(new(job.Id, ex.Message, ex.StackTrace), CancellationToken.None);
                 await _parcsDbContext.JobStatuses.AddAsync(new(job.Id, (short)JobStatus.Failed), CancellationToken.None);
                 await _parcsDbContext.SaveChangesAsync(CancellationToken.None);
@@ -65,6 +72,8 @@ namespace Parcs.Host.Handlers
                 await moduleInfo.DisposeAsync();
                 _ = await _jobTracker.CancelAndStopTrackingAsync(job.Id);
             }
+
+            _logger.LogInformation("Running job {JobId} synchronously succeeded.", job.Id);
 
             return new RunJobSynchronouslyCommandResponse((JobStatus?)job.Statuses.LastOrDefault()?.Status);
         }
