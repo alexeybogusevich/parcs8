@@ -23,6 +23,18 @@ spec:
     path: /mnt/data/database
 ---
 apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: parcs-elastic-volume
+spec:
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: /mnt/data/elastic
+---
+apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: parcs-storage-volume-claim
@@ -40,6 +52,20 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: parcs-database-volume-claim
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  selector:
+    matchLabels:
+      app: parcs
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: parcs-elastic-volume-claim
 spec:
   accessModes:
     - ReadWriteOnce
@@ -104,11 +130,99 @@ spec:
         - name: Kubernetes__DaemonsHeadlessServiceName
           value: parcs-daemon-headless
         - name: HostApi__Uri
-          value: parcs-hostapi-internal    
+          value: parcs-hostapi-internal
+        - name: Elasticsearch__BaseUrl
+          value: http://elasticsearch:9200
       volumes:
       - name: parcs-storage-volume
         persistentVolumeClaim:
-          claimName: parcs-storage-volume-claim    
+          claimName: parcs-storage-volume-claim
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch
+  labels:
+    app: elasticsearch
+spec:
+  ports:
+  - name: http
+    port: 9200
+    targetPort: 9200
+  selector:
+    app: elasticsearch
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: elasticsearch
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: elasticsearch
+  template:
+    metadata:
+      labels:
+        app: elasticsearch
+    spec:
+      containers:
+      - name: elasticsearch
+        image: elasticsearch:8.15.0
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 9200
+        env:
+        - name: discovery.type
+          value: single-node
+        - name: xpack.security.enabled
+          value: "false"
+        volumeMounts:
+        - name: elasticsearch-data-volume
+          mountPath: /usr/share/elasticsearch/data
+      volumes:
+      - name: elasticsearch-data-volume
+        persistentVolumeClaim:
+          claimName: elasticsearch-data-volume-claim
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kibana
+  labels:
+    app: kibana
+spec:
+  type: LoadBalancer
+  ports:
+  - name: http
+    port: 5601
+    targetPort: 5601
+  selector:
+    app: kibana
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kibana
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kibana
+  template:
+    metadata:
+      labels:
+        app: kibana
+    spec:
+      containers:
+      - name: kibana
+        image: kibana:8.15.0
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 5601
+        env:
+        - name: ELASTICSEARCH_URL
+          value: http://elasticsearch:9200
 ---
 apiVersion: v1
 kind: Service
@@ -186,7 +300,9 @@ spec:
         - name: Database__Password
           value: p5sAuuhrSxs9GHxD
         - name: Database__Port
-          value: '5432'                             
+          value: '5432'
+        - name: Elasticsearch__BaseUrl
+          value: http://elasticsearch:9200
         volumeMounts:
         - name: parcs-storage-volume
           mountPath: /var/lib/storage
@@ -244,7 +360,11 @@ spec:
         - name: Host__Uri
           value: parcs-hostapi-internal
         - name: Portal__Uri
-          value: parcs-hostapi-internal
+          value: parcs-portal
+        - name: Portal__SignalrUri
+          value: parcs-portal
+        - name: Elasticsearch__BaseUrl
+          value: http://elasticsearch:9200
 ---
 apiVersion: v1
 kind: Service
