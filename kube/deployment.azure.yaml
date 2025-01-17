@@ -25,11 +25,11 @@ spec:
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: elasticsearch-data-volume-claim
+  name: elasticsearch-data
 spec:
   accessModes:
   - ReadWriteOnce
-  storageClassName: managed-csi
+  storageClassName: azurefile-csi
   resources:
     requests:
       storage: 2Gi
@@ -81,12 +81,12 @@ spec:
             cpu: 500m
             memory: 1Gi
         volumeMounts:
-        - name: elasticsearch-data-volume
+        - name: elasticsearch-data
           mountPath: /usr/share/elasticsearch/data
       volumes:
-      - name: elasticsearch-data-volume
+      - name: elasticsearch-data
         persistentVolumeClaim:
-          claimName: elasticsearch-data-volume-claim
+          claimName: elasticsearch-data
 ---
 apiVersion: v1
 kind: Service
@@ -129,10 +129,10 @@ spec:
         resources:
           limits:
             cpu: 500m
-            memory: 512Mi
+            memory: 1024Mi
           requests:
             cpu: 200m
-            memory: 256Mi
+            memory: 512Mi
 ---
 apiVersion: v1
 kind: Service
@@ -207,7 +207,7 @@ spec:
   ports:
   - name: https
     port: 443
-    targetPort: 80
+    targetPort: 8080
   selector:
     app: parcs-hostapi
 ---
@@ -224,7 +224,7 @@ spec:
     targetPort: 443
   - name: http
     port: 80
-    targetPort: 80
+    targetPort: 8080
   selector:
     app: parcs-hostapi
 ---
@@ -297,7 +297,7 @@ spec:
     targetPort: 443
   - name: http
     port: 80
-    targetPort: 80
+    targetPort: 8080
   selector:
     app: parcs-portal
 ---
@@ -391,7 +391,6 @@ spec:
         volumeMounts:
         - name: parcs-database-volume
           mountPath: /var/lib/postgresql/data
-          postgres: postgres
       volumes:
       - name: parcs-database-volume
         persistentVolumeClaim:
