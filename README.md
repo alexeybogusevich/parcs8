@@ -30,12 +30,12 @@ The solution depends on a NuGet package named "Parcs.Net" (version 4.0.0). You c
 
 Make sure to include this package in your project to utilize the algorithmic modules provided by the solution.
 
-## Exploring PARCS Logs in Kibana
+## Exploring Logs in Kibana
 
 ### Overview
 PARCS logs, including logs from the **parcs-daemon** and **parcs-hostapi**, are stored in **Elasticsearch** and can be explored using **Kibana**. To view and analyze these logs, you need to set up a **data view** in Kibana that points to the appropriate Elasticsearch index.
 
-### Steps to Explore PARCS Logs in Kibana
+### Steps to Explore Logs in Kibana
 
 1. **Access Kibana**: 
    - After deploying the solution, you can access the Kibana dashboard via the exposed Kibana service on port 5601. If using AKS, you can access it using the LoadBalancer IP or DNS name.
