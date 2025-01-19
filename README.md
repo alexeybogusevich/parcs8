@@ -64,6 +64,3 @@ Contributions to the PARCS-NET-K8 solution are welcome! If you encounter any iss
 
 ## License
 This repository is licensed under the [MIT License](LICENSE). Feel free to use and modify the code as per the terms of the license.
-
-## Acknowledgements
-We would like to thank the contributors and maintainers of the PARCS-NET-K8 solution. Your efforts and support are greatly appreciated.
