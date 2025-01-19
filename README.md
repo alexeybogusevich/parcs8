@@ -32,7 +32,7 @@ For local development and debugging, you can use Docker Compose. Follow these st
    This will create the required containers and start the local development environment.
 
 ## NuGet Package
-The solution depends on a NuGet package named "Parcs.Net" (version 4.0.0). You can find the package on NuGet.org at the following URL: [https://www.nuget.org/packages/Parcs.Net/](https://www.nuget.org/packages/Parcs.Net/)
+The solution depends on a NuGet package named "Parcs.Net" (version 0.7.0). You can find the package on NuGet.org at the following URL: [https://www.nuget.org/packages/Parcs.Net/](https://www.nuget.org/packages/Parcs.Net/)
 
 Make sure to include this package in your project to utilize the algorithmic modules provided by the solution.
 
