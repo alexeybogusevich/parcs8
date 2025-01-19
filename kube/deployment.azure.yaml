@@ -248,7 +248,7 @@ spec:
         image: oleksiibohusevych/parcshost
         imagePullPolicy: Always
         ports:
-        - containerPort: 80
+        - containerPort: 8080
         resources:
           limits:
             cpu: 500m
@@ -320,7 +320,7 @@ spec:
         image: oleksiibohusevych/parcsportal
         imagePullPolicy: Always
         ports:
-        - containerPort: 80
+        - containerPort: 8080
         resources:
           limits:
             cpu: 500m
