@@ -52,8 +52,6 @@ PARCS logs, including logs from the **parcs-daemon** and **parcs-hostapi**, are 
    - You can filter logs by various fields such as log level, service (e.g., `parcs-daemon` or `parcs-hostapi`), and timestamp.
    - Use Kibana’s search and filtering capabilities to drill down into specific logs or view trends over time.
 
-![image](https://github.com/user-attachments/assets/4fa1019a-662b-408e-b766-0e8c006f5671)
-
 
 ## Contributing
 Contributions to the PARCS-NET-K8 solution are welcome! If you encounter any issues or have suggestions for improvements, please open an issue or submit a pull request in this repository.
