@@ -1,7 +1,7 @@
 # PARCS-NET-K8
 
 ## Overview
-PARCS-NET-K8 is a solution for deploying and managing algorithmic modules that solve recursive parallel computation problems. This repository contains the necessary files and configurations to deploy the solution onto Azure as an AKS (Azure Kubernetes Service) service. It also provides a local development environment using Docker Compose.
+This is a solution for deploying and managing algorithmic modules that solve recursive parallel computation problems. This repository contains the necessary files and configurations to deploy the solution onto Azure as an AKS (Azure Kubernetes Service) service. It also provides a local development environment using Docker Compose.
 
 ## Deployment
 
