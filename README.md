@@ -30,6 +30,30 @@ The solution depends on a NuGet package named "Parcs.Net" (version 4.0.0). You c
 
 Make sure to include this package in your project to utilize the algorithmic modules provided by the solution.
 
+## Exploring PARCS Logs in Kibana
+
+### Overview
+PARCS logs, including logs from the **parcs-daemon** and **parcs-hostapi**, are stored in **Elasticsearch** and can be explored using **Kibana**. To view and analyze these logs, you need to set up a **data view** in Kibana that points to the appropriate Elasticsearch index.
+
+### Steps to Explore PARCS Logs in Kibana
+
+1. **Access Kibana**: 
+   - After deploying the solution, you can access the Kibana dashboard via the exposed Kibana service on port 5601. If using AKS, you can access it using the LoadBalancer IP or DNS name.
+   
+2. **Create a Data View in Kibana**:
+   - In Kibana, navigate to **"Stack Management"** > **"Data Views"**.
+   - Click on **"Create data view"**.
+   - Enter the index pattern `parcs-*` in the **Index pattern** field. This will match all indices that begin with `parcs-`, including logs related to the PARCS system.
+   - Click **"Next step"** to configure the data view.
+
+3. **Save the Data View**:
+   - Click **"Create data view"** to save the configuration.
+
+4. **Explore the Logs**:
+   - Once the data view is created, you can use Kibana’s **Discover** tab to explore the PARCS logs.
+   - You can filter logs by various fields such as log level, service (e.g., `parcs-daemon` or `parcs-hostapi`), and timestamp.
+   - Use Kibana’s search and filtering capabilities to drill down into specific logs or view trends over time.
+
 ## Contributing
 Contributions to the PARCS-NET-K8 solution are welcome! If you encounter any issues or have suggestions for improvements, please open an issue or submit a pull request in this repository.
 
