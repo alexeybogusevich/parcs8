@@ -7,7 +7,7 @@ PARCS-NET-K8 is a solution for deploying and managing algorithmic modules that s
 
 To deploy the solution onto Azure as an AKS service, follow these steps:
 
-1. Create a Kubernetes cluster (AKS) on Azure using the Azure Portal. This will provision the necessary resources for the AKS cluster. Make sure to configure the cluster according to your requirements.
+1. Create a Kubernetes cluster (AKS) on Azure using the Azure Portal. This will provision the necessary resources for the AKS cluster. Ensure the node pool is configured with a minimum image size of DS2_v2 General Purpose to meet performance and resource requirements.
 
 2. Apply the YAML file located at `kube/deployment.azure.yaml` to configure the AKS cluster. This file specifies the desired state of the cluster and sets up the necessary configurations.
 
