@@ -3,6 +3,7 @@ using Parcs.Core.Services.Interfaces;
 using System.Net.Sockets;
 using System.Net;
 using Microsoft.Extensions.Logging;
+using System.Collections.Concurrent;
 
 namespace Parcs.Core.Models
 {
@@ -51,7 +52,7 @@ namespace Parcs.Core.Models
 
             if (IsHost is false && nextDaemonAddresses.Any(IPAddress.IsLoopback))
             {
-                return GetInternalPoint();
+                return CreateInternalPoint();
             }
 
             Logger.LogInformation("Will create a point at {Daemon}", nextDaemon.HostUrl);
@@ -73,7 +74,7 @@ namespace Parcs.Core.Models
             return networkPoint;
         }
 
-        private IPoint GetInternalPoint()
+        private IPoint CreateInternalPoint()
         {
             var internalChannelId = _internalChannelManager.Create();
 
@@ -112,6 +113,7 @@ namespace Parcs.Core.Models
             var leastPointsDaemon = _pointsOnDaemons.FirstOrDefault(d => d.Value == _pointsOnDaemons.Min(d => d.Value));
 
             Logger.LogInformation("Least points daemon is {HostUrl} to the dictionary", leastPointsDaemon.Key);
+            _pointsOnDaemons[leastPointsDaemon.Key]++;
 
             return availableDaemons.FirstOrDefault(d => d.HostUrl == leastPointsDaemon.Key);
         }
@@ -130,6 +132,7 @@ namespace Parcs.Core.Models
                 await point.DisposeAsync();
             }
 
+            _pointsOnDaemons.Clear();
             _createdPoints.Clear();
         }
     }
