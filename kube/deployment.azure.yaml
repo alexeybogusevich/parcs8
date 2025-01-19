@@ -172,11 +172,11 @@ spec:
         - containerPort: 1111
         resources:
           limits:
-            cpu: 800m
-            memory: 2Gi
+            cpu: 1000m
+            memory: 2048Mi
           requests:
-            cpu: 100m
-            memory: 128Mi
+            cpu: 500m
+            memory: 1024Mi
         volumeMounts:
         - name: parcs-storage-volume
           mountPath: /var/lib/storage
@@ -251,11 +251,11 @@ spec:
         - containerPort: 8080
         resources:
           limits:
-            cpu: 500m
-            memory: 2Gi
+            cpu: 1000m
+            memory: 2048Mi
           requests:
-            cpu: 100m
-            memory: 128Mi
+            cpu: 500m
+            memory: 1024Mi
         env:
         - name: Hosting__Environment
           value: Kubernetes

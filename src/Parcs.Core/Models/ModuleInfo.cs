@@ -43,12 +43,18 @@ namespace Parcs.Core.Models
         {
             var nextDaemon = GetNextDaemon();
 
+            Logger.LogInformation("Resolved daemon {Daemon}", nextDaemon.HostUrl);
+
             var nextDaemonAddresses = _addressResolver.Resolve(nextDaemon.HostUrl);
+
+            Logger.LogInformation("Resolved daemon address {Daemon}", nextDaemonAddresses.ToString());
 
             if (IsHost is false && nextDaemonAddresses.Any(IPAddress.IsLoopback))
             {
                 return GetInternalPoint();
             }
+
+            Logger.LogInformation("Will create a point at {Daemon}", nextDaemon.HostUrl);
 
             return await CreateNetworkPointAsync(nextDaemonAddresses, nextDaemon.Port);
         }
@@ -84,6 +90,14 @@ namespace Parcs.Core.Models
         {
             var availableDaemons = _daemonResolver.GetAvailableDaemons();
 
+            Logger.LogInformation(
+                "Available daemons: {Daemons}",
+                string.Join(", ", availableDaemons.Select(d => d.HostUrl).ToArray()));
+
+            Logger.LogInformation(
+                "Current points on daemons: {PointsOnDaemons}",
+                string.Join(", ", _pointsOnDaemons.Select(p => $"{p.Key}:{p.Value}").ToArray()));
+
             if (availableDaemons is null || !availableDaemons.Any())
             {
                 throw new InvalidOperationException("No daemons available.");
@@ -91,10 +105,13 @@ namespace Parcs.Core.Models
 
             foreach (var daemon in availableDaemons.Where(daemon => !_pointsOnDaemons.ContainsKey(daemon.HostUrl)))
             {
+                Logger.LogInformation("Adding new daemon {HostUrl} to the dictionary", daemon.HostUrl);
                 _pointsOnDaemons.TryAdd(daemon.HostUrl, 0);
             }
 
             var leastPointsDaemon = _pointsOnDaemons.FirstOrDefault(d => d.Value == _pointsOnDaemons.Min(d => d.Value));
+
+            Logger.LogInformation("Least points daemon is {HostUrl} to the dictionary", leastPointsDaemon.Key);
 
             return availableDaemons.FirstOrDefault(d => d.HostUrl == leastPointsDaemon.Key);
         }
