@@ -21,6 +21,27 @@ namespace Parcs.Modules.TravelingSalesman.Models
             TotalDistance = distance;
         }
 
+        /// <summary>
+        /// Sets the cities list for a route. Used after deserialization in migration scenarios.
+        /// Note: This uses reflection to set the private _cities field.
+        /// </summary>
+        public void SetCities(List<City> cities)
+        {
+            if (cities == null) throw new ArgumentNullException(nameof(cities));
+            if (cities.Count != Cities.Count)
+                throw new ArgumentException("Cities list size must match route cities count");
+            
+            // Use reflection to set private field (not ideal, but needed for migration)
+            var field = typeof(Route).GetField("_cities", 
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            if (field != null)
+            {
+                field.SetValue(this, cities);
+                // Recalculate distance with new cities reference
+                CalculateDistance();
+            }
+        }
+
         public Route(List<City> cities, Random random)
         {
             _cities = cities ?? throw new ArgumentNullException(nameof(cities));
