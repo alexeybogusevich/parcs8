@@ -13,24 +13,28 @@ left to right direction
 
 LAYOUT_WITH_LEGEND()
 
-Person(user, "Користувач", "Програмний інженер в сфері паралельних обчислень", $sprite="users")
-System_Boundary(c2, "Середа виконання ПАРКС", $link="https://github.com/plantuml-stdlib/C4-PlantUML") {
-    Container(portal, "Портал управління", "ASP.NET Core Blazor", "Надає графічний інтерфейс для роботи з АМ та задачами.", $sprite="javascript")
-    Container(host, "Хост", "ASP.NET Core Web API", "Безпосередньо контролює створення АМ і оркестрацію задач.", $sprite="dotnetcore")
-    ContainerDb(hostDb, "БД Хоста", "PostgreSQL", "Зберігає дані про задачі та модулі.", $sprite="postgresql")
-    Container(daemon, "Демон", ".NET Core Generic Host", "Виконує основні обчислення.", $sprite="dotnetcore")
-    ContainerDb(storage, "Сховище", "Persistent Volume", "Зберігає бінарні АМ, вхідні та вихідні файли задач.")
+Person(user, "User", "Software engineer in parallel computing", $sprite="users")
+System_Boundary(c2, "PARCS Execution Environment", $link="https://github.com/plantuml-stdlib/C4-PlantUML") {
+    Container(portal, "Management Portal", "ASP.NET Core Blazor", "Provides graphical interface for working with AM and tasks.", $sprite="javascript")
+    Container(messageBroker, "Message Broker", "Azure Service Bus", "Handles asynchronous messaging between components.")
+    Container(host, "Host", "ASP.NET Core Web API", "Directly controls AM creation and task orchestration.", $sprite="dotnetcore")
+    ContainerDb(hostDb, "Host Database", "PostgreSQL", "Stores data about tasks and modules.", $sprite="postgresql")
+    Container(daemon, "Daemon", ".NET Core Generic Host", "Performs main computations.", $sprite="dotnetcore")
+    ContainerDb(storage, "Storage", "Persistent Volume", "Stores binary AMs, input and output task files.")
 }
-System_Ext(library, "Parcs.Net", "NuGet", "Бібліотека класів для реалізації АМ.", $sprite="dotnetcore")
+System_Ext(library, "Parcs.Net", "NuGet", "Class library for AM implementation.", $sprite="dotnetcore")
 
-Rel(user, portal, "Взаємодіє з графічним інтерфейсом", "HTTPS")
-Rel(user, library, "Посилається на програмний інтерфейс")
-Rel(portal, host, "Надсилає програмні запити", "HTTPS/(JSON|Form-Data)")
-Rel(host, daemon, "Надсилає програмні запити", "TCP")
-Rel(host, hostDb, "Записує та зчитує дані", "EF Core")
-Rel(host, storage, "Записує та зчитує дані")
-Rel(host, library, "Посилається на програмний інтерфейс")
-Rel(daemon, library, "Посилається на програмний інтерфейс")
-Rel(daemon, storage, "Зчитує дані")
+Rel(user, portal, "Interacts with graphical interface", "HTTPS")
+Rel(user, library, "References the API")
+Rel(portal, messageBroker, "Publishes messages", "AMQP")
+Rel(messageBroker, host, "Delivers messages", "AMQP")
+Rel(host, messageBroker, "Publishes messages", "AMQP")
+Rel(messageBroker, daemon, "Delivers messages", "AMQP")
+Rel(daemon, messageBroker, "Publishes messages", "AMQP")
+Rel(host, hostDb, "Writes and reads data", "EF Core")
+Rel(host, storage, "Writes and reads data")
+Rel(host, library, "References the API")
+Rel(daemon, library, "References the API")
+Rel(daemon, storage, "Reads data")
 
 @enduml

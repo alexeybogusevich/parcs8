@@ -1,0 +1,152 @@
+@startuml TSP_Architecture
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam defaultFontSize 10
+
+title Traveling Salesman Problem Module Architecture in PARCS System
+
+package "PARCS System" {
+    package "TSP Module" {
+        class "ModuleOptions" {
+            +CitiesNumber: int
+            +PopulationSize: int
+            +Generations: int
+            +MutationRate: double
+            +CrossoverRate: double
+            +PointsNumber: int
+        }
+        
+        package "Models" {
+            class "City" {
+                +Id: int
+                +X: double
+                +Y: double
+                +DistanceTo(city: City): double
+            }
+            
+            class "Route" {
+                +Cities: List<int>
+                +TotalDistance: double
+                +CalculateDistance(): double
+                +Mutate(): void
+                +Crossover(other: Route): Route
+            }
+            
+            class "GeneticAlgorithm" {
+                +Population: List<Route>
+                +Cities: List<City>
+                +Options: ModuleOptions
+                +Initialize(): void
+                +Evolve(): void
+                +Select(): Route
+                +GetBestRoute(): Route
+                +GetAverageDistance(): double
+            }
+            
+            class "ModuleOutput" {
+                +BestDistance: double
+                +AverageDistance: double
+                +ElapsedSeconds: double
+                +GenerationsCompleted: int
+                +BestRoute: List<int>
+                +ConvergenceHistory: List<double>
+            }
+        }
+        
+        package "Sequential Implementation" {
+            class "SequentialMainModule" {
+                +Execute(): ModuleOutput
+                -RunGeneticAlgorithm(): ModuleOutput
+            }
+        }
+        
+        package "Parallel Implementation" {
+            class "ParallelMainModule" {
+                +Execute(): ModuleOutput
+                -CreatePoints(): List<IPoint>
+                -DistributeData(): void
+                -CollectResults(): ModuleOutput
+                -CombineResults(): ModuleOutput
+            }
+            
+            class "ParallelWorkerModule" {
+                +Execute(): ModuleOutput
+                -ReceiveData(): void
+                -RunLocalGA(): ModuleOutput
+                -SendResult(): void
+            }
+        }
+    }
+}
+
+package "Kubernetes Infrastructure" {
+    class "PARCS Controller" {
+        +DeployModule(): void
+        +ScaleWorkers(): void
+        +MonitorExecution(): void
+    }
+    
+    class "Worker Pods" {
+        +ExecuteWorkerModule(): void
+        +CommunicateWithMain(): void
+    }
+}
+
+package "Data Flow" {
+    class "Input Data" {
+        +Cities: List<City>
+        +Parameters: ModuleOptions
+    }
+    
+    class "Intermediate Results" {
+        +LocalBestRoutes: List<Route>
+        +LocalBestDistances: List<double>
+    }
+    
+    class "Final Output" {
+        +GlobalBestRoute: Route
+        +PerformanceMetrics: ModuleOutput
+    }
+}
+
+' Relationships
+ModuleOptions --> GeneticAlgorithm
+City --> Route
+Route --> GeneticAlgorithm
+GeneticAlgorithm --> ModuleOutput
+
+SequentialMainModule --> GeneticAlgorithm
+SequentialMainModule --> ModuleOutput
+
+ParallelMainModule --> ParallelWorkerModule
+ParallelMainModule --> ModuleOutput
+ParallelWorkerModule --> GeneticAlgorithm
+ParallelWorkerModule --> ModuleOutput
+
+PARCS Controller --> ParallelMainModule
+PARCS Controller --> Worker Pods
+Worker Pods --> ParallelWorkerModule
+
+Input Data --> ParallelMainModule
+Input Data --> ParallelWorkerModule
+ParallelWorkerModule --> Intermediate Results
+Intermediate Results --> ParallelMainModule
+ParallelMainModule --> Final Output
+
+' Parallel execution flow
+note right of ParallelMainModule
+    1. Create worker points
+    2. Distribute cities and parameters
+    3. Execute worker modules
+    4. Collect local results
+    5. Combine for global best
+end note
+
+note right of ParallelWorkerModule
+    1. Receive cities subset
+    2. Run local genetic algorithm
+    3. Send best route back
+end note
+
+@enduml 

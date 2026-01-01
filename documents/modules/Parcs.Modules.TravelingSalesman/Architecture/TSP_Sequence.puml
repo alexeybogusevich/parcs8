@@ -1,0 +1,61 @@
+@startuml TSP_Sequence
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam defaultFontSize 10
+
+title Traveling Salesman Problem - Parallel Execution Sequence
+
+actor User
+participant "PARCS Controller" as Controller
+participant "Main Module" as Main
+participant "Worker 1" as W1
+participant "Worker 2" as W2
+participant "Worker N" as WN
+
+User -> Controller: Deploy TSP Module
+Controller -> Main: Initialize with options
+Main -> Main: Generate cities
+Main -> Main: Create worker points
+
+note over Main: Distribute data to workers
+
+Main -> W1: Send cities + parameters
+Main -> W2: Send cities + parameters
+Main -> WN: Send cities + parameters
+
+note over W1, WN: Workers run local GA in parallel
+
+W1 -> W1: Initialize population
+W1 -> W1: Run generations
+W1 -> W1: Find best route
+
+W2 -> W2: Initialize population
+W2 -> W2: Run generations
+W2 -> W2: Find best route
+
+WN -> WN: Initialize population
+WN -> WN: Run generations
+WN -> WN: Find best route
+
+note over W1, WN: Send results back to main
+
+W1 -> Main: Best route + distance
+W2 -> Main: Best route + distance
+WN -> Main: Best route + distance
+
+note over Main: Combine results and find global best
+
+Main -> Main: Compare all worker results
+Main -> Main: Select global best route
+Main -> Main: Calculate performance metrics
+
+Main -> Controller: Return final results
+Controller -> User: Display results
+
+note over Main: Performance comparison
+Main -> Main: Run sequential version
+Main -> Main: Calculate speedup
+Main -> Main: Generate convergence plots
+
+@enduml 

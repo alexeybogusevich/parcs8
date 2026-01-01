@@ -1,3 +1,23 @@
+# PARCS Kubernetes Deployment for Azure (AKS)
+# 
+# Architecture Overview:
+# - Daemons are deployed as short-lived Kubernetes Jobs, created dynamically by KEDA
+# - KEDA monitors Azure Service Bus queue "point-requested" and scales based on message count
+# - Each message in the queue triggers creation of one daemon Job pod
+# - AKS Cluster Autoscaler automatically provisions nodes when resource limits are reached
+#
+# Prerequisites:
+# 1. KEDA must be installed in the cluster: kubectl apply -f https://github.com/kedacore/keda/releases/download/v2.12.0/keda-2.12.0.yaml
+# 2. Azure Service Bus namespace and queue "point-requested" must exist
+# 3. Create Service Bus secret: kubectl create secret generic parcs-servicebus-secret --from-literal=connectionString='<connection-string>'
+# 4. Enable AKS Cluster Autoscaler on the node pool with appropriate min/max node limits
+#
+# AKS Cluster Autoscaler Configuration (via Azure Portal or CLI):
+# - Enable cluster autoscaler on node pool
+# - Set minimum nodes (e.g., 1-2 for cost optimization)
+# - Set maximum nodes based on expected workload (e.g., 10-20)
+# - Configure node VM size (DS2_v2 minimum, Standard_D4_v5 or larger recommended)
+#
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -135,34 +155,62 @@ spec:
             memory: 512Mi
 ---
 apiVersion: v1
-kind: Service
+kind: Secret
 metadata:
-  name: parcs-daemon-headless
+  name: parcs-servicebus-secret
+type: Opaque
+stringData:
+  connectionString: "" # Set via kubectl or Azure Key Vault
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: parcs-daemon-scaler
+spec:
+  scaleTargetRef:
+    apiVersion: batch/v1
+    kind: Job
+    name: parcs-daemon-job
+  minReplicaCount: 0
+  maxReplicaCount: 1000
+  triggers:
+  - type: azure-servicebus
+    metadata:
+      queueName: point-requested
+      messageCount: "1"
+      connectionFromEnv: POINT_REQUESTED_SERVICE_BUS_CONNECTION_STRING
+    authenticationRef:
+      name: parcs-servicebus-auth
+---
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+metadata:
+  name: parcs-servicebus-auth
+spec:
+  secretTargetRef:
+  - parameter: connection
+    name: parcs-servicebus-secret
+    key: connectionString
+    #
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: parcs-daemon-job
   labels:
     app: parcs-daemon
 spec:
-  ports:
-  - name: daemon
-    port: 1111
-    targetPort: 1111
-  selector:
-    app: parcs-daemon
-  clusterIP: None
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: parcs-daemon
-spec:
-  replicas: 2
-  selector:
-    matchLabels:
-      app: parcs-daemon
+  parallelism: 1
+  completions: 1
+  backoffLimit: 2
+  ttlSecondsAfterFinished: 300
+  activeDeadlineSeconds: 3600
   template:
     metadata:
       labels:
         app: parcs-daemon
     spec:
+      restartPolicy: Never
       dnsPolicy: ClusterFirst
       containers:
       - name: parcs-daemon
@@ -184,17 +232,29 @@ spec:
         - name: Hosting__Environment
           value: Kubernetes
         - name: Kubernetes__NamespaceName
-          value: Default
-        - name: Kubernetes__DaemonsHeadlessServiceName
-          value: parcs-daemon-headless
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
         - name: HostApi__Uri
-          value: parcs-hostapi-internal   
+          value: parcs-hostapi-internal
         - name: Elasticsearch__BaseUrl
-          value: 'http://elasticsearch:9200' 
+          value: 'http://elasticsearch:9200'
+        - name: ServiceBus__ConnectionString
+          valueFrom:
+            secretKeyRef:
+              name: parcs-servicebus-secret
+              key: connectionString
+        - name: ServiceBus__QueueName
+          value: "point-requested"
+        - name: SERVICEBUS_CONNECTIONSTRING
+          valueFrom:
+            secretKeyRef:
+              name: parcs-servicebus-secret
+              key: connectionString
       volumes:
       - name: parcs-storage-volume
         persistentVolumeClaim:
-          claimName: parcs-storage-volume-claim    
+          claimName: parcs-storage-volume-claim
 ---
 apiVersion: v1
 kind: Service
