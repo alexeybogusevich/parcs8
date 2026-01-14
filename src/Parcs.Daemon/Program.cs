@@ -9,6 +9,7 @@ await Host.CreateDefaultBuilder(args)
     {
         services.AddHostedService<InternalServer>();
         services.AddHostedService<TcpServer>();
+        services.AddHostedService<PointCreationConsumer>();
         services.AddApplicationServices();
         services.AddApplicationOptions(hostContext.Configuration);
         services.AddApplicationLogging(hostContext.Configuration);

@@ -1,7 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Parcs.Net;
 using Parcs.Modules.TravelingSalesman.Models;
-using System.IO;
 
 namespace Parcs.Modules.TravelingSalesman.Parallel
 {

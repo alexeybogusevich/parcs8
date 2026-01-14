@@ -1,9 +1,6 @@
 // Simple script to generate 100k cities file
 // Usage: dotnet script Generate100k.cs
 
-using System;
-using System.IO;
-using System.Linq;
 using System.Diagnostics;
 
 const int cityCount = 100000;

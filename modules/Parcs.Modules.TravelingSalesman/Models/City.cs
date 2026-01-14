@@ -1,5 +1,3 @@
-using System;
-
 namespace Parcs.Modules.TravelingSalesman.Models
 {
     public class City

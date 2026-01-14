@@ -13,6 +13,7 @@ builder.Services.AddHealthChecks();
 builder.Services.AddApplicationServices();
 builder.Services.AddApplicationOptions(builder.Configuration);
 builder.Services.AddAsynchronousJobProcessing();
+builder.Services.AddHostedService<HostedServices.HostTcpServer>();
 builder.Services.AddHttpClient();
 builder.Services.AddDatabase(builder.Configuration);
 builder.Services.AddApplicationInsightsTelemetry();

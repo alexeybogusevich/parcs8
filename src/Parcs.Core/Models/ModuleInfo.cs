@@ -3,7 +3,6 @@ using Parcs.Core.Services.Interfaces;
 using System.Net.Sockets;
 using System.Net;
 using Microsoft.Extensions.Logging;
-using System.Collections.Concurrent;
 
 namespace Parcs.Core.Models
 {
@@ -16,7 +15,8 @@ namespace Parcs.Core.Models
         IInternalChannelManager internalChannelManager,
         IAddressResolver addressResolver,
         ILogger logger,
-        CancellationToken cancellationToken) : IModuleInfo
+        CancellationToken cancellationToken,
+        IPointCreationService pointCreationService = null) : IModuleInfo
     {
         private readonly long _jobId = jobMetadata.JobId;
         private readonly long _moduleId = jobMetadata.ModuleId;
@@ -29,6 +29,7 @@ namespace Parcs.Core.Models
         private readonly IInternalChannelManager _internalChannelManager = internalChannelManager;
         private readonly IAddressResolver _addressResolver = addressResolver;
         private readonly IArgumentsProvider _argumentsProvider = argumentsProvider;
+        private readonly IPointCreationService _pointCreationService = pointCreationService;
 
         public bool IsHost => Parent is null;
 
@@ -56,6 +57,21 @@ namespace Parcs.Core.Models
             }
 
             Logger.LogInformation("Will create a point at {Daemon}", nextDaemon.HostUrl);
+
+            if (_pointCreationService != null)
+            {
+                var point = await _pointCreationService.CreatePointAsync(
+                    _jobId,
+                    _moduleId,
+                    _argumentsProvider.GetArguments(),
+                    nextDaemon.HostUrl,
+                    nextDaemon.Port,
+                    _cancellationToken);
+
+                _createdPoints.Add((Point)point);
+
+                return point;
+            }
 
             return await CreateNetworkPointAsync(nextDaemonAddresses, nextDaemon.Port);
         }

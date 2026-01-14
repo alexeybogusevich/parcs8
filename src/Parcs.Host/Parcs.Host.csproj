@@ -29,6 +29,7 @@
     <PackageReference Include="Serilog.Sinks.Debug" Version="3.0.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.9.0" />
     <PackageReference Include="System.Reflection.MetadataLoadContext" Version="8.0.1" />
+    <PackageReference Include="Azure.Messaging.ServiceBus" Version="7.18.1" />
   </ItemGroup>
 
   <ItemGroup>

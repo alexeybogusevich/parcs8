@@ -1,6 +1,3 @@
-using System;
-using Parcs.Modules.TravelingSalesman;
-
 namespace Parcs.Modules.TravelingSalesman.Examples
 {
     /// <summary>

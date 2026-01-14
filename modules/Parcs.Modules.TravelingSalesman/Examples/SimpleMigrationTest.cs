@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using Parcs.Modules.TravelingSalesman.Models;
 
 namespace Parcs.Modules.TravelingSalesman.Examples

@@ -69,7 +69,8 @@ namespace Parcs.Daemon.Extensions
                 .Configure<HostingConfiguration>(configuration.GetSection(HostingConfiguration.SectionName))
                 .Configure<KubernetesConfiguration>(configuration.GetSection(KubernetesConfiguration.SectionName))
                 .Configure<DaemonConfiguration>(configuration.GetSection(DaemonConfiguration.SectionName))
-                .Configure<HostConfiguration>(configuration.GetSection(HostConfiguration.SectionName));
+                .Configure<HostConfiguration>(configuration.GetSection(HostConfiguration.SectionName))
+                .Configure<ServiceBusConfiguration>(configuration.GetSection(ServiceBusConfiguration.SectionName));
         }
 
         public static IServiceCollection AddApplicationLogging(this IServiceCollection services, IConfiguration configuration)

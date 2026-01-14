@@ -11,7 +11,8 @@ namespace Parcs.Core.Services
         IArgumentsProviderFactory argumentsProviderFactory,
         IInternalChannelManager internalChannelManager,
         IAddressResolver addressResolver,
-        ILogger<ModuleInfoFactory> logger) : IModuleInfoFactory
+        ILogger<ModuleInfoFactory> logger,
+        IPointCreationService pointCreationService = null) : IModuleInfoFactory
     {
         private readonly IDaemonResolver _daemonResolver = daemonResolver;
         private readonly IInputOutputFactory _inputOutputFactory = inputOutputFactory;
@@ -19,6 +20,7 @@ namespace Parcs.Core.Services
         private readonly IInternalChannelManager _internalChannelManager = internalChannelManager;
         private readonly IAddressResolver _addressResolver = addressResolver;
         private readonly ILogger<ModuleInfoFactory> _logger = logger;
+        private readonly IPointCreationService _pointCreationService = pointCreationService;
 
         public IModuleInfo Create(
             JobMetadata jobMetadata,
@@ -37,7 +39,8 @@ namespace Parcs.Core.Services
                 _internalChannelManager,
                 _addressResolver,
                 _logger,
-                cancellationToken);
+                cancellationToken,
+                _pointCreationService);
         }
 
         public IModuleInfo Create(

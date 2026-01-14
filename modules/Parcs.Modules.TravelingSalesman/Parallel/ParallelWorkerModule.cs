@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using Microsoft.Extensions.Logging;
 using Parcs.Net;
 using Parcs.Modules.TravelingSalesman.Models;
 

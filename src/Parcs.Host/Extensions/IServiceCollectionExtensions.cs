@@ -39,7 +39,9 @@ namespace Parcs.Host.Extensions
                 .Configure<JobOutputConfiguration>(configuration.GetSection(JobOutputConfiguration.SectionName))
                 .Configure<FileSystemConfiguration>(configuration.GetSection(FileSystemConfiguration.SectionName))
                 .Configure<DaemonsConfiguration>(configuration.GetSection(DaemonsConfiguration.SectionName))
-                .Configure<KubernetesConfiguration>(configuration.GetSection(KubernetesConfiguration.SectionName));
+                .Configure<KubernetesConfiguration>(configuration.GetSection(KubernetesConfiguration.SectionName))
+                .Configure<ServiceBusConfiguration>(configuration.GetSection(ServiceBusConfiguration.SectionName))
+                .Configure<HostTcpConfiguration>(configuration.GetSection(HostTcpConfiguration.SectionName));
         }
 
         public static IServiceCollection AddApplicationServices(this IServiceCollection services)
@@ -51,6 +53,7 @@ namespace Parcs.Host.Extensions
                 .AddScoped<IDaemonResolutionStrategyFactory, DaemonResolutionStrategyFactory>()
                 .AddScoped<ConfigurationDaemonResolutionStrategy>()
                 .AddScoped<KubernetesDaemonResolutionStrategy>()
+                .AddScoped<IPointCreationService, PointCreationService>()
                 .AddScoped<IModuleInfoFactory, ModuleInfoFactory>()
                 .AddScoped<IInputOutputFactory, InputOutputFactory>()
                 .AddScoped<IJobCompletionNotifier, JobCompletionNotifier>()
