@@ -28,7 +28,7 @@ spec:
   storageClassName: azurefile-csi
   resources:
     requests:
-      storage: 2Gi
+      storage: 256Mi
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -40,7 +40,7 @@ spec:
   storageClassName: managed-csi
   resources:
     requests:
-      storage: 1Gi
+      storage: 256Mi
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -52,7 +52,7 @@ spec:
   storageClassName: azurefile-csi
   resources:
     requests:
-      storage: 2Gi
+      storage: 512Mi
 ---
 apiVersion: v1
 kind: Service

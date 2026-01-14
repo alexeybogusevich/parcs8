@@ -1,16 +1,13 @@
-﻿using Microsoft.Extensions.Logging;
 using Parcs.Net;
 using System.Diagnostics;
-using System.Text.Json;
+using System.Text;
 
-namespace Parcs.Modules.ProofOfWork.Parallel
+namespace Parcs.Demo1.Parallel
 {
     public class ParallelMainModule : IModule
     {
         public async Task RunAsync(IModuleInfo moduleInfo, CancellationToken cancellationToken = default)
         {
-            moduleInfo.Logger.LogInformation("PARALLEL: Started at {Time}", DateTime.UtcNow);
-
             var moduleOptions = moduleInfo.BindModuleOptions<ModuleOptions>();
 
             var channels = new IChannel[moduleOptions.PointsNumber];
@@ -38,8 +35,6 @@ namespace Parcs.Modules.ProofOfWork.Parallel
                     await channels[i].WriteDataAsync(nonceStart + moduleOptions.NonceBatchSize * i);
                     await channels[i].WriteDataAsync(nonceStart + moduleOptions.NonceBatchSize * i + moduleOptions.NonceBatchSize);
                 }
-                
-                Console.WriteLine($"PARALLEL: Sent at {DateTime.UtcNow}. Nonce start: {nonceStart}");
 
                 nonceStart += moduleOptions.NonceBatchSize * moduleOptions.PointsNumber;
 
@@ -55,21 +50,20 @@ namespace Parcs.Modules.ProofOfWork.Parallel
 
             stopWatch.Stop();
 
-            var moduleOutput = new ModuleOutput
-            {
-                ElapsedSeconds = stopWatch.Elapsed.TotalSeconds,
-            };
+            var outputText = $"Elapsed Time: {stopWatch.Elapsed.TotalSeconds} seconds\n";
 
             if (resultNonce != null)
             {
-                moduleOutput.Found = true;
-                moduleOutput.ResultNonce = resultNonce;
-                moduleOutput.ResultHash = HashService.GetHashValue($"{moduleOptions.Prompt}{resultNonce}");
+                outputText += "Result Found: Yes\n";
+                outputText += $"Nonce: {resultNonce}\n";
+                outputText += $"Hash: {HashService.GetHashValue($"{moduleOptions.Prompt}{resultNonce}")}\n";
+            }
+            else
+            {
+                outputText += "Result Found: No\n";
             }
 
-            await moduleInfo.OutputWriter.WriteToFileAsync(JsonSerializer.SerializeToUtf8Bytes(moduleOutput), moduleOptions.OutputFilename);
-
-            moduleInfo.Logger.LogInformation("PARALLEL: Finished at {Time}", DateTime.UtcNow);
+            await moduleInfo.OutputWriter.WriteToFileAsync(Encoding.UTF8.GetBytes(outputText), moduleOptions.OutputFilename);
         }
     }
 }
