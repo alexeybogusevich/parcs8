@@ -25,7 +25,7 @@ namespace Parcs.Modules.TravelingSalesman.Sequential
             
             if (options.SaveResults)
             {
-                await SaveResultsAsync(moduleInfo, result, options);
+                await SaveResultsAsync(moduleInfo, cities, result, options);
             }
             
             // Save result to file
@@ -80,8 +80,16 @@ namespace Parcs.Modules.TravelingSalesman.Sequential
             
             moduleInfo.Logger.LogInformation("Initial population: {PopulationSize} individuals", options.PopulationSize);
             moduleInfo.Logger.LogInformation("Initial best distance: {BestDistance:F2}", ga.GetBestRoute().TotalDistance);
-            
-            ga.RunGenerations(options.Generations);
+
+            // Log progress every 10% of generations so the job isn't a silent black box.
+            int progressInterval = Math.Max(1, options.Generations / 10);
+            ga.RunGenerations(options.Generations, (gen, best) =>
+            {
+                if (gen % progressInterval == 0)
+                    moduleInfo.Logger.LogInformation(
+                        "Progress: generation {Gen}/{Total} — best distance: {Best:F2}",
+                        gen, options.Generations, best);
+            });
             
             var bestRoute = ga.GetBestRoute();
             var convergenceHistory = ga.GetConvergenceHistory();
@@ -96,10 +104,15 @@ namespace Parcs.Modules.TravelingSalesman.Sequential
             };
         }
         
-        private async Task SaveResultsAsync(IModuleInfo moduleInfo, ModuleOutput result, ModuleOptions options)
+        private static async Task SaveResultsAsync(
+            IModuleInfo  moduleInfo,
+            List<City>   cities,
+            ModuleOutput result,
+            ModuleOptions options)
         {
             try
             {
+                // --- best_route.txt ---
                 var sb = new System.Text.StringBuilder();
                 sb.AppendLine("=== TSP Best Route — Sequential ===");
                 sb.AppendLine();
@@ -118,7 +131,24 @@ namespace Parcs.Modules.TravelingSalesman.Sequential
                     System.Text.Encoding.UTF8.GetBytes(sb.ToString()),
                     options.BestRouteFile);
 
-                moduleInfo.Logger.LogInformation("Best route saved to {BestRouteFile}", options.BestRouteFile);
+                // --- best_route.svg (tour visualisation) ---
+                var routeSvg = SvgGenerator.GenerateRouteSvg(cities, result.BestRoute);
+                await moduleInfo.OutputWriter.WriteToFileAsync(
+                    System.Text.Encoding.UTF8.GetBytes(routeSvg),
+                    "best_route.svg");
+
+                // --- convergence.svg (line chart) ---
+                if (result.ConvergenceHistory.Count >= 2)
+                {
+                    var convergenceSvg = SvgGenerator.GenerateConvergenceSvg(result.ConvergenceHistory);
+                    await moduleInfo.OutputWriter.WriteToFileAsync(
+                        System.Text.Encoding.UTF8.GetBytes(convergenceSvg),
+                        "convergence.svg");
+                }
+
+                moduleInfo.Logger.LogInformation(
+                    "Results saved: {BestRouteFile}, best_route.svg, convergence.svg",
+                    options.BestRouteFile);
             }
             catch (Exception ex)
             {

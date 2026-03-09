@@ -93,41 +93,51 @@ namespace Parcs.Modules.TravelingSalesman.Models
             return _population.Average(r => r.TotalDistance);
         }
 
-        public void RunGenerations(int generations)
+        /// <summary>
+        /// Runs the specified number of generations.
+        /// </summary>
+        /// <param name="generations">Number of generations to evolve.</param>
+        /// <param name="onProgress">
+        /// Optional callback invoked after every generation.
+        /// Arguments are (currentGeneration, bestDistance).
+        /// </param>
+        public void RunGenerations(int generations, Action<int, double>? onProgress = null)
         {
             for (int gen = 0; gen < generations; gen++)
             {
                 Evolve();
-                
+
                 var bestDistance = GetBestRoute().TotalDistance;
-                // Record convergence history
+
+                // Record convergence history checkpoint every 5 generations.
                 if (gen % 5 == 0 || gen == generations - 1)
-                {
                     _convergenceHistory.Add(bestDistance);
-                }
-                
+
+                onProgress?.Invoke(gen, bestDistance);
+
                 // Process migration if needed
                 if (_enableMigration && _migrationManager != null && _migrationManager.ShouldMigrate(gen))
-                {
                     ProcessMigration();
-                }
-                
-                if (gen > 10 && IsConverged())
-                {
+
+                // Early-stop when improvement has stalled (configurable, 0 = disabled).
+                if (_options.ConvergenceThreshold > 0 && IsConverged(_options.ConvergenceThreshold))
                     break;
-                }
             }
         }
 
-        private bool IsConverged()
+        /// <summary>
+        /// Returns true when improvement over the last 20 convergence checkpoints
+        /// (≈100 generations) falls below <paramref name="threshold"/> * current best.
+        /// Requires at least 20 checkpoints to avoid premature termination on short runs.
+        /// </summary>
+        private bool IsConverged(double threshold)
         {
-            if (_convergenceHistory.Count < 10) return false;
-            
-            var recent = _convergenceHistory.TakeLast(10).ToList();
-            var improvement = recent.First() - recent.Last();
-            var threshold = recent.First() * 0.001; // 0.1% improvement threshold
-            
-            return improvement < threshold;
+            // 20 checkpoints × 5 generations each = 100 generations minimum observation window.
+            if (_convergenceHistory.Count < 20) return false;
+
+            var recent      = _convergenceHistory.TakeLast(20).ToList();
+            var improvement = recent.First() - recent.Last(); // positive = getting better
+            return improvement < recent.First() * threshold;
         }
 
         public List<double> GetConvergenceHistory()

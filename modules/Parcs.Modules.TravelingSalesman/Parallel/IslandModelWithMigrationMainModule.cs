@@ -91,15 +91,31 @@ namespace Parcs.Modules.TravelingSalesman.Parallel
                     await PerformMigrationRoundAsync(moduleInfo, channels, round + 1, numMigrationRounds);
                 }
 
-                // --- Step 5: Collect final results ---
+                // --- Step 5: Collect final results (graceful: skip islands that failed) ---
                 var finalResults = new List<ModuleOutput>();
                 for (int i = 0; i < channels.Length; i++)
                 {
-                    var result = await channels[i].ReadObjectAsync<ModuleOutput>();
-                    finalResults.Add(result);
-                    moduleInfo.Logger.LogInformation(
-                        "Island {Index} finished — best distance: {Best:F2}", i, result.BestDistance);
+                    try
+                    {
+                        var result = await channels[i].ReadObjectAsync<ModuleOutput>();
+                        finalResults.Add(result);
+                        moduleInfo.Logger.LogInformation(
+                            "Island {Index} finished — best distance: {Best:F2}", i, result.BestDistance);
+                    }
+                    catch (Exception ex)
+                    {
+                        moduleInfo.Logger.LogWarning(ex,
+                            "Island {Index} failed to return a result, skipping: {Message}", i, ex.Message);
+                    }
                 }
+
+                if (finalResults.Count == 0)
+                    throw new InvalidOperationException("All islands failed to return results");
+
+                if (finalResults.Count < channels.Length)
+                    moduleInfo.Logger.LogWarning(
+                        "Only {Received}/{Total} islands returned results; proceeding with partial results",
+                        finalResults.Count, channels.Length);
 
                 stopwatch.Stop();
 
@@ -119,7 +135,7 @@ namespace Parcs.Modules.TravelingSalesman.Parallel
 
                 if (options.SaveResults)
                 {
-                    await SaveResultsAsync(moduleInfo, combined, options);
+                    await SaveResultsAsync(moduleInfo, cities, combined, options);
                 }
 
                 var jsonContent = JsonSerializer.Serialize(combined, JsonSerializerOptions);
@@ -235,10 +251,15 @@ namespace Parcs.Modules.TravelingSalesman.Parallel
             return CityLoader.GenerateTestCities(options.CitiesNumber, options.Seed, TestCityPattern.Random);
         }
 
-        private static async Task SaveResultsAsync(IModuleInfo moduleInfo, ModuleOutput result, ModuleOptions options)
+        private static async Task SaveResultsAsync(
+            IModuleInfo   moduleInfo,
+            List<City>    cities,
+            ModuleOutput  result,
+            ModuleOptions options)
         {
             try
             {
+                // --- best_route.txt ---
                 var sb = new System.Text.StringBuilder();
                 sb.AppendLine("=== TSP Best Route — Island Model with Migration ===");
                 sb.AppendLine();
@@ -259,7 +280,24 @@ namespace Parcs.Modules.TravelingSalesman.Parallel
                     System.Text.Encoding.UTF8.GetBytes(sb.ToString()),
                     options.BestRouteFile);
 
-                moduleInfo.Logger.LogInformation("Best route saved to {BestRouteFile}", options.BestRouteFile);
+                // --- best_route.svg ---
+                var routeSvg = SvgGenerator.GenerateRouteSvg(cities, result.BestRoute);
+                await moduleInfo.OutputWriter.WriteToFileAsync(
+                    System.Text.Encoding.UTF8.GetBytes(routeSvg),
+                    "best_route.svg");
+
+                // --- convergence.svg ---
+                if (result.ConvergenceHistory.Count >= 2)
+                {
+                    var convergenceSvg = SvgGenerator.GenerateConvergenceSvg(result.ConvergenceHistory);
+                    await moduleInfo.OutputWriter.WriteToFileAsync(
+                        System.Text.Encoding.UTF8.GetBytes(convergenceSvg),
+                        "convergence.svg");
+                }
+
+                moduleInfo.Logger.LogInformation(
+                    "Results saved: {BestRouteFile}, best_route.svg, convergence.svg",
+                    options.BestRouteFile);
             }
             catch (Exception ex)
             {

@@ -53,7 +53,7 @@ namespace Parcs.Modules.TravelingSalesman.Parallel
 
                 if (options.SaveResults)
                 {
-                    await SaveResultsAsync(moduleInfo, result, options);
+                    await SaveResultsAsync(moduleInfo, cities, result, options);
                 }
 
                 var jsonContent = JsonSerializer.Serialize(result, JsonSerializerOptions);
@@ -152,10 +152,13 @@ namespace Parcs.Modules.TravelingSalesman.Parallel
             }
             
             if (workerResults.Count == 0)
-            {
                 throw new InvalidOperationException("Failed to receive results from any worker module");
-            }
-            
+
+            if (workerResults.Count < channels.Length)
+                moduleInfo.Logger.LogWarning(
+                    "Only {Received}/{Expected} workers returned results; proceeding with partial results",
+                    workerResults.Count, channels.Length);
+
             return CombineResults(workerResults, cities, options);
         }
         
@@ -200,10 +203,15 @@ namespace Parcs.Modules.TravelingSalesman.Parallel
             return combined;
         }
         
-        private static async Task SaveResultsAsync(IModuleInfo moduleInfo, ModuleOutput result, ModuleOptions options)
+        private static async Task SaveResultsAsync(
+            IModuleInfo   moduleInfo,
+            List<City>    cities,
+            ModuleOutput  result,
+            ModuleOptions options)
         {
             try
             {
+                // --- best_route.txt ---
                 var sb = new System.Text.StringBuilder();
                 sb.AppendLine("=== TSP Best Route — Parallel (Independent Islands) ===");
                 sb.AppendLine();
@@ -224,7 +232,24 @@ namespace Parcs.Modules.TravelingSalesman.Parallel
                     System.Text.Encoding.UTF8.GetBytes(sb.ToString()),
                     options.BestRouteFile);
 
-                moduleInfo.Logger.LogInformation("Best route saved to {BestRouteFile}", options.BestRouteFile);
+                // --- best_route.svg ---
+                var routeSvg = SvgGenerator.GenerateRouteSvg(cities, result.BestRoute);
+                await moduleInfo.OutputWriter.WriteToFileAsync(
+                    System.Text.Encoding.UTF8.GetBytes(routeSvg),
+                    "best_route.svg");
+
+                // --- convergence.svg ---
+                if (result.ConvergenceHistory.Count >= 2)
+                {
+                    var convergenceSvg = SvgGenerator.GenerateConvergenceSvg(result.ConvergenceHistory);
+                    await moduleInfo.OutputWriter.WriteToFileAsync(
+                        System.Text.Encoding.UTF8.GetBytes(convergenceSvg),
+                        "convergence.svg");
+                }
+
+                moduleInfo.Logger.LogInformation(
+                    "Results saved: {BestRouteFile}, best_route.svg, convergence.svg",
+                    options.BestRouteFile);
             }
             catch (Exception ex)
             {
