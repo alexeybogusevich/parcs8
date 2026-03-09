@@ -7,9 +7,12 @@ using System.Net.Sockets;
 
 namespace Parcs.Host.Services
 {
-    public sealed class JobTracker(IServiceScopeFactory serviceScopeFactory) : IJobTracker
+    public sealed class JobTracker(
+        IServiceScopeFactory serviceScopeFactory,
+        ILogger<JobTracker> logger) : IJobTracker
     {
         private readonly IServiceScopeFactory _serviceScopeFactory = serviceScopeFactory;
+        private readonly ILogger<JobTracker> _logger = logger;
         private readonly ConcurrentDictionary<long, CancellationTokenSource> _trackedJobs = new();
 
         public void StartTracking(long jobId)
@@ -40,13 +43,33 @@ namespace Parcs.Host.Services
 
             using var serviceScope = _serviceScopeFactory.CreateScope();
 
-            var daemonCancellationTasks = serviceScope.ServiceProvider
-                .GetRequiredService<IDaemonResolver>()
-                .GetAvailableDaemons()
-                .Select(
-                    d => CancelOnDaemonAsync(d, jobId));
+            try
+            {
+                // In KEDA mode, daemon pods are ScaledJobs that exit when finished.
+                // GetAvailableDaemons() does a DNS lookup on the headless service; if no
+                // daemon pods are running (job completed normally) the lookup returns zero
+                // addresses or throws SocketException — both are fine, nothing to cancel.
+                var daemonCancellationTasks = serviceScope.ServiceProvider
+                    .GetRequiredService<IDaemonResolver>()
+                    .GetAvailableDaemons()
+                    .Select(d => CancelOnDaemonAsync(d, jobId))
+                    .ToList();
 
-            await Task.WhenAll(daemonCancellationTasks);
+                if (daemonCancellationTasks.Count > 0)
+                {
+                    await Task.WhenAll(daemonCancellationTasks);
+                }
+            }
+            catch (SocketException)
+            {
+                // Expected when no daemon pods are running — headless service has no endpoints.
+                _logger.LogDebug("No active daemon pods found for job {JobId} cleanup (DNS returned no addresses).", jobId);
+            }
+            catch (Exception ex)
+            {
+                // Daemon cancellation is best-effort; log and continue cleanup.
+                _logger.LogWarning(ex, "Daemon cancellation for job {JobId} failed: {Message}", jobId, ex.Message);
+            }
 
             cancellationTokenSource.Cancel();
 

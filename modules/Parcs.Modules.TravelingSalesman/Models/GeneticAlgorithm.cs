@@ -16,7 +16,7 @@ namespace Parcs.Modules.TravelingSalesman.Models
             _options = options ?? throw new ArgumentNullException(nameof(options));
             _random = new Random(options.Seed);
             _convergenceHistory = new List<double>();
-            _population = new List<Route>(); // Ініціалізуємо популяцію
+            _population = new List<Route>(); // Initialize population
         }
 
         public void Initialize()
@@ -100,13 +100,13 @@ namespace Parcs.Modules.TravelingSalesman.Models
                 Evolve();
                 
                 var bestDistance = GetBestRoute().TotalDistance;
-                // Записуємо історію збіжності
+                // Record convergence history
                 if (gen % 5 == 0 || gen == generations - 1)
                 {
                     _convergenceHistory.Add(bestDistance);
                 }
                 
-                // Обробляємо міграцію якщо потрібно
+                // Process migration if needed
                 if (_enableMigration && _migrationManager != null && _migrationManager.ShouldMigrate(gen))
                 {
                     ProcessMigration();
@@ -148,7 +148,7 @@ namespace Parcs.Modules.TravelingSalesman.Models
         }
 
         /// <summary>
-        /// Обробляє міграцію особин
+        /// Processes individual migration.
         /// </summary>
         private void ProcessMigration()
         {
@@ -156,11 +156,11 @@ namespace Parcs.Modules.TravelingSalesman.Models
             
             try
             {
-                // Вибір особин для міграції
+                // Select individuals for migration
                 var migrants = _migrationManager.SelectIndividualsForMigration(_population);
                 if (migrants.Count == 0) return;
-                
-                // Додаємо їх до черги міграції
+
+                // Add them to migration queue
                 foreach (var migrant in migrants)
                 {
                     if (migrant != null)
@@ -169,7 +169,7 @@ namespace Parcs.Modules.TravelingSalesman.Models
                     }
                 }
                 
-                // Отримуємо мігрантів від інших воркерів
+                // Get migrants from other workers
                 var incomingMigrants = new List<Route>();
                 while (_migrationManager.TryGetFromMigration(out var incomingMigrant))
                 {
@@ -179,7 +179,7 @@ namespace Parcs.Modules.TravelingSalesman.Models
                     }
                 }
                 
-                // Виконуємо міграцію
+                // Perform migration
                 if (incomingMigrants.Count > 0)
                 {
                     _migrationManager.PerformMigration(_population, incomingMigrants);
@@ -187,13 +187,13 @@ namespace Parcs.Modules.TravelingSalesman.Models
             }
             catch (Exception ex)
             {
-                // Логуємо помилку, але не зупиняємо роботу
+                // Log error but don't stop execution
                 System.Diagnostics.Debug.WriteLine($"Migration processing error: {ex.Message}");
             }
         }
         
         /// <summary>
-        /// Отримує міграційного менеджера
+        /// Gets the migration manager.
         /// </summary>
         public MigrationManager? GetMigrationManager()
         {
@@ -201,7 +201,7 @@ namespace Parcs.Modules.TravelingSalesman.Models
         }
         
         /// <summary>
-        /// Додає особу до міграції
+        /// Adds an individual to migration.
         /// </summary>
         public void AddToMigration(Route route)
         {
@@ -209,7 +209,7 @@ namespace Parcs.Modules.TravelingSalesman.Models
         }
         
         /// <summary>
-        /// Отримує особу з міграції
+        /// Gets an individual from migration.
         /// </summary>
         public bool TryGetFromMigration(out Route? route)
         {
@@ -223,7 +223,7 @@ namespace Parcs.Modules.TravelingSalesman.Models
         }
 
         /// <summary>
-        /// Отримує поточну популяцію
+        /// Gets the current population.
         /// </summary>
         public List<Route>? GetPopulation()
         {

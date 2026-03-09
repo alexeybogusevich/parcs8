@@ -13,8 +13,8 @@ namespace Parcs.Modules.TravelingSalesman.Sequential
             var options = moduleInfo.BindModuleOptions<ModuleOptions>();
             var cities = await LoadOrGenerateCitiesAsync(moduleInfo, options);
             
-            moduleInfo.Logger.LogInformation("Запуск послідовного TSP модуля з {CitiesCount} містами", cities.Count);
-            moduleInfo.Logger.LogInformation("Параметри: Population={Population}, Generations={Generations}", 
+            moduleInfo.Logger.LogInformation("Starting sequential TSP module with {CitiesCount} cities", cities.Count);
+            moduleInfo.Logger.LogInformation("Parameters: Population={Population}, Generations={Generations}",
                 options.PopulationSize, options.Generations);
             
             var stopwatch = Stopwatch.StartNew();
@@ -28,14 +28,14 @@ namespace Parcs.Modules.TravelingSalesman.Sequential
                 await SaveResultsAsync(moduleInfo, result, options);
             }
             
-            // Зберігаємо результат у файл
+            // Save result to file
             var jsonContent = JsonSerializer.Serialize(result, new JsonSerializerOptions { WriteIndented = true });
             await moduleInfo.OutputWriter.WriteToFileAsync(
                 System.Text.Encoding.UTF8.GetBytes(jsonContent), 
                 options.OutputFile);
             
-            moduleInfo.Logger.LogInformation("Послідовний TSP завершено за {ElapsedSeconds:F2} секунд", result.ElapsedSeconds);
-            moduleInfo.Logger.LogInformation("Найкраща відстань: {BestDistance:F2}", result.BestDistance);
+            moduleInfo.Logger.LogInformation("Sequential TSP completed in {ElapsedSeconds:F2} seconds", result.ElapsedSeconds);
+            moduleInfo.Logger.LogInformation("Best distance: {BestDistance:F2}", result.BestDistance);
         }
         
         private async Task<List<City>> LoadOrGenerateCitiesAsync(IModuleInfo moduleInfo, ModuleOptions options)
@@ -44,7 +44,7 @@ namespace Parcs.Modules.TravelingSalesman.Sequential
             {
                 try
                 {
-                    moduleInfo.Logger.LogInformation("Завантаження міст з файлу: {InputFile}", options.InputFile);
+                    moduleInfo.Logger.LogInformation("Loading cities from file: {InputFile}", options.InputFile);
                     
                     if (options.InputFile.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
                     {
@@ -62,13 +62,13 @@ namespace Parcs.Modules.TravelingSalesman.Sequential
                 }
                 catch (Exception ex)
                 {
-                    moduleInfo.Logger.LogWarning(ex, "Помилка завантаження з файлу: {Message}", ex.Message);
-                    moduleInfo.Logger.LogInformation("Генеруємо випадкові міста...");
+                    moduleInfo.Logger.LogWarning(ex, "Error loading from file: {Message}", ex.Message);
+                    moduleInfo.Logger.LogInformation("Generating random cities...");
                 }
             }
             
-            // Генеруємо випадкові міста як fallback
-            moduleInfo.Logger.LogInformation("Генерація {CitiesNumber} випадкових міст з seed={Seed}", 
+            // Generate random cities as fallback
+            moduleInfo.Logger.LogInformation("Generating {CitiesNumber} random cities with seed={Seed}",
                 options.CitiesNumber, options.Seed);
             return CityLoader.GenerateTestCities(options.CitiesNumber, options.Seed, TestCityPattern.Random);
         }
@@ -78,8 +78,8 @@ namespace Parcs.Modules.TravelingSalesman.Sequential
             var ga = new GeneticAlgorithm(cities, options);
             ga.Initialize();
             
-            moduleInfo.Logger.LogInformation("Початкова популяція: {PopulationSize} особин", options.PopulationSize);
-            moduleInfo.Logger.LogInformation("Початкова найкраща відстань: {BestDistance:F2}", ga.GetBestRoute().TotalDistance);
+            moduleInfo.Logger.LogInformation("Initial population: {PopulationSize} individuals", options.PopulationSize);
+            moduleInfo.Logger.LogInformation("Initial best distance: {BestDistance:F2}", ga.GetBestRoute().TotalDistance);
             
             ga.RunGenerations(options.Generations);
             
@@ -100,22 +100,29 @@ namespace Parcs.Modules.TravelingSalesman.Sequential
         {
             try
             {
-                // Зберігаємо найкращий маршрут у текстовому форматі
-                var routeContent = $"Найкращий маршрут TSP (відстань: {result.BestDistance:F2})\n";
-                routeContent += $"Кількість міст: {result.BestRoute.Count}\n";
-                routeContent += $"Поколінь виконано: {result.GenerationsCompleted}\n";
-                routeContent += $"Час виконання: {result.ElapsedSeconds:F2} сек\n\n";
-                routeContent += "Маршрут: " + string.Join(" → ", result.BestRoute) + " → " + result.BestRoute[0];
-                
+                var sb = new System.Text.StringBuilder();
+                sb.AppendLine("=== TSP Best Route — Sequential ===");
+                sb.AppendLine();
+                sb.AppendLine($"Best distance    : {result.BestDistance:F2}");
+                sb.AppendLine($"Average distance : {result.AverageDistance:F2}");
+                sb.AppendLine($"Cities           : {result.BestRoute.Count}");
+                sb.AppendLine($"Generations      : {result.GenerationsCompleted}");
+                sb.AppendLine();
+                sb.AppendLine("--- Timing breakdown ---");
+                sb.AppendLine($"Total elapsed    : {result.ElapsedSeconds:F2} s");
+                sb.AppendLine();
+                sb.AppendLine("--- Best route ---");
+                sb.AppendLine(string.Join(" → ", result.BestRoute) + " → " + result.BestRoute[0]);
+
                 await moduleInfo.OutputWriter.WriteToFileAsync(
-                    System.Text.Encoding.UTF8.GetBytes(routeContent), 
+                    System.Text.Encoding.UTF8.GetBytes(sb.ToString()),
                     options.BestRouteFile);
-                
-                moduleInfo.Logger.LogInformation("Найкращий маршрут збережено у файл: {BestRouteFile}", options.BestRouteFile);
+
+                moduleInfo.Logger.LogInformation("Best route saved to {BestRouteFile}", options.BestRouteFile);
             }
             catch (Exception ex)
             {
-                moduleInfo.Logger.LogError(ex, "Помилка збереження результатів: {Message}", ex.Message);
+                moduleInfo.Logger.LogError(ex, "Error saving results: {Message}", ex.Message);
             }
         }
     }

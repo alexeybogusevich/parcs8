@@ -17,5 +17,12 @@ namespace Parcs.Net
         T BindModuleOptions<T>() where T : class, IModuleOptions, new();
 
         Task<IPoint> CreatePointAsync();
+
+        /// <summary>
+        /// Creates <paramref name="count"/> points by batch-publishing all Service Bus messages
+        /// first, then awaiting all daemon connections concurrently. Prefer this over calling
+        /// <see cref="CreatePointAsync"/> in a loop when using the KEDA scaling path.
+        /// </summary>
+        Task<IPoint[]> CreatePointsAsync(int count);
     }
 }

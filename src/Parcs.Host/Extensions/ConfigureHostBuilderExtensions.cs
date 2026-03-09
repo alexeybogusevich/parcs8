@@ -18,7 +18,7 @@ namespace Parcs.Host.Extensions
                 .WriteTo.Elasticsearch([new Uri(elasticsearchConfiguration.BaseUrl)], options =>
                 {
                     options.DataStream = new DataStreamName("parcs-portal");
-                    options.BootstrapMethod = BootstrapMethod.Failure;
+                    options.BootstrapMethod = BootstrapMethod.Silent;
                 })
                 .ReadFrom.Configuration(hostContext.Configuration));
         }

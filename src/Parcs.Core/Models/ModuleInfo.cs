@@ -43,12 +43,28 @@ namespace Parcs.Core.Models
 
         public async Task<IPoint> CreatePointAsync()
         {
-            var nextDaemon = GetNextDaemon();
+            // Service Bus / KEDA path: point creation service handles daemon provisioning.
+            // We check this before GetNextDaemon() because in KEDA mode no daemons are
+            // pre-registered — new pods are provisioned on demand via the Service Bus queue.
+            if (_pointCreationService != null)
+            {
+                var point = await _pointCreationService.CreatePointAsync(
+                    _jobId,
+                    _moduleId,
+                    _argumentsProvider.GetArguments(),
+                    daemonHostUrl: null,
+                    daemonPort: 0,
+                    _cancellationToken);
 
+                _createdPoints.Add((Point)point);
+                return point;
+            }
+
+            // Legacy path: resolve a pre-registered daemon and connect directly.
+            var nextDaemon = GetNextDaemon();
             Logger.LogInformation("Resolved daemon {Daemon}", nextDaemon.HostUrl);
 
             var nextDaemonAddresses = _addressResolver.Resolve(nextDaemon.HostUrl);
-
             Logger.LogInformation("Resolved daemon address {Daemon}", nextDaemonAddresses.ToString());
 
             if (IsHost is false && nextDaemonAddresses.Any(IPAddress.IsLoopback))
@@ -57,23 +73,36 @@ namespace Parcs.Core.Models
             }
 
             Logger.LogInformation("Will create a point at {Daemon}", nextDaemon.HostUrl);
+            return await CreateNetworkPointAsync(nextDaemonAddresses, nextDaemon.Port);
+        }
 
+        /// <inheritdoc/>
+        public async Task<IPoint[]> CreatePointsAsync(int count)
+        {
             if (_pointCreationService != null)
             {
-                var point = await _pointCreationService.CreatePointAsync(
+                var points = await _pointCreationService.CreatePointsAsync(
+                    count,
                     _jobId,
                     _moduleId,
                     _argumentsProvider.GetArguments(),
-                    nextDaemon.HostUrl,
-                    nextDaemon.Port,
                     _cancellationToken);
 
-                _createdPoints.Add((Point)point);
+                foreach (var p in points)
+                {
+                    _createdPoints.Add((Point)p);
+                }
 
-                return point;
+                return points;
             }
 
-            return await CreateNetworkPointAsync(nextDaemonAddresses, nextDaemon.Port);
+            // Fallback for legacy paths (no Service Bus configured).
+            var result = new IPoint[count];
+            for (int i = 0; i < count; i++)
+            {
+                result[i] = await CreatePointAsync();
+            }
+            return result;
         }
 
         private async Task<IPoint> CreateNetworkPointAsync(IPAddress[] nextDaemonAddresses, int daemonPort)

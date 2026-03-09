@@ -1,6 +1,6 @@
 using Parcs.Net;
 
-namespace Parcs.Demo1.Parallel
+namespace Parcs.Modules.ProofOfWork.Parallel
 {
     public class ParallelWorkerModule : IModule
     {

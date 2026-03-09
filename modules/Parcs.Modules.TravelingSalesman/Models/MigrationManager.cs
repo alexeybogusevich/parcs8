@@ -3,7 +3,7 @@ using System.Collections.Concurrent;
 namespace Parcs.Modules.TravelingSalesman.Models
 {
     /// <summary>
-    /// Менеджер міграції для паралельного генетичного алгоритму
+    /// Migration manager for parallel genetic algorithm.
     /// </summary>
     public class MigrationManager
     {
@@ -12,22 +12,22 @@ namespace Parcs.Modules.TravelingSalesman.Models
         private readonly Random _random = new();
         
         /// <summary>
-        /// Кількість особей для міграції
+        /// Number of individuals for migration.
         /// </summary>
         public int MigrationSize { get; set; } = 5;
-        
+
         /// <summary>
-        /// Інтервал міграції (кожні N поколінь)
+        /// Migration interval (every N generations).
         /// </summary>
         public int MigrationInterval { get; set; } = 10;
-        
+
         /// <summary>
-        /// Тип міграції
+        /// Migration type.
         /// </summary>
         public MigrationType MigrationType { get; set; } = MigrationType.BestIndividuals;
-        
+
         /// <summary>
-        /// Додає особу до черги міграції
+        /// Adds an individual to the migration queue.
         /// </summary>
         public void AddToMigration(Route route)
         {
@@ -35,7 +35,7 @@ namespace Parcs.Modules.TravelingSalesman.Models
         }
         
         /// <summary>
-        /// Отримує особу з черги міграції
+        /// Gets an individual from the migration queue.
         /// </summary>
         public bool TryGetFromMigration(out Route? route)
         {
@@ -43,7 +43,7 @@ namespace Parcs.Modules.TravelingSalesman.Models
         }
         
         /// <summary>
-        /// Очищає чергу міграції
+        /// Clears the migration queue.
         /// </summary>
         public void ClearMigrationQueue()
         {
@@ -51,7 +51,7 @@ namespace Parcs.Modules.TravelingSalesman.Models
         }
         
         /// <summary>
-        /// Виконує міграцію між популяціями
+        /// Performs migration between populations.
         /// </summary>
         public void PerformMigration(List<Route> population, List<Route> migrants)
         {
@@ -61,7 +61,7 @@ namespace Parcs.Modules.TravelingSalesman.Models
             {
                 try
                 {
-                    // Видаляємо найгірші особини
+                    // Remove worst individuals
                     var worstCount = Math.Min(migrants.Count, Math.Max(1, population.Count / 10));
                     if (worstCount > 0 && population.Count > worstCount)
                     {
@@ -69,10 +69,10 @@ namespace Parcs.Modules.TravelingSalesman.Models
                         population.RemoveRange(population.Count - worstCount, worstCount);
                     }
                     
-                    // Додаємо мігрантів
+                    // Add migrants
                     population.AddRange(migrants);
-                    
-                    // Зберігаємо розмір популяції якщо він перевищує початкову ємність
+
+                    // Preserve population size if it exceeds initial capacity
                     var initialCapacity = population.Capacity;
                     if (population.Count > initialCapacity)
                     {
@@ -81,14 +81,14 @@ namespace Parcs.Modules.TravelingSalesman.Models
                 }
                 catch (Exception ex)
                 {
-                    // Логуємо помилку, але не зупиняємо роботу
+                    // Log error but don't stop execution
                     System.Diagnostics.Debug.WriteLine($"Migration error: {ex.Message}");
                 }
             }
         }
         
         /// <summary>
-        /// Вибір особин для міграції
+        /// Selects individuals for migration.
         /// </summary>
         public List<Route> SelectIndividualsForMigration(List<Route> population)
         {
@@ -103,20 +103,20 @@ namespace Parcs.Modules.TravelingSalesman.Models
             switch (MigrationType)
             {
                 case MigrationType.BestIndividuals:
-                    // Кращі особини
+                    // Best individuals
                     migrants.AddRange(population
                         .OrderBy(r => r.TotalDistance)
                         .Take(actualMigrationSize));
                     break;
                     
                 case MigrationType.RandomIndividuals:
-                    // Випадкові особини
+                    // Random individuals
                     var shuffled = population.OrderBy(x => _random.Next()).ToList();
                     migrants.AddRange(shuffled.Take(actualMigrationSize));
                     break;
                     
                 case MigrationType.DiverseIndividuals:
-                    // Різноманітні особини (різні відстані)
+                    // Diverse individuals (varying distances)
                     var sorted = population.OrderBy(r => r.TotalDistance).ToList();
                     var step = Math.Max(1, sorted.Count / actualMigrationSize);
                     for (int i = 0; i < actualMigrationSize && i * step < sorted.Count; i++)
@@ -126,7 +126,7 @@ namespace Parcs.Modules.TravelingSalesman.Models
                     break;
                     
                 case MigrationType.TournamentSelection:
-                    // Турнірний вибір
+                    // Tournament selection
                     for (int i = 0; i < actualMigrationSize; i++)
                     {
                         var tournament = population
@@ -143,7 +143,7 @@ namespace Parcs.Modules.TravelingSalesman.Models
         }
         
         /// <summary>
-        /// Перевіряє, чи потрібна міграція
+        /// Checks whether migration is needed.
         /// </summary>
         public bool ShouldMigrate(int generation)
         {
@@ -152,27 +152,27 @@ namespace Parcs.Modules.TravelingSalesman.Models
     }
     
     /// <summary>
-    /// Типи міграції
+    /// Migration types.
     /// </summary>
     public enum MigrationType
     {
         /// <summary>
-        /// Кращі особини
+        /// Best individuals.
         /// </summary>
         BestIndividuals,
-        
+
         /// <summary>
-        /// Випадкові особини
+        /// Random individuals.
         /// </summary>
         RandomIndividuals,
-        
+
         /// <summary>
-        /// Різноманітні особини
+        /// Diverse individuals.
         /// </summary>
         DiverseIndividuals,
-        
+
         /// <summary>
-        /// Турнірний вибір
+        /// Tournament selection.
         /// </summary>
         TournamentSelection
     }

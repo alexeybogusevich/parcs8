@@ -25,14 +25,16 @@ namespace Parcs.Modules.TravelingSalesman.Parallel
                 
                 options.CitiesNumber = cities.Count;
                 
-                moduleInfo.Logger.LogInformation("Запуск Master-Slave TSP модуля з {CitiesCount} містами", cities.Count);
-                moduleInfo.Logger.LogInformation("Реальне прискорення через паралельну оцінку придатності");
-                moduleInfo.Logger.LogInformation("Параметри: Population={Population}, Generations={Generations}, Workers={Workers}, Mutation={Mutation:F3}", 
+                moduleInfo.Logger.LogInformation("Starting Master-Slave TSP module with {CitiesCount} cities", cities.Count);
+                moduleInfo.Logger.LogInformation("Real speedup through parallel fitness evaluation");
+                moduleInfo.Logger.LogInformation("Parameters: Population={Population}, Generations={Generations}, Workers={Workers}, Mutation={Mutation:F3}",
                     options.PopulationSize, options.Generations, options.PointsNumber, options.MutationRate);
                 
                 var stopwatch = Stopwatch.StartNew();
 
-                // Create worker points for parallel fitness evaluation
+                // ── Phase 1: Pod provisioning ──────────────────────────────────────────
+                // Create worker points for parallel fitness evaluation.
+                // MasterSlave creates them sequentially (one SB message + wait per pod).
                 var channels = new IChannel[options.PointsNumber];
                 var points = new IPoint[options.PointsNumber];
 
@@ -41,10 +43,12 @@ namespace Parcs.Modules.TravelingSalesman.Parallel
                     points[i] = await moduleInfo.CreatePointAsync();
                     channels[i] = await points[i].CreateChannelAsync();
                 }
+                // All daemons are connected — record infrastructure overhead.
+                var podProvisioningSeconds = stopwatch.Elapsed.TotalSeconds;
 
-                moduleInfo.Logger.LogInformation("Створено {WorkersCount} workers для паралельної оцінки придатності", points.Length);
+                moduleInfo.Logger.LogInformation("Created {WorkersCount} workers for parallel fitness evaluation", points.Length);
 
-                // Start worker modules
+                // ── Phase 2: Computation ───────────────────────────────────────────────
                 foreach (var point in points)
                 {
                     try
@@ -53,26 +57,27 @@ namespace Parcs.Modules.TravelingSalesman.Parallel
                     }
                     catch (Exception ex)
                     {
-                        moduleInfo.Logger.LogError(ex, "Помилка запуску worker модуля: {Message}", ex.Message);
+                        moduleInfo.Logger.LogError(ex, "Error starting worker module: {Message}", ex.Message);
                         throw;
                     }
                 }
 
-                // Send cities to all workers (they need it for distance calculation)
-                // OPTIMIZATION: Use binary format for cities as well
+                // Send cities to all workers (needed for distance calculation).
                 for (int i = 0; i < points.Length; ++i)
                 {
                     await WriteCitiesBinaryAsync(channels[i], cities);
                 }
 
-                moduleInfo.Logger.LogInformation("Дані передано до workers, починаємо GA з паралельною оцінкою придатності");
+                moduleInfo.Logger.LogInformation("City data sent to workers; starting GA with parallel fitness evaluation");
 
                 // Run Master-Slave GA
                 var result = await RunMasterSlaveGA(moduleInfo, cities, options, channels);
-                
+
                 stopwatch.Stop();
-                result.ElapsedSeconds = stopwatch.Elapsed.TotalSeconds;
-                
+                result.ElapsedSeconds         = stopwatch.Elapsed.TotalSeconds;
+                result.PodProvisioningSeconds = podProvisioningSeconds;
+                result.ComputeSeconds         = result.ElapsedSeconds - podProvisioningSeconds;
+
                 if (options.SaveResults)
                 {
                     await SaveResultsAsync(moduleInfo, result, options);
@@ -83,8 +88,8 @@ namespace Parcs.Modules.TravelingSalesman.Parallel
                     System.Text.Encoding.UTF8.GetBytes(jsonContent), 
                     options.OutputFile);
                 
-                moduleInfo.Logger.LogInformation("Master-Slave TSP завершено за {ElapsedSeconds:F2} секунд", result.ElapsedSeconds);
-                moduleInfo.Logger.LogInformation("Найкраща відстань: {BestDistance:F2}", result.BestDistance);
+                moduleInfo.Logger.LogInformation("Master-Slave TSP completed in {ElapsedSeconds:F2} seconds", result.ElapsedSeconds);
+                moduleInfo.Logger.LogInformation("Best distance: {BestDistance:F2}", result.BestDistance);
                 
                 // Cleanup
                 foreach (var point in points)
@@ -95,7 +100,7 @@ namespace Parcs.Modules.TravelingSalesman.Parallel
                     }
                     catch (Exception ex)
                     {
-                        moduleInfo.Logger.LogWarning(ex, "Помилка видалення точки: {Message}", ex.Message);
+                        moduleInfo.Logger.LogWarning(ex, "Error deleting point: {Message}", ex.Message);
                     }
                 }
                 
@@ -107,13 +112,13 @@ namespace Parcs.Modules.TravelingSalesman.Parallel
                     }
                     catch (Exception ex)
                     {
-                        moduleInfo.Logger.LogWarning(ex, "Помилка закриття каналу: {Message}", ex.Message);
+                        moduleInfo.Logger.LogWarning(ex, "Error closing channel: {Message}", ex.Message);
                     }
                 }
             }
             catch (Exception ex)
             {
-                moduleInfo.Logger.LogError(ex, "Критична помилка в Master-Slave TSP модулі: {Message}", ex.Message);
+                moduleInfo.Logger.LogError(ex, "Critical error in Master-Slave TSP module: {Message}", ex.Message);
                 throw;
             }
         }
@@ -376,7 +381,7 @@ namespace Parcs.Modules.TravelingSalesman.Parallel
             {
                 try
                 {
-                    moduleInfo.Logger.LogInformation("Завантаження міст з файлу: {InputFile}", options.InputFile);
+                    moduleInfo.Logger.LogInformation("Loading cities from file: {InputFile}", options.InputFile);
                     
                     if (options.InputFile.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
                     {
@@ -394,11 +399,11 @@ namespace Parcs.Modules.TravelingSalesman.Parallel
                 }
                 catch (Exception ex)
                 {
-                    moduleInfo.Logger.LogWarning(ex, "Помилка завантаження з файлу: {Message}", ex.Message);
+                    moduleInfo.Logger.LogWarning(ex, "Error loading from file: {Message}", ex.Message);
                 }
             }
             
-            moduleInfo.Logger.LogInformation("Генерація {CitiesNumber} випадкових міст з seed={Seed}", 
+            moduleInfo.Logger.LogInformation("Generating {CitiesNumber} random cities with seed={Seed}",
                 options.CitiesNumber, options.Seed);
             return CityLoader.GenerateTestCities(options.CitiesNumber, options.Seed, TestCityPattern.Random);
         }
@@ -407,22 +412,31 @@ namespace Parcs.Modules.TravelingSalesman.Parallel
         {
             try
             {
-                var routeContent = $"Найкращий маршрут TSP Master-Slave (відстань: {result.BestDistance:F2})\n";
-                routeContent += $"Кількість міст: {result.BestRoute.Count}\n";
-                routeContent += $"Поколінь виконано: {result.GenerationsCompleted}\n";
-                routeContent += $"Час виконання: {result.ElapsedSeconds:F2} сек\n";
-                routeContent += $"Тип виконання: Master-Slave (реальне прискорення)\n\n";
-                routeContent += "Маршрут: " + string.Join(" → ", result.BestRoute) + " → " + result.BestRoute[0];
-                
+                var sb = new System.Text.StringBuilder();
+                sb.AppendLine("=== TSP Best Route — Master-Slave (Parallel Fitness Evaluation) ===");
+                sb.AppendLine();
+                sb.AppendLine($"Best distance    : {result.BestDistance:F2}");
+                sb.AppendLine($"Average distance : {result.AverageDistance:F2}");
+                sb.AppendLine($"Cities           : {result.BestRoute.Count}");
+                sb.AppendLine($"Generations      : {result.GenerationsCompleted}");
+                sb.AppendLine();
+                sb.AppendLine("--- Timing breakdown ---");
+                sb.AppendLine($"Pod provisioning : {result.PodProvisioningSeconds:F2} s  (KEDA scheduling + pod startup)");
+                sb.AppendLine($"Computation      : {result.ComputeSeconds:F2} s  (actual GA work)");
+                sb.AppendLine($"Total elapsed    : {result.ElapsedSeconds:F2} s");
+                sb.AppendLine();
+                sb.AppendLine("--- Best route ---");
+                sb.AppendLine(string.Join(" → ", result.BestRoute) + " → " + result.BestRoute[0]);
+
                 await moduleInfo.OutputWriter.WriteToFileAsync(
-                    System.Text.Encoding.UTF8.GetBytes(routeContent), 
+                    System.Text.Encoding.UTF8.GetBytes(sb.ToString()),
                     options.BestRouteFile);
-                
-                moduleInfo.Logger.LogInformation("Найкращий маршрут збережено у файл: {BestRouteFile}", options.BestRouteFile);
+
+                moduleInfo.Logger.LogInformation("Best route saved to {BestRouteFile}", options.BestRouteFile);
             }
             catch (Exception ex)
             {
-                moduleInfo.Logger.LogError(ex, "Помилка збереження результатів: {Message}", ex.Message);
+                moduleInfo.Logger.LogError(ex, "Error saving results: {Message}", ex.Message);
             }
         }
     }

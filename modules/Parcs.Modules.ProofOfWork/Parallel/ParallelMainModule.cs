@@ -2,7 +2,7 @@ using Parcs.Net;
 using System.Diagnostics;
 using System.Text;
 
-namespace Parcs.Demo1.Parallel
+namespace Parcs.Modules.ProofOfWork.Parallel
 {
     public class ParallelMainModule : IModule
     {

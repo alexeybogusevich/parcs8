@@ -80,9 +80,16 @@ namespace Parcs.Daemon.HostedServices
                 var tcpClient = new TcpClient();
                 await tcpClient.ConnectAsync(hostAddresses, request.HostPort);
 
-                _logger.LogInformation("Connected to host, starting TCP communication");
+                _logger.LogInformation("Connected to host, sending correlationId handshake for job {JobId}", request.JobId);
 
                 var networkChannel = new NetworkChannel(tcpClient);
+
+                // Send the correlationId as the very first message so the host can match this
+                // TCP connection to the exact point request that published the Service Bus message.
+                // The host reads this before starting the orchestration loop.
+                await networkChannel.WriteDataAsync(request.CorrelationId);
+
+                _logger.LogInformation("Handshake sent, starting TCP communication for job {JobId}", request.JobId);
 
                 await _channelOrchestrator.OrchestrateAsync(networkChannel, args.CancellationToken);
 

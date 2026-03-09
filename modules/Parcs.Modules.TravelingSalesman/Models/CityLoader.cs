@@ -5,8 +5,8 @@ namespace Parcs.Modules.TravelingSalesman.Models
     public static class CityLoader
     {
         /// <summary>
-        /// Завантажує список міст з текстового файлу
-        /// Формат: кожен рядок містить "ID X Y" (наприклад: "0 10.5 20.3")
+        /// Loads a list of cities from a text file.
+        /// Format: each line contains "ID X Y" (e.g. "0 10.5 20.3").
         /// </summary>
         public static List<City> LoadFromTextFile(string filePath)
         {
@@ -14,7 +14,7 @@ namespace Parcs.Modules.TravelingSalesman.Models
             
             if (!File.Exists(filePath))
             {
-                throw new FileNotFoundException($"Файл з містами не знайдено: {filePath}");
+                throw new FileNotFoundException($"City file not found: {filePath}");
             }
             
             var lines = File.ReadAllLines(filePath);
@@ -38,21 +38,21 @@ namespace Parcs.Modules.TravelingSalesman.Models
                 }
                 catch (Exception ex)
                 {
-                    throw new FormatException($"Помилка парсингу рядка {i + 1}: {line}. {ex.Message}");
+                    throw new FormatException($"Error parsing line {i + 1}: {line}. {ex.Message}");
                 }
             }
             
             if (cities.Count == 0)
             {
-                throw new InvalidDataException("Файл не містить валідних даних про міста");
+                throw new InvalidDataException("File contains no valid city data");
             }
             
             return cities;
         }
 
         /// <summary>
-        /// Завантажує список міст з текстового потоку
-        /// Формат: кожен рядок містить "ID X Y" (наприклад: "0 10.5 20.3")
+        /// Loads a list of cities from a text stream.
+        /// Format: each line contains "ID X Y" (e.g. "0 10.5 20.3").
         /// </summary>
         public static List<City> LoadFromTextFile(Stream stream)
         {
@@ -82,26 +82,26 @@ namespace Parcs.Modules.TravelingSalesman.Models
                 }
                 catch (Exception ex)
                 {
-                    throw new FormatException($"Помилка парсингу рядка {lineNumber}: {line}. {ex.Message}");
+                    throw new FormatException($"Error parsing line {lineNumber}: {line}. {ex.Message}");
                 }
             }
             
             if (cities.Count == 0)
             {
-                throw new InvalidDataException("Потік не містить валідних даних про міста");
+                throw new InvalidDataException("Stream contains no valid city data");
             }
             
             return cities;
         }
         
         /// <summary>
-        /// Завантажує список міст з JSON файлу
+        /// Loads a list of cities from a JSON file.
         /// </summary>
         public static List<City> LoadFromJsonFile(string filePath)
         {
             if (!File.Exists(filePath))
             {
-                throw new FileNotFoundException($"JSON файл з містами не знайдено: {filePath}");
+                throw new FileNotFoundException($"JSON city file not found: {filePath}");
             }
             
             var jsonContent = File.ReadAllText(filePath);
@@ -109,14 +109,14 @@ namespace Parcs.Modules.TravelingSalesman.Models
             
             if (cities == null || cities.Count == 0)
             {
-                throw new InvalidDataException("JSON файл не містить валідних даних про міста");
+                throw new InvalidDataException("JSON file contains no valid city data");
             }
             
             return cities;
         }
 
         /// <summary>
-        /// Завантажує список міст з JSON потоку
+        /// Loads a list of cities from a JSON stream.
         /// </summary>
         public static List<City> LoadFromJsonFile(Stream stream)
         {
@@ -124,20 +124,20 @@ namespace Parcs.Modules.TravelingSalesman.Models
             
             if (cities == null || cities.Count == 0)
             {
-                throw new InvalidDataException("JSON потік не містить валідних даних про міста");
+                throw new InvalidDataException("JSON stream contains no valid city data");
             }
             
             return cities;
         }
         
         /// <summary>
-        /// Зберігає список міст у текстовому форматі
+        /// Saves a list of cities in text format.
         /// </summary>
         public static void SaveToTextFile(List<City> cities, string filePath)
         {
             var lines = new List<string>();
-            lines.Add("# Формат: ID X Y");
-            lines.Add("# Кожен рядок представляє одне місто");
+            lines.Add("# Format: ID X Y");
+            lines.Add("# Each line represents one city");
             
             foreach (var city in cities.OrderBy(c => c.Id))
             {
@@ -148,7 +148,7 @@ namespace Parcs.Modules.TravelingSalesman.Models
         }
         
         /// <summary>
-        /// Зберігає список міст у JSON форматі
+        /// Saves a list of cities in JSON format.
         /// </summary>
         public static void SaveToJsonFile(List<City> cities, string filePath)
         {
@@ -162,7 +162,7 @@ namespace Parcs.Modules.TravelingSalesman.Models
         }
         
         /// <summary>
-        /// Генерує тестові міста з детерміністичним розподілом
+        /// Generates test cities with a deterministic distribution.
         /// </summary>
         public static List<City> GenerateTestCities(int count, int seed, TestCityPattern pattern = TestCityPattern.Random)
         {
@@ -200,7 +200,7 @@ namespace Parcs.Modules.TravelingSalesman.Models
                     int clusters = Math.Max(1, count / 10);
                     var clusterCenters = new List<(double, double)>();
                     
-                    // Генеруємо центри кластерів
+                    // Generate cluster centers
                     for (int i = 0; i < clusters; i++)
                     {
                         double centerX = random.NextDouble() * 800 + 100;
@@ -208,14 +208,14 @@ namespace Parcs.Modules.TravelingSalesman.Models
                         clusterCenters.Add((centerX, centerY));
                     }
                     
-                    // Розподіляємо міста по кластерах
+                    // Distribute cities among clusters
                     for (int i = 0; i < count; i++)
                     {
                         var cluster = clusterCenters[i % clusters];
                         double x = cluster.Item1 + (random.NextDouble() - 0.5) * 200;
                         double y = cluster.Item2 + (random.NextDouble() - 0.5) * 200;
                         
-                        // Обмежуємо координати
+                        // Clamp coordinates
                         x = Math.Max(0, Math.Min(1000, x));
                         y = Math.Max(0, Math.Min(1000, y));
                         
@@ -244,9 +244,9 @@ namespace Parcs.Modules.TravelingSalesman.Models
     
     public enum TestCityPattern
     {
-        Random,     // Випадковий розподіл
-        Grid,       // Сітка
-        Clustered,  // Кластеризований
-        Circle      // Коло
+        Random,     // Random distribution
+        Grid,       // Grid layout
+        Clustered,  // Clustered
+        Circle      // Circle
     }
 } 

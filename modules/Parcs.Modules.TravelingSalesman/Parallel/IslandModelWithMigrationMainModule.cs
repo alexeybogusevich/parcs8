@@ -7,8 +7,17 @@ using Parcs.Modules.TravelingSalesman.Models;
 namespace Parcs.Modules.TravelingSalesman.Parallel
 {
     /// <summary>
-    /// Island Model with Migration - workers exchange individuals periodically.
-    /// Combines benefits of independent exploration (Island Model) with gene exchange (Migration).
+    /// Master module for Island Model with Migration.
+    ///
+    /// Protocol:
+    ///   1. Create all worker points in one batch (all Service Bus messages published at once).
+    ///   2. Launch all worker modules via ExecuteClassAsync (MUST come before any data writes).
+    ///   3. Send cities + options to every worker (workers are now running and reading).
+    ///   4. For each migration round, coordinate ring-topology migration:
+    ///        a. Read migrants from all workers.
+    ///        b. Forward: worker i's migrants go to worker (i+1) mod N.
+    ///   5. Collect final ModuleOutput from every worker.
+    ///   6. Pick the best result and write output.
     /// </summary>
     public class IslandModelWithMigrationMainModule : IModule
     {
@@ -19,170 +28,176 @@ namespace Parcs.Modules.TravelingSalesman.Parallel
             try
             {
                 var options = moduleInfo.BindModuleOptions<ModuleOptions>();
-                var cities = await LoadOrGenerateCitiesAsync(moduleInfo, options);
-                
-                options.CitiesNumber = cities.Count;
-                options.AutoConfigureForLargeProblems();
+                var cities  = await LoadOrGenerateCitiesAsync(moduleInfo, options);
 
-                moduleInfo.Logger.LogInformation("Запуск Island Model з міграцією для {CitiesCount} міст", cities.Count);
-                moduleInfo.Logger.LogInformation("Параметри: Population={Population}, Generations={Generations}, Points={Points}", 
-                    options.PopulationSize, options.Generations, options.PointsNumber);
-                moduleInfo.Logger.LogInformation("Міграція: Enabled={Enabled}, Type={Type}, Size={Size}, Interval={Interval}", 
-                    options.EnableMigration, options.MigrationType, options.MigrationSize, options.MigrationInterval);
+                options.CitiesNumber = cities.Count;
+
+                moduleInfo.Logger.LogInformation(
+                    "Island Model with migration: {Cities} cities, {Points} islands, {Gen} generations, interval={Interval}",
+                    cities.Count, options.PointsNumber, options.Generations, options.MigrationInterval);
 
                 var stopwatch = Stopwatch.StartNew();
 
-                // Create worker points and channels
-                var channels = new IChannel[options.PointsNumber];
-                var points = new IPoint[options.PointsNumber];
-
-                for (int i = 0; i < options.PointsNumber; i++)
+                // --- Step 1: Create all points as a single batch (pod provisioning phase) ---
+                // All Service Bus messages are published before any connection is awaited,
+                // so KEDA sees the full queue depth immediately and AKS CA can provision
+                // all required nodes in parallel (article Fig. 2).
+                var points   = await moduleInfo.CreatePointsAsync(options.PointsNumber);
+                var channels = new IChannel[points.Length];
+                for (int i = 0; i < points.Length; i++)
                 {
-                    points[i] = await moduleInfo.CreatePointAsync();
                     channels[i] = await points[i].CreateChannelAsync();
                 }
+                // All daemons are connected — record infrastructure overhead.
+                var podProvisioningSeconds = stopwatch.Elapsed.TotalSeconds;
 
-                moduleInfo.Logger.LogInformation("Створено {PointsCount} островів для паралельної обробки", points.Length);
+                moduleInfo.Logger.LogInformation("Created {Count} islands", points.Length);
 
-                // Send cities and options to all workers
+                // --- Step 2: Launch worker modules ---
+                // ExecuteClass MUST be sent before any data is written to the channel.
+                // The daemon's ChannelOrchestrator is in its signal-reading loop after
+                // InitializeJob completes; writing data bytes before ExecuteClass causes
+                // the orchestrator to interpret the length prefix as a Signal enum value,
+                // corrupting the protocol.  Only after the daemon has dispatched
+                // ExecuteClassSignalHandler and the worker module's RunAsync is running
+                // will the channel reads (cities, options) be consumed correctly.
+                foreach (var point in points)
+                {
+                    await point.ExecuteClassAsync<IslandModelWithMigrationWorkerModule>();
+                }
+
+                moduleInfo.Logger.LogInformation("All worker modules launched");
+
+                // --- Step 3: Send data to all workers ---
+                // Worker modules are now running and blocking on ReadObjectAsync — safe to write.
                 for (int i = 0; i < points.Length; i++)
                 {
                     await channels[i].WriteObjectAsync(cities);
                     await channels[i].WriteObjectAsync(options);
                 }
 
-                // Launch worker modules
-                moduleInfo.Logger.LogInformation("Запуск worker модулів...");
-                foreach (var point in points)
+                // --- Step 4: Coordinate migration rounds ---
+                // The number of rounds is deterministic and the same for master and every worker,
+                // so they stay in lockstep without any extra signalling.
+                int numMigrationRounds = options.EnableMigration && options.MigrationInterval > 0
+                    ? options.Generations / options.MigrationInterval
+                    : 0;
+
+                for (int round = 0; round < numMigrationRounds; round++)
                 {
-                    await point.ExecuteClassAsync<IslandModelWithMigrationWorkerModule>();
+                    moduleInfo.Logger.LogInformation(
+                        "Migration round {Round}/{Total}", round + 1, numMigrationRounds);
+
+                    await PerformMigrationRoundAsync(moduleInfo, channels, round + 1, numMigrationRounds);
                 }
 
-                // Workers run independently and signal master when they need migration
-                // Master coordinates migration synchronization
+                // --- Step 5: Collect final results ---
                 var finalResults = new List<ModuleOutput>();
-                
-                // Use a simpler approach: workers complete all generations and handle migration internally
-                // by communicating with master when needed
                 for (int i = 0; i < channels.Length; i++)
                 {
                     var result = await channels[i].ReadObjectAsync<ModuleOutput>();
                     finalResults.Add(result);
+                    moduleInfo.Logger.LogInformation(
+                        "Island {Index} finished — best distance: {Best:F2}", i, result.BestDistance);
                 }
 
                 stopwatch.Stop();
 
-                // Combine results (pick best from all islands)
+                // --- Step 6: Combine and write output ---
                 var bestResult = finalResults.OrderBy(r => r.BestDistance).First();
-                var combinedResult = new ModuleOutput
+                var combined   = new ModuleOutput
                 {
-                    BestDistance = bestResult.BestDistance,
-                    AverageDistance = finalResults.Average(r => r.AverageDistance),
-                    GenerationsCompleted = finalResults.Max(r => r.GenerationsCompleted),
-                    BestRoute = bestResult.BestRoute,
-                    ConvergenceHistory = CombineConvergenceHistories(finalResults),
-                    ElapsedSeconds = stopwatch.Elapsed.TotalSeconds
+                    BestDistance          = bestResult.BestDistance,
+                    AverageDistance       = finalResults.Average(r => r.AverageDistance),
+                    GenerationsCompleted  = finalResults.Max(r => r.GenerationsCompleted),
+                    BestRoute             = bestResult.BestRoute,
+                    ConvergenceHistory    = CombineConvergenceHistories(finalResults),
+                    ElapsedSeconds        = stopwatch.Elapsed.TotalSeconds,
+                    PodProvisioningSeconds = podProvisioningSeconds,
+                    ComputeSeconds        = stopwatch.Elapsed.TotalSeconds - podProvisioningSeconds
                 };
 
                 if (options.SaveResults)
                 {
-                    await SaveResultsAsync(moduleInfo, combinedResult, options);
+                    await SaveResultsAsync(moduleInfo, combined, options);
                 }
 
-                var jsonContent = JsonSerializer.Serialize(combinedResult, JsonSerializerOptions);
+                var jsonContent = JsonSerializer.Serialize(combined, JsonSerializerOptions);
                 await moduleInfo.OutputWriter.WriteToFileAsync(
-                    System.Text.Encoding.UTF8.GetBytes(jsonContent),
-                    options.OutputFile);
+                    System.Text.Encoding.UTF8.GetBytes(jsonContent), options.OutputFile);
 
-                moduleInfo.Logger.LogInformation("Island Model з міграцією завершено за {ElapsedSeconds:F2} секунд", combinedResult.ElapsedSeconds);
-                moduleInfo.Logger.LogInformation("Найкраща відстань: {BestDistance:F2}", combinedResult.BestDistance);
+                moduleInfo.Logger.LogInformation(
+                    "Island Model with migration completed in {Elapsed:F2}s (pod provisioning: {Prov:F2}s, compute: {Comp:F2}s) — best distance: {Best:F2}",
+                    combined.ElapsedSeconds, combined.PodProvisioningSeconds, combined.ComputeSeconds, combined.BestDistance);
 
                 // Cleanup
                 foreach (var point in points)
                 {
-                    try { await point.DeleteAsync(); } catch { }
+                    try { await point.DeleteAsync(); } catch { /* best-effort */ }
                 }
                 foreach (var channel in channels)
                 {
-                    try { channel.Dispose(); } catch { }
+                    try { channel.Dispose(); } catch { /* best-effort */ }
                 }
             }
             catch (Exception ex)
             {
-                moduleInfo.Logger.LogError(ex, "Критична помилка в Island Model з міграцією: {Message}", ex.Message);
+                moduleInfo.Logger.LogError(ex, "Critical error in Island Model with migration: {Message}", ex.Message);
                 throw;
             }
         }
 
         /// <summary>
-        /// Performs migration between islands - exchanges individuals between workers
+        /// Coordinates one migration round: reads migrants from every worker then forwards them
+        /// in a ring topology (worker i sends its migrants to worker (i+1) mod N).
         /// </summary>
-        private static async Task PerformMigrationAsync(
+        private static async Task PerformMigrationRoundAsync(
             IModuleInfo moduleInfo,
             IChannel[] channels,
-            ModuleOptions options)
+            int roundNumber,
+            int totalRounds)
         {
-            // Request migrants from all workers
+            // Read migrants from all workers first.
+            var allMigrants = new List<Route>[channels.Length];
             for (int i = 0; i < channels.Length; i++)
             {
-                await channels[i].WriteSignalAsync(Signal.ExecuteClass); // Signal to send migrants
+                allMigrants[i] = await channels[i].ReadObjectAsync<List<Route>>();
+                moduleInfo.Logger.LogInformation(
+                    "Round {Round}/{Total}: island {Index} sent {Count} migrants",
+                    roundNumber, totalRounds, i, allMigrants[i]?.Count ?? 0);
             }
 
-            // Collect migrants from all workers
-            var allMigrants = new List<List<Route>>();
+            // Forward migrants in ring topology.
             for (int i = 0; i < channels.Length; i++)
             {
-                var migrants = await channels[i].ReadObjectAsync<List<Route>>();
-                allMigrants.Add(migrants);
-                moduleInfo.Logger.LogInformation("Острів {Island} надіслав {Count} мігрантів", i, migrants.Count);
-            }
+                int targetIndex    = (i + 1) % channels.Length;
+                var migrantsToSend = allMigrants[i] ?? new List<Route>();
+                await channels[targetIndex].WriteObjectAsync(migrantsToSend);
 
-            // Distribute migrants using ring topology: island i sends to island (i+1) mod N
-            for (int i = 0; i < channels.Length; i++)
-            {
-                int targetIsland = (i + 1) % channels.Length;
-                var migrantsToSend = allMigrants[i];
-                
-                await channels[targetIsland].WriteObjectAsync(migrantsToSend);
-                moduleInfo.Logger.LogInformation("Міграція: Острів {From} → Острів {To} ({Count} особин)", 
-                    i, targetIsland, migrantsToSend.Count);
+                moduleInfo.Logger.LogInformation(
+                    "Round {Round}/{Total}: forwarded {Count} migrants: island {From} → island {To}",
+                    roundNumber, totalRounds, migrantsToSend.Count, i, targetIndex);
             }
-
-            // Signal workers to receive and integrate migrants
-            for (int i = 0; i < channels.Length; i++)
-            {
-                await channels[i].WriteSignalAsync(Signal.ExecuteClass); // Signal to receive migrants
-            }
-
-            // Wait for acknowledgment
-            for (int i = 0; i < channels.Length; i++)
-            {
-                await channels[i].ReadBooleanAsync();
-            }
-
-            moduleInfo.Logger.LogInformation("Міграція завершена");
         }
 
         private static List<double> CombineConvergenceHistories(List<ModuleOutput> results)
         {
             if (results.Count == 0) return new List<double>();
-            
+
             int maxLength = results.Max(r => r.ConvergenceHistory?.Count ?? 0);
-            var combined = new List<double>();
-            
+            var combined  = new List<double>(maxLength);
+
             for (int i = 0; i < maxLength; i++)
             {
                 var values = results
                     .Where(r => r.ConvergenceHistory != null && i < r.ConvergenceHistory.Count)
                     .Select(r => r.ConvergenceHistory[i])
                     .ToList();
-                
+
                 if (values.Count > 0)
-                {
-                    combined.Add(values.Min()); // Best across all islands
-                }
+                    combined.Add(values.Min()); // best across all islands at this generation
             }
-            
+
             return combined;
         }
 
@@ -192,8 +207,8 @@ namespace Parcs.Modules.TravelingSalesman.Parallel
             {
                 try
                 {
-                    moduleInfo.Logger.LogInformation("Завантаження міст з файлу: {InputFile}", options.InputFile);
-                    
+                    moduleInfo.Logger.LogInformation("Loading cities from file: {InputFile}", options.InputFile);
+
                     if (options.InputFile.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
                     {
                         using var fileStream = moduleInfo.InputReader.GetFileStreamForFile(options.InputFile);
@@ -210,35 +225,46 @@ namespace Parcs.Modules.TravelingSalesman.Parallel
                 }
                 catch (Exception ex)
                 {
-                    moduleInfo.Logger.LogWarning(ex, "Помилка завантаження з файлу: {Message}", ex.Message);
+                    moduleInfo.Logger.LogWarning(ex, "Failed to load from file: {Message}", ex.Message);
                 }
             }
-            
-            moduleInfo.Logger.LogInformation("Генерація {CitiesNumber} випадкових міст з seed={Seed}", 
+
+            moduleInfo.Logger.LogInformation(
+                "Generating {Count} random cities with seed={Seed}",
                 options.CitiesNumber, options.Seed);
             return CityLoader.GenerateTestCities(options.CitiesNumber, options.Seed, TestCityPattern.Random);
         }
 
         private static async Task SaveResultsAsync(IModuleInfo moduleInfo, ModuleOutput result, ModuleOptions options)
         {
-            // Implementation if needed
-            await Task.CompletedTask;
-        }
+            try
+            {
+                var sb = new System.Text.StringBuilder();
+                sb.AppendLine("=== TSP Best Route — Island Model with Migration ===");
+                sb.AppendLine();
+                sb.AppendLine($"Best distance    : {result.BestDistance:F2}");
+                sb.AppendLine($"Average distance : {result.AverageDistance:F2}");
+                sb.AppendLine($"Cities           : {result.BestRoute.Count}");
+                sb.AppendLine($"Generations      : {result.GenerationsCompleted}");
+                sb.AppendLine();
+                sb.AppendLine("--- Timing breakdown ---");
+                sb.AppendLine($"Pod provisioning : {result.PodProvisioningSeconds:F2} s  (KEDA scheduling + pod startup)");
+                sb.AppendLine($"Computation      : {result.ComputeSeconds:F2} s  (actual GA work incl. migration rounds)");
+                sb.AppendLine($"Total elapsed    : {result.ElapsedSeconds:F2} s");
+                sb.AppendLine();
+                sb.AppendLine("--- Best route ---");
+                sb.AppendLine(string.Join(" → ", result.BestRoute) + " → " + result.BestRoute[0]);
 
-        private class WorkerState
-        {
-            public int WorkerIndex { get; set; }
-            public int Generation { get; set; }
-            public double BestDistance { get; set; }
-            public double AverageDistance { get; set; }
-        }
+                await moduleInfo.OutputWriter.WriteToFileAsync(
+                    System.Text.Encoding.UTF8.GetBytes(sb.ToString()),
+                    options.BestRouteFile);
 
-        private class GenerationResult
-        {
-            public int Generation { get; set; }
-            public double BestDistance { get; set; }
-            public double AverageDistance { get; set; }
+                moduleInfo.Logger.LogInformation("Best route saved to {BestRouteFile}", options.BestRouteFile);
+            }
+            catch (Exception ex)
+            {
+                moduleInfo.Logger.LogError(ex, "Error saving results: {Message}", ex.Message);
+            }
         }
     }
 }
-

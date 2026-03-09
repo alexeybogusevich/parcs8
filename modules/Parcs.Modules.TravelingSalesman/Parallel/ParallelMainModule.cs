@@ -21,15 +21,19 @@ namespace Parcs.Modules.TravelingSalesman.Parallel
                 
                 var stopwatch = Stopwatch.StartNew();
 
-                var channels = new IChannel[options.PointsNumber];
-                var points = new IPoint[options.PointsNumber];
-
-                for (int i = 0; i < options.PointsNumber; ++i)
+                // ── Phase 1: Pod provisioning ──────────────────────────────────────────
+                // Batch-create all points: all Service Bus messages are published before any
+                // TCP connection is awaited, so KEDA sees the full queue depth at once.
+                var points   = await moduleInfo.CreatePointsAsync(options.PointsNumber);
+                var channels = new IChannel[points.Length];
+                for (int i = 0; i < points.Length; i++)
                 {
-                    points[i] = await moduleInfo.CreatePointAsync();
                     channels[i] = await points[i].CreateChannelAsync();
                 }
+                // All daemons are connected — record infrastructure overhead.
+                var podProvisioningSeconds = stopwatch.Elapsed.TotalSeconds;
 
+                // ── Phase 2: Computation ───────────────────────────────────────────────
                 foreach (var point in points)
                 {
                     await point.ExecuteClassAsync<ParallelWorkerModule>();
@@ -41,10 +45,12 @@ namespace Parcs.Modules.TravelingSalesman.Parallel
                 }
 
                 var result = await CollectResultsAsync(moduleInfo, channels, cities, options);
-                
+
                 stopwatch.Stop();
-                result.ElapsedSeconds = stopwatch.Elapsed.TotalSeconds;
-                
+                result.ElapsedSeconds         = stopwatch.Elapsed.TotalSeconds;
+                result.PodProvisioningSeconds = podProvisioningSeconds;
+                result.ComputeSeconds         = result.ElapsedSeconds - podProvisioningSeconds;
+
                 if (options.SaveResults)
                 {
                     await SaveResultsAsync(moduleInfo, result, options);
@@ -55,8 +61,8 @@ namespace Parcs.Modules.TravelingSalesman.Parallel
                     System.Text.Encoding.UTF8.GetBytes(jsonContent), 
                     options.OutputFile);
                 
-                moduleInfo.Logger.LogInformation("Паралельний TSP завершено за {ElapsedSeconds:F2} секунд", result.ElapsedSeconds);
-                moduleInfo.Logger.LogInformation("Найкраща відстань: {BestDistance:F2}", result.BestDistance);
+                moduleInfo.Logger.LogInformation("Parallel TSP completed in {ElapsedSeconds:F2} seconds", result.ElapsedSeconds);
+                moduleInfo.Logger.LogInformation("Best distance: {BestDistance:F2}", result.BestDistance);
                 
                 foreach (var point in points)
                 {
@@ -66,7 +72,7 @@ namespace Parcs.Modules.TravelingSalesman.Parallel
                     }
                     catch (Exception ex)
                     {
-                        moduleInfo.Logger.LogWarning(ex, "Помилка видалення точки: {Message}", ex.Message);
+                        moduleInfo.Logger.LogWarning(ex, "Error deleting point: {Message}", ex.Message);
                     }
                 }
                 
@@ -78,13 +84,13 @@ namespace Parcs.Modules.TravelingSalesman.Parallel
                     }
                     catch (Exception ex)
                     {
-                        moduleInfo.Logger.LogWarning(ex, "Помилка закриття каналу: {Message}", ex.Message);
+                        moduleInfo.Logger.LogWarning(ex, "Error closing channel: {Message}", ex.Message);
                     }
                 }
             }
             catch (Exception ex)
             {
-                moduleInfo.Logger.LogError(ex, "Критична помилка в паралельному TSP модулі: {Message}", ex.Message);
+                moduleInfo.Logger.LogError(ex, "Critical error in parallel TSP module: {Message}", ex.Message);
                 throw;
             }
         }
@@ -95,7 +101,7 @@ namespace Parcs.Modules.TravelingSalesman.Parallel
             {
                 try
                 {
-                    moduleInfo.Logger.LogInformation("Завантаження міст з файлу: {InputFile}", options.InputFile);
+                    moduleInfo.Logger.LogInformation("Loading cities from file: {InputFile}", options.InputFile);
                     
                     if (options.InputFile.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
                     {
@@ -113,13 +119,13 @@ namespace Parcs.Modules.TravelingSalesman.Parallel
                 }
                 catch (Exception ex)
                 {
-                    moduleInfo.Logger.LogWarning(ex, "Помилка завантаження з файлу: {Message}", ex.Message);
-                    moduleInfo.Logger.LogInformation("Генеруємо випадкові міста...");
+                    moduleInfo.Logger.LogWarning(ex, "Error loading from file: {Message}", ex.Message);
+                    moduleInfo.Logger.LogInformation("Generating random cities...");
                 }
             }
             
-            // Генеруємо випадкові міста як fallback
-            moduleInfo.Logger.LogInformation("Генерація {CitiesNumber} випадкових міст з seed={Seed}", 
+            // Generate random cities as fallback
+            moduleInfo.Logger.LogInformation("Generating {CitiesNumber} random cities with seed={Seed}",
                 options.CitiesNumber, options.Seed);
             return CityLoader.GenerateTestCities(options.CitiesNumber, options.Seed, TestCityPattern.Random);
         }
@@ -141,13 +147,13 @@ namespace Parcs.Modules.TravelingSalesman.Parallel
                 }
                 catch (Exception ex)
                 {
-                    moduleInfo.Logger.LogError(ex, "Помилка читання результату з каналу: {Message}", ex.Message);
+                    moduleInfo.Logger.LogError(ex, "Error reading result from channel: {Message}", ex.Message);
                 }
             }
             
             if (workerResults.Count == 0)
             {
-                throw new InvalidOperationException("Не вдалося отримати результати з жодного worker модуля");
+                throw new InvalidOperationException("Failed to receive results from any worker module");
             }
             
             return CombineResults(workerResults, cities, options);
@@ -198,22 +204,31 @@ namespace Parcs.Modules.TravelingSalesman.Parallel
         {
             try
             {
-                var routeContent = $"Найкращий маршрут TSP (відстань: {result.BestDistance:F2})\n";
-                routeContent += $"Кількість міст: {result.BestRoute.Count}\n";
-                routeContent += $"Поколінь виконано: {result.GenerationsCompleted}\n";
-                routeContent += $"Час виконання: {result.ElapsedSeconds:F2} сек\n";
-                routeContent += $"Тип виконання: Паралельний\n\n";
-                routeContent += "Маршрут: " + string.Join(" → ", result.BestRoute) + " → " + result.BestRoute[0];
-                
+                var sb = new System.Text.StringBuilder();
+                sb.AppendLine("=== TSP Best Route — Parallel (Independent Islands) ===");
+                sb.AppendLine();
+                sb.AppendLine($"Best distance    : {result.BestDistance:F2}");
+                sb.AppendLine($"Average distance : {result.AverageDistance:F2}");
+                sb.AppendLine($"Cities           : {result.BestRoute.Count}");
+                sb.AppendLine($"Generations      : {result.GenerationsCompleted}");
+                sb.AppendLine();
+                sb.AppendLine("--- Timing breakdown ---");
+                sb.AppendLine($"Pod provisioning : {result.PodProvisioningSeconds:F2} s  (KEDA scheduling + pod startup)");
+                sb.AppendLine($"Computation      : {result.ComputeSeconds:F2} s  (actual GA work)");
+                sb.AppendLine($"Total elapsed    : {result.ElapsedSeconds:F2} s");
+                sb.AppendLine();
+                sb.AppendLine("--- Best route ---");
+                sb.AppendLine(string.Join(" → ", result.BestRoute) + " → " + result.BestRoute[0]);
+
                 await moduleInfo.OutputWriter.WriteToFileAsync(
-                    System.Text.Encoding.UTF8.GetBytes(routeContent), 
+                    System.Text.Encoding.UTF8.GetBytes(sb.ToString()),
                     options.BestRouteFile);
-                
-                moduleInfo.Logger.LogInformation("Найкращий маршрут збережено у файл: {BestRouteFile}", options.BestRouteFile);
+
+                moduleInfo.Logger.LogInformation("Best route saved to {BestRouteFile}", options.BestRouteFile);
             }
             catch (Exception ex)
             {
-                moduleInfo.Logger.LogError(ex, "Помилка збереження результатів: {Message}", ex.Message);
+                moduleInfo.Logger.LogError(ex, "Error saving results: {Message}", ex.Message);
             }
         }
     }

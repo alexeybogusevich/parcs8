@@ -1,4 +1,5 @@
 using Parcs.Host.Extensions;
+using Parcs.Host.HostedServices;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,7 +14,8 @@ builder.Services.AddHealthChecks();
 builder.Services.AddApplicationServices();
 builder.Services.AddApplicationOptions(builder.Configuration);
 builder.Services.AddAsynchronousJobProcessing();
-builder.Services.AddHostedService<HostedServices.HostTcpServer>();
+builder.Services.AddSingleton<HostTcpServer>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<HostTcpServer>());
 builder.Services.AddHttpClient();
 builder.Services.AddDatabase(builder.Configuration);
 builder.Services.AddApplicationInsightsTelemetry();
