@@ -21,7 +21,10 @@ namespace Parcs.Modules.TravelingSalesman
 
         // Island Model with Migration options
         public bool EnableMigration { get; set; } = false;
-        public MigrationType MigrationType { get; set; } = MigrationType.BestIndividuals;
+        // Accepted values: BestIndividuals, RandomIndividuals, DiverseIndividuals, TournamentSelection
+        // Stored as string so the Portal's free-text input can pass it without enum-parse failures;
+        // the worker module parses it with a safe fallback to BestIndividuals.
+        public string MigrationType { get; set; } = "BestIndividuals";
         public int MigrationSize { get; set; } = 5;
         public int MigrationInterval { get; set; } = 10;
 

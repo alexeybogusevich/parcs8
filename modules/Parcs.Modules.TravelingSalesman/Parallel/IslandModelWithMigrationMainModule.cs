@@ -166,6 +166,12 @@ namespace Parcs.Modules.TravelingSalesman.Parallel
         /// <summary>
         /// Coordinates one migration round: reads migrants from every worker then forwards them
         /// in a ring topology (worker i sends its migrants to worker (i+1) mod N).
+        /// <para>
+        /// Workers serialize migrants as <see cref="MigrantDto"/> (not <see cref="Route"/>) because
+        /// <c>System.Text.Json</c> cannot deserialize <see cref="Route"/> — it has no parameterless
+        /// constructor. The master simply relays the opaque DTO list; reconstruction into full
+        /// <see cref="Route"/> objects happens on the receiving worker.
+        /// </para>
         /// </summary>
         private static async Task PerformMigrationRoundAsync(
             IModuleInfo moduleInfo,
@@ -173,11 +179,11 @@ namespace Parcs.Modules.TravelingSalesman.Parallel
             int roundNumber,
             int totalRounds)
         {
-            // Read migrants from all workers first.
-            var allMigrants = new List<Route>[channels.Length];
+            // Read migrant DTOs from all workers first.
+            var allMigrants = new List<MigrantDto>[channels.Length];
             for (int i = 0; i < channels.Length; i++)
             {
-                allMigrants[i] = await channels[i].ReadObjectAsync<List<Route>>();
+                allMigrants[i] = await channels[i].ReadObjectAsync<List<MigrantDto>>();
                 moduleInfo.Logger.LogInformation(
                     "Round {Round}/{Total}: island {Index} sent {Count} migrants",
                     roundNumber, totalRounds, i, allMigrants[i]?.Count ?? 0);
@@ -187,7 +193,7 @@ namespace Parcs.Modules.TravelingSalesman.Parallel
             for (int i = 0; i < channels.Length; i++)
             {
                 int targetIndex    = (i + 1) % channels.Length;
-                var migrantsToSend = allMigrants[i] ?? new List<Route>();
+                var migrantsToSend = allMigrants[i] ?? new List<MigrantDto>();
                 await channels[targetIndex].WriteObjectAsync(migrantsToSend);
 
                 moduleInfo.Logger.LogInformation(

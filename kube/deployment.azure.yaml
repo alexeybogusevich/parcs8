@@ -24,7 +24,7 @@ metadata:
   name: parcs-storage-volume-claim
 spec:
   accessModes:
-  - ReadWriteOnce
+  - ReadWriteMany   # Required: daemon pods run on separate nodes (anti-affinity), so all must mount simultaneously
   storageClassName: azurefile-csi
   resources:
     requests:

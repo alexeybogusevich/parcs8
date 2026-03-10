@@ -55,11 +55,17 @@ namespace Parcs.Modules.TravelingSalesman.Parallel
                 var ga = new GeneticAlgorithm(cities, localOptions);
                 ga.Initialize();
 
+                // Parse MigrationType string with a safe fallback so the module doesn't crash
+                // when the Portal sends an unrecognised or missing value.
+                var migrationType = Enum.TryParse<MigrationType>(options.MigrationType, ignoreCase: true, out var parsedType)
+                    ? parsedType
+                    : MigrationType.BestIndividuals;
+
                 var migrationManager = new MigrationManager
                 {
                     MigrationSize     = options.MigrationSize,
                     MigrationInterval = options.MigrationInterval,
-                    MigrationType     = options.MigrationType
+                    MigrationType     = migrationType
                 };
 
                 int numMigrationRounds = options.EnableMigration && options.MigrationInterval > 0
@@ -84,19 +90,28 @@ namespace Parcs.Modules.TravelingSalesman.Parallel
                         "Worker: round {Round}/{Total} — sending {Count} migrants to master",
                         round + 1, numMigrationRounds, migrants.Count);
 
-                    // Send our selected individuals to the master for ring-topology redistribution.
-                    await moduleInfo.Parent.WriteObjectAsync(migrants);
+                    // Serialize to DTO before sending — Route has no parameterless constructor
+                    // so System.Text.Json cannot deserialize it on the receiving end.
+                    var outgoingDtos = migrants
+                        .Select(m => new MigrantDto { Cities = m.Cities, TotalDistance = m.TotalDistance })
+                        .ToList();
+                    await moduleInfo.Parent.WriteObjectAsync(outgoingDtos);
 
                     // Receive migrants from the neighbouring island (forwarded by master).
-                    var incomingMigrants = await moduleInfo.Parent.ReadObjectAsync<List<Route>>();
+                    var incomingDtos = await moduleInfo.Parent.ReadObjectAsync<List<MigrantDto>>();
 
-                    if (incomingMigrants != null && incomingMigrants.Count > 0)
+                    if (incomingDtos != null && incomingDtos.Count > 0)
                     {
-                        // Restore city references that are lost during JSON serialization.
-                        foreach (var migrant in incomingMigrants)
-                        {
-                            migrant.SetCities(cities);
-                        }
+                        // Reconstruct full Route objects from the DTO, re-using this island's
+                        // cities list and skipping distance recalculation (distance is already known).
+                        var incomingMigrants = incomingDtos
+                            .Select(dto =>
+                            {
+                                var route = new Route(cities, new Random(), dto.Cities, skipDistanceCalculation: true);
+                                route.SetDistance(dto.TotalDistance);
+                                return route;
+                            })
+                            .ToList();
 
                         migrationManager.PerformMigration(population, incomingMigrants);
 
