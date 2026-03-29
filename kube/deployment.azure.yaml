@@ -461,3 +461,164 @@ spec:
       - name: parcs-database-volume
         persistentVolumeClaim:
           claimName: parcs-database-volume-claim
+---
+# ═══════════════════════════════════════════════════════════════════════════════
+# PARCS Agent MCP Server
+#
+# Exposes PARCS parallel compute to AI agents (Claude, GPT, etc.) via the
+# Model Context Protocol (MCP). Agents can:
+#   1. Compile C# code with create_session
+#   2. Dispatch parallel jobs with submit_layer
+#   3. Poll results with get_layer_results
+# ═══════════════════════════════════════════════════════════════════════════════
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: parcs-agent-mcp
+  labels:
+    app: parcs-agent-mcp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: parcs-agent-mcp
+  template:
+    metadata:
+      labels:
+        app: parcs-agent-mcp
+    spec:
+      serviceAccountName: parcs-agent-mcp-sa
+      containers:
+      - name: parcs-agent-mcp
+        image: parcsmcp.azurecr.io/parcs-agent-mcp:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: ASPNETCORE_URLS
+          value: "http://+:8080"
+        - name: Parcs__HostUrl
+          value: "http://parcs-hostapi:8080"
+        - name: Parcs__AgentRunnerModuleId
+          value: "0"
+        - name: Parcs__FallbackWorkerNodeCount
+          value: "19"
+        - name: Parcs__FallbackMaxParallelism
+          value: "133"
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 250m
+            memory: 256Mi
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: parcs-agent-mcp
+  labels:
+    app: parcs-agent-mcp
+spec:
+  type: ClusterIP
+  selector:
+    app: parcs-agent-mcp
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+    name: http
+---
+# ServiceAccount + RBAC so the MCP server can query the Kubernetes API
+# for cluster capacity (node list).
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: parcs-agent-mcp-sa
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: parcs-agent-mcp-reader
+rules:
+- apiGroups: [""]
+  resources: ["nodes"]
+  verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: parcs-agent-mcp-reader-binding
+subjects:
+- kind: ServiceAccount
+  name: parcs-agent-mcp-sa
+  namespace: default
+roleRef:
+  kind: ClusterRole
+  name: parcs-agent-mcp-reader
+  apiGroup: rbac.authorization.k8s.io
+---
+# ═══════════════════════════════════════════════════════════════════════════════
+# PVC Session TTL Cleanup CronJob
+#
+# Runs daily and deletes agent session directories from /var/lib/storage older
+# than SESSION_TTL_HOURS. Prevents unbounded PVC growth from accumulated job I/O.
+# ═══════════════════════════════════════════════════════════════════════════════
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: parcs-session-ttl-cleanup
+spec:
+  schedule: "0 2 * * *"   # 02:00 UTC daily
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: cleanup
+            image: alpine:3.19
+            env:
+            - name: SESSION_TTL_HOURS
+              value: "24"
+            command:
+            - /bin/sh
+            - -c
+            - |
+              echo "Starting PARCS session cleanup (TTL=${SESSION_TTL_HOURS}h)"
+              CUTOFF_MINUTES=$((SESSION_TTL_HOURS * 60))
+              DELETED=0
+              for dir in /var/lib/storage/Jobs/*/; do
+                if [ -d "$dir" ]; then
+                  AGE_MINUTES=$(( ($(date +%s) - $(stat -c %Y "$dir")) / 60 ))
+                  if [ "$AGE_MINUTES" -gt "$CUTOFF_MINUTES" ]; then
+                    echo "Deleting $dir (age=${AGE_MINUTES}m)"
+                    rm -rf "$dir"
+                    DELETED=$((DELETED + 1))
+                  fi
+                fi
+              done
+              echo "Cleanup complete: deleted ${DELETED} job directories"
+            volumeMounts:
+            - name: parcs-storage
+              mountPath: /var/lib/storage
+          volumes:
+          - name: parcs-storage
+            persistentVolumeClaim:
+              claimName: parcs-storage-volume-claim

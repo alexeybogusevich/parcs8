@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <!-- Required so the module DLL can be loaded into an isolated AssemblyLoadContext -->
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Reference Parcs.Net as a compile-time-only dependency; the host provides it at runtime -->
+    <PackageReference Include="Parcs.Net" Version="0.8.0">
+      <ExcludeAssets>runtime</ExcludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Parcs.Agent.Runtime\Parcs.Agent.Runtime.csproj" />
+  </ItemGroup>
+
+</Project>
