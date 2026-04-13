@@ -18,6 +18,9 @@ namespace Parcs.Daemon.Extensions
         public static IServiceCollection AddApplicationServices(this IServiceCollection services)
         {
             return services
+                // GPU availability is probed once at startup and cached for the pod lifetime.
+                // Modules read IsCudaAvailable to decide between GPU and CPU code paths.
+                .AddSingleton<IGpuAvailabilityService, GpuAvailabilityService>()
                 .AddSingleton(typeof(ITypeLoader<>), typeof(TypeLoader<>))
                 .AddSingleton<CancelJobSignalHandler>()
                 .AddSingleton<ConfigurationDaemonResolutionStrategy>()

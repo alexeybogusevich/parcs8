@@ -9,6 +9,10 @@
 	  <PackageReference Include="Parcs.Net" Version="0.8.0">
 		  <ExcludeAssets>runtime</ExcludeAssets>
 	  </PackageReference>
+	  <!-- ILGPU: cross-platform .NET GPU computing library.
+	       Compiles C# kernel methods to CUDA PTX (or OpenCL/CPU) at runtime via JIT. -->
+	  <PackageReference Include="ILGPU" Version="1.5.1" />
+	  <PackageReference Include="ILGPU.Algorithms" Version="1.5.1" />
   </ItemGroup>
 
 </Project>

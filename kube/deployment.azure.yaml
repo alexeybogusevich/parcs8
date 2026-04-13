@@ -1,5 +1,5 @@
 # PARCS Kubernetes Deployment for Azure (AKS)
-# 
+#
 # Architecture Overview:
 # - Daemons are deployed as short-lived Kubernetes Jobs, created dynamically by KEDA
 # - KEDA monitors Azure Service Bus queue "point-requested" and scales based on message count
@@ -17,6 +17,15 @@
 # - Set minimum nodes (e.g., 1-2 for cost optimization)
 # - Set maximum nodes based on expected workload (e.g., 10-20)
 # - Configure node VM size (DS2_v2 minimum, Standard_D4_v5 or larger recommended)
+#
+# GPU Node Pool:
+# - A dedicated "gpupool" (Standard_NC4as_T4_v3) is provisioned by the Bicep template.
+# - AKS installs the NVIDIA device plugin automatically on GPU node pools, exposing
+#   the nvidia.com/gpu extended resource on each node.
+# - Daemon pods request 1 GPU, the gpupool taint toleration, and the accelerator=nvidia
+#   node selector so they are scheduled exclusively on GPU nodes.
+# - ILGPU (added to module .csproj files) JIT-compiles kernels to CUDA at runtime;
+#   it falls back to CPU automatically when no CUDA device is present (local dev).
 #
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -174,6 +183,17 @@ spec:
       spec:
         restartPolicy: Never
         dnsPolicy: ClusterFirst
+        # Schedule exclusively on the GPU node pool.
+        # The nodeSelector matches the label set on the gpupool in resources.bicep.
+        nodeSelector:
+          accelerator: nvidia
+        # Tolerate the taint applied to GPU nodes so non-GPU workloads are never
+        # accidentally placed there (and this pod is allowed through).
+        tolerations:
+        - key: "sku"
+          operator: "Equal"
+          value: "gpu"
+          effect: "NoSchedule"
         containers:
         - name: parcs-daemon
           image: oleksiibohusevych/parcsdaemon
@@ -182,11 +202,17 @@ spec:
           - containerPort: 1111
           resources:
             limits:
-              cpu: 1000m
-              memory: 2Gi
+              # 1 whole GPU per daemon pod — exclusive, enforced by the NVIDIA device plugin.
+              # NC6 node specs: 6 vCPU, 56 GiB RAM, 1× K80 (12 GiB VRAM).
+              # Since only 1 daemon runs per node, we can claim most of the node's CPU.
+              # ~1 vCPU is reserved for kubelet/system, leaving 5 vCPUs for the daemon.
+              nvidia.com/gpu: "1"
+              cpu: 5000m
+              memory: 48Gi
             requests:
-              cpu: 250m
-              memory: 512Mi
+              nvidia.com/gpu: "1"
+              cpu: 2000m    # scheduling request; actual usage during GPU kernel launch is low
+              memory: 8Gi
           volumeMounts:
           - name: parcs-storage-volume
             mountPath: /var/lib/storage
@@ -213,7 +239,9 @@ spec:
           persistentVolumeClaim:
             claimName: parcs-storage-volume-claim
   minReplicaCount: 0
-  maxReplicaCount: 1000
+  # Hard cap matching the GPU node pool ceiling: 2 NC6 nodes × 1 GPU each = 2 exclusive GPU slots.
+  # KEDA will queue messages beyond this limit; they will be processed as earlier daemons finish.
+  maxReplicaCount: 2
   triggers:
   - type: azure-servicebus
     metadata:
@@ -502,10 +530,15 @@ spec:
           value: "http://parcs-hostapi:8080"
         - name: Parcs__AgentRunnerModuleId
           value: "0"
+        # GPU capacity: 2 NC6 nodes, 1 GPU and 1 daemon per node.
+        # FallbackWorkerNodeCount is used by the MCP server when the Kubernetes API
+        # is unreachable; it should reflect actual schedulable worker slots.
         - name: Parcs__FallbackWorkerNodeCount
-          value: "19"
+          value: "2"
+        # FallbackMaxParallelism = FallbackWorkerNodeCount × workers-per-node.
+        # With 1 daemon per GPU node and 1 GPU per daemon, parallelism ceiling is also 2.
         - name: Parcs__FallbackMaxParallelism
-          value: "133"
+          value: "2"
         resources:
           limits:
             cpu: 500m

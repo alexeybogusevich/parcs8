@@ -49,6 +49,24 @@ var agentMaxCount = 20      // Upper bound; raise if you need more than 20 concu
 var agentVMSize = 'Standard_DS2_v2'
 var kubernetesVersion = '1.25.2'
 
+// GPU node pool — used exclusively by parcs-daemon pods running GPU-accelerated modules.
+//
+// VM size: Standard_NC6 (6 vCPU, 56 GiB RAM, 1× NVIDIA K80 12 GiB VRAM).
+// This is the only CUDA-capable family with non-zero quota in eastus:
+//   Standard NCASv3_T4 Family vCPUs  →  quota 0  (T4, preferred — request an increase when ready)
+//   Standard NC Family vCPUs         →  quota 12  (K80, used here)
+//
+// Capacity math:
+//   12 vCPU quota ÷ 6 vCPU per NC6 = 2 nodes maximum.
+//   Each node has 1 GPU; the NVIDIA device plugin exposes nvidia.com/gpu as an exclusive
+//   resource, so exactly 1 daemon pod can run per node → 2 concurrent GPU daemons total.
+//
+// Set gpuMinCount to 0 so AKS scales the pool to zero when no GPU jobs are queued (cost saving).
+// The pool is tainted with sku=gpu:NoSchedule so only daemon pods that explicitly tolerate it land here.
+var gpuVMSize = 'Standard_NC6'
+var gpuMinCount = 0
+var gpuMaxCount = 2         // Hard ceiling: 2 nodes × 1 GPU each = 2 concurrent GPU daemons
+
 resource aksCluster 'Microsoft.ContainerService/managedClusters@2021-07-01' = {
   name: aksClusterName
   location: resourceGroupLocation
@@ -64,6 +82,26 @@ resource aksCluster 'Microsoft.ContainerService/managedClusters@2021-07-01' = {
         enableAutoScaling: true
         minCount: agentCount
         maxCount: agentMaxCount
+      }
+      {
+        // Dedicated GPU node pool for algorithmic modules that use ILGPU/CUDA acceleration.
+        // AKS automatically installs the NVIDIA device plugin daemonset on GPU node pools,
+        // which exposes nvidia.com/gpu as a schedulable resource on each node.
+        name: 'gpupool'
+        count: gpuMinCount
+        vmSize: gpuVMSize
+        enableAutoScaling: true
+        minCount: gpuMinCount
+        maxCount: gpuMaxCount
+        mode: 'User'
+        // Taint prevents non-GPU workloads from landing on expensive GPU nodes.
+        // Only pods with a matching toleration (parcs-daemon ScaledJob) will be scheduled here.
+        nodeTaints: [
+          'sku=gpu:NoSchedule'
+        ]
+        nodeLabels: {
+          accelerator: 'nvidia'
+        }
       }
     ]
     // Autoscaler profile — tuned for ephemeral KEDA daemon jobs

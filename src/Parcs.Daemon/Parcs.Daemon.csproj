@@ -43,6 +43,10 @@
 	<PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
 	<PackageReference Include="Serilog.Sinks.Debug" Version="3.0.0" />
     <PackageReference Include="Azure.Messaging.ServiceBus" Version="7.18.1" />
+    <!-- ILGPU is referenced here so the Daemon can probe for GPU availability at startup
+         and log the result.  The actual GPU kernels live in each module assembly and are
+         loaded dynamically; ILGPU itself is therefore needed in the host process. -->
+    <PackageReference Include="ILGPU" Version="1.5.1" />
   </ItemGroup>
 
   <ItemGroup>
