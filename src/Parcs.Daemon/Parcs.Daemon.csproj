@@ -42,10 +42,6 @@
 	<PackageReference Include="Serilog.Sinks.Debug" Version="3.0.0" />
     <!-- GCP Pub/Sub replaces Azure Service Bus for point-creation messaging -->
     <PackageReference Include="Google.Cloud.PubSub.V1" Version="3.8.0" />
-    <!-- ILGPU is referenced here so the Daemon can probe for GPU availability at startup
-         and log the result.  The actual GPU kernels live in each module assembly and are
-         loaded dynamically; ILGPU itself is therefore needed in the host process. -->
-    <PackageReference Include="ILGPU" Version="1.5.1" />
   </ItemGroup>
 
   <ItemGroup>

@@ -8,24 +8,40 @@ using Parcs.Agent.Mcp.Services;
 namespace Parcs.Agent.Mcp.Tools;
 
 /// <summary>
-/// MCP tool set exposing PARCS parallel compute capabilities to AI agents.
+/// MCP tool set that exposes PARCS distributed parallel compute to AI agents.
 ///
-/// Workflow:
-///   1. get_cluster_info    — discover available parallelism
-///   2. create_session      — compile C# code and register it with PARCS
-///   3. submit_layer        — dispatch a parallel layer job (non-blocking)
-///   4. get_layer_results   — poll until complete, then read results
+/// ── Execution model ─────────────────────────────────────────────────────────
+/// An agent's computation is structured as a sequence of LAYERS, where each
+/// layer runs C# code in parallel across N daemon workers:
+///
+///   1. create_session  — compile a C# IAgentComputation class once.
+///   2. run_layer       — execute that code on N workers; block until done.
+///                        Each worker receives its WorkerIndex, the shared
+///                        previousLayerResultJson from the prior layer, and
+///                        optional customData / parameters.
+///   3. Repeat run_layer for each subsequent statement, threading the
+///                        resultJson of each completed layer into the next
+///                        call as previousLayerResultJson.
+///
+/// ── Error recovery ──────────────────────────────────────────────────────────
+/// If a layer fails (compile error or runtime exception), the agent calls
+/// create_session again with corrected code and re-runs from the last
+/// successful layer's resultJson — no earlier work is lost.
+///
+/// ── Async variant ───────────────────────────────────────────────────────────
+/// submit_layer + get_layer_results give non-blocking control for long layers;
+/// run_layer is the simple blocking call preferred for most scenarios.
 /// </summary>
 [McpServerToolType]
 public sealed class ParcsAgentTools
 {
-    private readonly SessionManager    _sessions;
-    private readonly ClusterInfoService _clusterInfo;
+    private readonly SessionManager          _sessions;
+    private readonly ClusterInfoService      _clusterInfo;
     private readonly ILogger<ParcsAgentTools> _logger;
 
     public ParcsAgentTools(
-        SessionManager       sessions,
-        ClusterInfoService   clusterInfo,
+        SessionManager           sessions,
+        ClusterInfoService       clusterInfo,
         ILogger<ParcsAgentTools> logger)
     {
         _sessions    = sessions;
@@ -39,9 +55,10 @@ public sealed class ParcsAgentTools
 
     [McpServerTool(Name = "get_cluster_info")]
     [Description(
-        "Returns the current PARCS/Kubernetes cluster capacity: number of worker nodes, " +
-        "maximum parallel daemons, and CPU allocation per daemon. " +
-        "Call this first to decide how much parallelism to request when submitting layers.")]
+        "Returns PARCS cluster capacity: worker node count, maximum simultaneous daemon " +
+        "workers (maxParallelism), and per-daemon CPU allocation in millicores. " +
+        "Call once at the start to decide how many workers to use per layer. " +
+        "KEDA autoscales nodes on demand, so requesting up to maxParallelism workers is safe.")]
     public async Task<string> GetClusterInfoAsync(CancellationToken ct)
     {
         var info = await _clusterInfo.GetClusterInfoAsync(ct);
@@ -50,8 +67,6 @@ public sealed class ParcsAgentTools
             workerNodeCount            = info.WorkerNodeCount,
             maxParallelism             = info.MaxParallelism,
             daemonCpuRequestMillicores = info.DaemonCpuRequestMillicores,
-            notes = "maxParallelism is the cluster-wide ceiling for simultaneous workers. " +
-                    "KEDA autoscales nodes on demand so you can request up to maxParallelism workers per layer.",
         });
     }
 
@@ -61,15 +76,23 @@ public sealed class ParcsAgentTools
 
     [McpServerTool(Name = "create_session")]
     [Description(
-        "Compiles the provided C# source code and registers it as a PARCS compute session. " +
-        "The code must contain (or the body of) a class implementing IAgentComputation:\n" +
+        "Compiles C# source code and registers it as a PARCS compute session. " +
+        "The code must implement IAgentComputation from Parcs.Agent.Runtime:\n\n" +
         "  public interface IAgentComputation {\n" +
-        "      Task<AgentLayerResult> ExecuteAsync(AgentLayerInput input, CancellationToken ct);\n" +
-        "  }\n" +
-        "If you only provide a method body, it will be wrapped automatically. " +
-        "Returns a sessionId to use with submit_layer.")]
+        "    Task<AgentLayerResult> ExecuteAsync(AgentLayerInput input, CancellationToken ct);\n" +
+        "  }\n\n" +
+        "AgentLayerInput fields available to each worker:\n" +
+        "  • WorkerIndex         – 0-based index of this worker\n" +
+        "  • TotalWorkers        – total number of workers in this layer\n" +
+        "  • PreviousLayerResultJson – JSON output of the previous run_layer call (or null for first)\n" +
+        "  • CustomData          – shared string payload passed to all workers\n" +
+        "  • Parameters          – Dictionary<string,string> of named parameters\n\n" +
+        "Return AgentLayerResult.Ok(outputJson) or AgentLayerResult.Error(message).\n\n" +
+        "Returns { sessionId } on success or { error } on compile failure. " +
+        "On compile failure, fix the code and call create_session again — no state is lost.")]
     public string CreateSession(
-        [Description("C# source code. Either a complete class file or just the body of ExecuteAsync.")] string sourceCode)
+        [Description("Complete C# class implementing IAgentComputation, or just the ExecuteAsync body (auto-wrapped).")]
+        string sourceCode)
     {
         try
         {
@@ -80,7 +103,7 @@ public sealed class ParcsAgentTools
             {
                 sessionId = session.SessionId,
                 createdAt = session.CreatedAt,
-                message   = "Compilation successful. Use sessionId with submit_layer.",
+                message   = "Compiled successfully. Use sessionId with run_layer.",
             });
         }
         catch (InvalidOperationException ex) when (ex.Message.StartsWith("Compilation failed"))
@@ -90,21 +113,82 @@ public sealed class ParcsAgentTools
     }
 
     // ─────────────────────────────────────────────────────────────────
-    // Tool: submit_layer
+    // Tool: run_layer  (synchronous — preferred for incremental execution)
+    // ─────────────────────────────────────────────────────────────────
+
+    [McpServerTool(Name = "run_layer")]
+    [Description(
+        "Executes one statement of the computation: fans out to 'parallelism' daemon workers, " +
+        "waits for all to finish, and returns the aggregated results. " +
+        "This is the primary tool for incremental agentic execution — call it once per statement.\n\n" +
+        "Each worker receives:\n" +
+        "  • Its WorkerIndex and TotalWorkers\n" +
+        "  • previousLayerResultJson — pass the resultJson from the previous layer here so workers " +
+        "    can build on earlier results (this is how multi-layer pipelines maintain state)\n" +
+        "  • customData and parameters for any additional inputs\n\n" +
+        "Returns on completion:\n" +
+        "  { layerId, status:'Completed'|'Failed', resultJson, errorMessage? }\n\n" +
+        "resultJson is a LayerOutputDto with fields:\n" +
+        "  • sessionId, layerId, totalElapsedSeconds\n" +
+        "  • results: [ { workerIndex, success, outputData, errorMessage, elapsedSeconds } ]\n\n" +
+        "If status is Failed, fix the code with create_session and call run_layer again, " +
+        "passing the last successful layer's resultJson as previousLayerResultJson.")]
+    public async Task<string> RunLayerAsync(
+        [Description("Session ID from create_session.")]
+        string sessionId,
+        [Description("Number of parallel workers. Should not exceed maxParallelism from get_cluster_info.")]
+        int parallelism,
+        [Description("Pass the resultJson from the previous run_layer call to give workers access to prior results. Null for the first layer.")]
+        string? previousLayerResultJson = null,
+        [Description("Optional shared string payload sent to every worker unchanged.")]
+        string? customData = null,
+        [Description("Optional JSON object of key/value parameters, e.g. '{\"start\":\"0\",\"end\":\"1000\"}'. Workers access these via input.Parameters.")]
+        string? parametersJson = null,
+        CancellationToken ct = default)
+    {
+        if (_sessions.GetSession(sessionId) is null)
+            return JsonSerializer.Serialize(new { error = $"Session '{sessionId}' not found." });
+
+        if (parallelism < 1 || parallelism > 1000)
+            return JsonSerializer.Serialize(new { error = "parallelism must be between 1 and 1000." });
+
+        var parameters = ParseParameters(parametersJson, out var parseError);
+        if (parseError is not null)
+            return JsonSerializer.Serialize(new { error = parseError });
+
+        _logger.LogInformation(
+            "run_layer — session={Session} parallelism={P}", sessionId, parallelism);
+
+        var layer = await _sessions.RunLayerSyncAsync(
+            sessionId, parallelism, previousLayerResultJson, customData, parameters!, ct);
+
+        return JsonSerializer.Serialize(new
+        {
+            layerId      = layer.LayerId,
+            sessionId    = layer.SessionId,
+            status       = layer.Status.ToString(),
+            submittedAt  = layer.SubmittedAt,
+            completedAt  = layer.CompletedAt,
+            resultJson   = layer.Status == LayerStatus.Completed ? layer.ResultJson : null,
+            errorMessage = layer.Status == LayerStatus.Failed    ? layer.ErrorMessage : null,
+        });
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    // Tool: submit_layer  (async — fire and poll)
     // ─────────────────────────────────────────────────────────────────
 
     [McpServerTool(Name = "submit_layer")]
     [Description(
-        "Submits a parallel computation layer to PARCS. The layer fans out to 'parallelism' " +
-        "daemon workers, each receiving an AgentLayerInput with its WorkerIndex (0..parallelism-1), " +
-        "optional previousLayerResultJson, customData, and parameters. " +
-        "Returns a layerId immediately. Use get_layer_results to poll for completion.")]
+        "Submits a parallel layer and returns immediately with a layerId. " +
+        "Use this when you want to dispatch a long-running layer without blocking, " +
+        "then poll with get_layer_results. For most cases prefer run_layer which blocks until done.")]
     public string SubmitLayer(
         [Description("Session ID from create_session.")] string sessionId,
         [Description("Number of parallel workers (1..maxParallelism).")] int parallelism,
-        [Description("Optional JSON string from a previous layer's output to pass as context.")] string? previousLayerResultJson = null,
-        [Description("Arbitrary string payload passed to every worker.")] string? customData = null,
-        [Description("JSON-encoded key/value parameters, e.g. '{\"chunkSize\":\"100\"}'.")] string? parametersJson = null,
+        [Description("JSON output from a previous run_layer / get_layer_results (resultJson field).")] string? previousLayerResultJson = null,
+        [Description("Shared string payload sent to every worker.")] string? customData = null,
+        [Description("JSON object of key/value parameters, e.g. '{\"key\":\"value\"}'.")] string? parametersJson = null,
         CancellationToken ct = default)
     {
         var session = _sessions.GetSession(sessionId);
@@ -114,37 +198,25 @@ public sealed class ParcsAgentTools
         if (parallelism < 1 || parallelism > 1000)
             return JsonSerializer.Serialize(new { error = "parallelism must be between 1 and 1000." });
 
-        var parameters = new Dictionary<string, string>();
-        if (!string.IsNullOrWhiteSpace(parametersJson))
-        {
-            try
-            {
-                parameters = JsonSerializer.Deserialize<Dictionary<string, string>>(parametersJson)
-                             ?? new();
-            }
-            catch
-            {
-                return JsonSerializer.Serialize(new { error = "parametersJson must be a valid JSON object." });
-            }
-        }
+        var parameters = ParseParameters(parametersJson, out var parseError);
+        if (parseError is not null)
+            return JsonSerializer.Serialize(new { error = parseError });
 
         var layer = _sessions.CreateLayer(sessionId);
-
-        _sessions.SubmitLayerBackground(
-            layer, session, parallelism,
-            previousLayerResultJson, customData, parameters, ct);
+        _sessions.SubmitLayerBackground(layer, session, parallelism,
+            previousLayerResultJson, customData, parameters!, ct);
 
         _logger.LogInformation(
-            "Layer {LayerId} submitted — session={Session} parallelism={P}",
-            layer.LayerId, sessionId, parallelism);
+            "submit_layer — session={Session} parallelism={P} layer={LayerId}",
+            sessionId, parallelism, layer.LayerId);
 
         return JsonSerializer.Serialize(new
         {
-            layerId      = layer.LayerId,
+            layerId     = layer.LayerId,
             sessionId,
             parallelism,
-            submittedAt  = layer.SubmittedAt,
-            message      = "Layer submitted. Poll get_layer_results with layerId to check progress.",
+            submittedAt = layer.SubmittedAt,
+            message     = "Layer queued. Poll get_layer_results with layerId.",
         });
     }
 
@@ -154,10 +226,11 @@ public sealed class ParcsAgentTools
 
     [McpServerTool(Name = "get_layer_results")]
     [Description(
-        "Returns the current status and results for a layer submitted via submit_layer. " +
-        "Status values: Pending, Running, Completed, Failed. " +
-        "When Completed, resultJson contains a LayerOutputDto with per-worker WorkerResult objects. " +
-        "Poll this tool every few seconds until status is Completed or Failed.")]
+        "Returns status and results for a layer submitted via submit_layer. " +
+        "Status: Pending | Running | Completed | Failed. " +
+        "When Completed, resultJson contains LayerOutputDto (see run_layer description). " +
+        "When Failed, errorMessage explains what went wrong. " +
+        "Poll every 2–5 seconds until status is terminal.")]
     public string GetLayerResults(
         [Description("Layer ID returned by submit_layer.")] string layerId)
     {
@@ -172,12 +245,8 @@ public sealed class ParcsAgentTools
             status       = layer.Status.ToString(),
             submittedAt  = layer.SubmittedAt,
             completedAt  = layer.CompletedAt,
-            resultJson   = layer.Status == LayerStatus.Completed
-                               ? layer.ResultJson
-                               : null,
-            errorMessage = layer.Status == LayerStatus.Failed
-                               ? layer.ErrorMessage
-                               : null,
+            resultJson   = layer.Status == LayerStatus.Completed ? layer.ResultJson : null,
+            errorMessage = layer.Status == LayerStatus.Failed    ? layer.ErrorMessage : null,
         });
     }
 
@@ -186,10 +255,43 @@ public sealed class ParcsAgentTools
     // ─────────────────────────────────────────────────────────────────
 
     [McpServerTool(Name = "list_sessions")]
-    [Description("Lists all active sessions in the current MCP server instance.")]
+    [Description(
+        "Lists all active compute sessions in this MCP server instance, ordered newest first. " +
+        "Useful for resuming a multi-layer pipeline after a connection interruption.")]
     public string ListSessions()
     {
-        // The session dictionary is internal — expose it via SessionManager
-        return JsonSerializer.Serialize(new { message = "Use get_layer_results with a known layerId." });
+        var sessions = _sessions.ListSessions();
+
+        return JsonSerializer.Serialize(new
+        {
+            count    = sessions.Count,
+            sessions = sessions.Select(s => new
+            {
+                sessionId   = s.SessionId,
+                createdAt   = s.CreatedAt,
+                moduleId    = s.ParcsModuleId,
+            }),
+        });
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    // Private helpers
+    // ─────────────────────────────────────────────────────────────────
+
+    private static Dictionary<string, string>? ParseParameters(string? parametersJson, out string? error)
+    {
+        error = null;
+        if (string.IsNullOrWhiteSpace(parametersJson))
+            return new Dictionary<string, string>();
+
+        try
+        {
+            return JsonSerializer.Deserialize<Dictionary<string, string>>(parametersJson) ?? new();
+        }
+        catch
+        {
+            error = "parametersJson must be a valid JSON object, e.g. {\"key\":\"value\"}.";
+            return null;
+        }
     }
 }

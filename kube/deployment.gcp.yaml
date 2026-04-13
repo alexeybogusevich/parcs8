@@ -570,9 +570,9 @@ spec:
         - name: Parcs__AgentRunnerModuleId
           value: "0"
         - name: Parcs__FallbackWorkerNodeCount
-          value: "19"
+          value: "3"
         - name: Parcs__FallbackMaxParallelism
-          value: "133"
+          value: "18"
         resources:
           limits:
             cpu: 500m
@@ -593,6 +593,7 @@ spec:
           initialDelaySeconds: 10
           periodSeconds: 10
 ---
+# Internal ClusterIP — used by other pods within the cluster (e.g. health checks).
 apiVersion: v1
 kind: Service
 metadata:
@@ -601,6 +602,29 @@ metadata:
     app: parcs-agent-mcp
 spec:
   type: ClusterIP
+  selector:
+    app: parcs-agent-mcp
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+    name: http
+---
+# External LoadBalancer — exposes the MCP server to Claude Code (or any MCP client) outside the cluster.
+# GKE will provision a GCP Load Balancer and assign a public IP.
+# After applying: kubectl get svc parcs-agent-mcp-external -w  (wait for EXTERNAL-IP)
+# Then configure Claude Code MCP with: http://EXTERNAL-IP:8080/sse
+#
+# SECURITY NOTE: The MCP endpoint has no authentication. Restrict access using GCP firewall rules
+# or a Kubernetes NetworkPolicy to allow only your IP range in production.
+apiVersion: v1
+kind: Service
+metadata:
+  name: parcs-agent-mcp-external
+  labels:
+    app: parcs-agent-mcp
+spec:
+  type: LoadBalancer
   selector:
     app: parcs-agent-mcp
   ports:
@@ -668,20 +692,4 @@ spec:
               CUTOFF_MINUTES=$((SESSION_TTL_HOURS * 60))
               DELETED=0
               for dir in /var/lib/storage/Jobs/*/; do
-                if [ -d "$dir" ]; then
-                  AGE_MINUTES=$(( ($(date +%s) - $(stat -c %Y "$dir")) / 60 ))
-                  if [ "$AGE_MINUTES" -gt "$CUTOFF_MINUTES" ]; then
-                    echo "Deleting $dir (age=${AGE_MINUTES}m)"
-                    rm -rf "$dir"
-                    DELETED=$((DELETED + 1))
-                  fi
-                fi
-              done
-              echo "Cleanup complete: deleted ${DELETED} job directories"
-            volumeMounts:
-            - name: parcs-storage
-              mountPath: /var/lib/storage
-          volumes:
-          - name: parcs-storage
-            persistentVolumeClaim:
-              claimName: parcs-storage-volume-claim
+                if [ -d "$dir" 

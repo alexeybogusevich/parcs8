@@ -69,6 +69,10 @@ public sealed class SessionManager
     public SessionRecord? GetSession(string sessionId) =>
         _sessions.TryGetValue(sessionId, out var s) ? s : null;
 
+    /// <summary>Returns all sessions ordered by creation time descending.</summary>
+    public IReadOnlyList<SessionRecord> ListSessions() =>
+        [.. _sessions.Values.OrderByDescending(s => s.CreatedAt)];
+
     public byte[]? GetCompiledAssembly(string sessionId) =>
         SessionCompiledAssemblies.TryGetValue(sessionId, out var b) ? b : null;
 
@@ -98,6 +102,54 @@ public sealed class SessionManager
     // ─────────────────────────────────────────────────────────────────
     // Layer execution (background task)
     // ─────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Executes a layer synchronously: submits it, waits for completion, and returns the layer record.
+    /// The layer's status is set to Completed or Failed before this method returns.
+    /// Use this when the caller wants to block until results are available (e.g. the run_layer MCP tool).
+    /// </summary>
+    public async Task<LayerRecord> RunLayerSyncAsync(
+        string sessionId,
+        int parallelism,
+        string? previousLayerResultJson,
+        string? customData,
+        Dictionary<string, string> parameters,
+        CancellationToken ct)
+    {
+        var session = GetSession(sessionId)
+            ?? throw new InvalidOperationException($"Session '{sessionId}' not found.");
+
+        var layer = CreateLayer(sessionId);
+        UpdateLayer(layer.LayerId, l => l.Status = LayerStatus.Running);
+
+        try
+        {
+            var resultJson = await RunLayerAsync(
+                layer, session, parallelism,
+                previousLayerResultJson, customData, parameters, ct);
+
+            UpdateLayer(layer.LayerId, l =>
+            {
+                l.Status     = LayerStatus.Completed;
+                l.ResultJson = resultJson;
+                l.CompletedAt = DateTimeOffset.UtcNow;
+            });
+
+            _logger.LogInformation("Layer {LayerId} completed (sync)", layer.LayerId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Layer {LayerId} failed (sync): {Msg}", layer.LayerId, ex.Message);
+            UpdateLayer(layer.LayerId, l =>
+            {
+                l.Status       = LayerStatus.Failed;
+                l.ErrorMessage = ex.Message;
+                l.CompletedAt  = DateTimeOffset.UtcNow;
+            });
+        }
+
+        return GetLayer(layer.LayerId)!;
+    }
 
     /// <summary>
     /// Starts executing a layer in a background task.

@@ -35,7 +35,7 @@ variable "region" {
 }
 
 variable "zone" {
-  description = "Primary GCP zone (must support K80 GPUs)"
+  description = "Primary GCP zone"
   type        = string
   default     = "us-central1-c"
 }
@@ -56,30 +56,6 @@ variable "cpu_machine_type" {
   description = "Machine type for CPU worker nodes (≈ Standard_DS2_v2)"
   type        = string
   default     = "n1-standard-2"
-}
-
-variable "gpu_machine_type" {
-  description = "Machine type for GPU nodes"
-  type        = string
-  default     = "n1-standard-4"
-}
-
-variable "gpu_type" {
-  description = "GPU accelerator type"
-  type        = string
-  default     = "nvidia-tesla-k80"
-}
-
-variable "gpu_count_per_node" {
-  description = "Number of GPUs per node in the GPU pool"
-  type        = number
-  default     = 1
-}
-
-variable "gpu_node_max_count" {
-  description = "Maximum nodes in the GPU pool (quota-constrained)"
-  type        = number
-  default     = 2
 }
 
 variable "artifact_registry_location" {
@@ -283,69 +259,6 @@ resource "google_container_node_pool" "cpu_pool" {
 }
 
 # ---------------------------------------------------------------------------
-# GPU node pool  (autoscaled 0 → gpu_node_max_count; K80 GPUs)
-# ---------------------------------------------------------------------------
-
-resource "google_container_node_pool" "gpu_pool" {
-  provider = google-beta
-
-  name    = "gpu-pool"
-  cluster = google_container_cluster.parcs.id
-
-  # Start at 0; KEDA/cluster-autoscaler scales up on demand.
-  initial_node_count = 0
-
-  autoscaling {
-    min_node_count = 0
-    max_node_count = var.gpu_node_max_count
-  }
-
-  node_config {
-    machine_type = var.gpu_machine_type
-    disk_size_gb = 100
-    disk_type    = "pd-ssd"
-
-    guest_accelerator {
-      type  = var.gpu_type
-      count = var.gpu_count_per_node
-
-      # Auto-install NVIDIA drivers (recommended over DaemonSet for GKE)
-      gpu_driver_installation_config {
-        gpu_driver_version = "LATEST"
-      }
-    }
-
-    oauth_scopes = [
-      "https://www.googleapis.com/auth/cloud-platform",
-    ]
-
-    workload_metadata_config {
-      mode = "GKE_METADATA"
-    }
-
-    labels = {
-      pool        = "gpu"
-      accelerator = "nvidia"
-    }
-
-    taint {
-      key    = "sku"
-      value  = "gpu"
-      effect = "NO_SCHEDULE"
-    }
-
-    metadata = {
-      disable-legacy-endpoints = "true"
-    }
-  }
-
-  management {
-    auto_repair  = true
-    auto_upgrade = true
-  }
-}
-
-# ---------------------------------------------------------------------------
 # Google Artifact Registry  (Docker repository for PARCS images)
 # ---------------------------------------------------------------------------
 
@@ -517,22 +430,4 @@ output "pubsub_topic" {
 }
 
 output "pubsub_subscription" {
-  value = google_pubsub_subscription.point_requested_sub.id
-}
-
-output "parcs_host_sa_email" {
-  value = google_service_account.parcs_host.email
-}
-
-output "parcs_daemon_sa_email" {
-  value = google_service_account.parcs_daemon.email
-}
-
-output "keda_operator_sa_email" {
-  value = google_service_account.keda_operator.email
-}
-
-output "get_credentials_command" {
-  description = "Run this to configure kubectl after apply"
-  value       = "gcloud container clusters get-credentials ${var.cluster_name} --zone ${var.zone} --project ${var.project_id}"
-}
+  value = google_pubsub_subscr
