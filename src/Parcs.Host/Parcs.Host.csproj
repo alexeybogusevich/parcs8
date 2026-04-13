@@ -18,18 +18,18 @@
     <PackageReference Include="KubernetesClient" Version="15.0.1" />
     <PackageReference Include="KubernetesClient.Models" Version="12.0.16" />
     <PackageReference Include="MediatR" Version="12.4.1" />
-    <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.22.0" />
+    <!-- Application Insights removed: logging handled by Serilog → Elasticsearch -->
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.10">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.21.0" />
     <PackageReference Include="Serilog.AspNetCore" Version="8.0.3" />
     <PackageReference Include="Serilog.Enrichers.Environment" Version="3.0.1" />
     <PackageReference Include="Serilog.Sinks.Debug" Version="3.0.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.9.0" />
     <PackageReference Include="System.Reflection.MetadataLoadContext" Version="8.0.1" />
-    <PackageReference Include="Azure.Messaging.ServiceBus" Version="7.18.1" />
+    <!-- GCP Pub/Sub replaces Azure Service Bus for point-creation messaging -->
+    <PackageReference Include="Google.Cloud.PubSub.V1" Version="3.8.0" />
   </ItemGroup>
 
   <ItemGroup>

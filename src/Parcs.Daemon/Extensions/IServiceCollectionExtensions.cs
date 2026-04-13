@@ -63,31 +63,20 @@ namespace Parcs.Daemon.Extensions
         public static IServiceCollection AddApplicationOptions(this IServiceCollection services, IConfiguration configuration)
         {
             return services
-                .Configure<ApplicationInsightsConfiguration>(configuration.GetSection(ApplicationInsightsConfiguration.SectionName))
                 .Configure<DaemonsConfiguration>(configuration.GetSection(DaemonsConfiguration.SectionName))
                 .Configure<FileSystemConfiguration>(configuration.GetSection(FileSystemConfiguration.SectionName))
                 .Configure<HostingConfiguration>(configuration.GetSection(HostingConfiguration.SectionName))
                 .Configure<KubernetesConfiguration>(configuration.GetSection(KubernetesConfiguration.SectionName))
                 .Configure<DaemonConfiguration>(configuration.GetSection(DaemonConfiguration.SectionName))
                 .Configure<HostConfiguration>(configuration.GetSection(HostConfiguration.SectionName))
-                .Configure<ServiceBusConfiguration>(configuration.GetSection(ServiceBusConfiguration.SectionName));
+                // GCP Pub/Sub replaces Azure Service Bus
+                .Configure<PubSubConfiguration>(configuration.GetSection(PubSubConfiguration.SectionName));
         }
 
         public static IServiceCollection AddApplicationLogging(this IServiceCollection services, IConfiguration configuration)
         {
-            var applicationInsightsConfiguration = configuration
-                .GetSection(ApplicationInsightsConfiguration.SectionName)
-                .Get<ApplicationInsightsConfiguration>();
-
-            if (applicationInsightsConfiguration?.ConnectionString is null)
-            {
-                return services;
-            }
-
-            services.AddLogging(builder => builder.AddApplicationInsights(
-                configureTelemetryConfiguration: (config) => config.ConnectionString = applicationInsightsConfiguration.ConnectionString,
-                configureApplicationInsightsLoggerOptions: (options) => { }));
-
+            // Logging is handled by Serilog → Elasticsearch (configured in appsettings.json).
+            // Application Insights has been removed as part of the GCP migration.
             return services;
         }
     }

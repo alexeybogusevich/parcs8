@@ -1,0 +1,687 @@
+# PARCS Kubernetes Deployment for Google Cloud (GKE)
+#
+# Architecture Overview:
+# - Daemons are deployed as short-lived Kubernetes Jobs, created dynamically by KEDA
+# - KEDA monitors a Google Cloud Pub/Sub subscription and scales based on message count
+# - Each message in the subscription triggers creation of one daemon Job pod
+# - GKE Cluster Autoscaler provisions nodes automatically when resource limits are reached
+#
+# Prerequisites:
+# 1. GKE cluster provisioned via infra/gcp/main.tf (Terraform)
+# 2. KEDA installed: kubectl apply -f https://github.com/kedacore/keda/releases/download/v2.12.0/keda-2.12.0.yaml
+# 3. Pub/Sub topic and subscription created by Terraform (point-requested / point-requested-sub)
+# 4. Workload Identity configured for KEDA service account (see infra/gcp/main.tf)
+# 5. Filestore CSI driver enabled on the GKE cluster (--addons=GcpFilestoreCsiDriver)
+# 6. Google Artifact Registry repository created and images pushed
+#
+# GKE vs AKS differences in this file:
+#   azurefile-csi  → filestore-csi (ReadWriteMany via Google Filestore)
+#   managed-csi    → standard-rwo  (ReadWriteOnce via Persistent Disk)
+#   azure-servicebus trigger → gcp-pubsub trigger
+#   Service Bus TriggerAuthentication → Workload Identity (no Kubernetes secret needed)
+#   All solution images pulled from DockerHub (oleksiibohusevych/*) — no registry setup needed
+#   Env: ServiceBus__* → PubSub__*
+#
+# Replace these placeholders before applying:
+#   PROJECT_ID    - your GCP project ID, e.g. my-parcs-project
+#
+# ─── Storage classes ─────────────────────────────────────────────────────────────
+# GKE does not provision a ReadWriteMany storage class by default.
+# The custom StorageClass below uses the Filestore CSI driver for NFS-backed RWX storage.
+# Daemon pods on different nodes must all mount the job I/O volume simultaneously.
+# ─────────────────────────────────────────────────────────────────────────────────
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: parcs-rwx
+provisioner: filestore.csi.storage.gke.io
+parameters:
+  tier: standard
+  network: default
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: parcs-storage-volume-claim
+spec:
+  accessModes:
+  - ReadWriteMany   # Required: daemon pods run on separate nodes (no anti-affinity), mount simultaneously
+  storageClassName: parcs-rwx
+  resources:
+    requests:
+      storage: 256Mi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: parcs-database-volume-claim
+spec:
+  accessModes:
+  - ReadWriteOnce
+  storageClassName: standard-rwo   # GKE standard Persistent Disk (replaces managed-csi)
+  resources:
+    requests:
+      storage: 256Mi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: elasticsearch-data
+spec:
+  accessModes:
+  - ReadWriteOnce
+  storageClassName: standard-rwo
+  resources:
+    requests:
+      storage: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch
+  labels:
+    app: elasticsearch
+spec:
+  ports:
+  - name: http
+    port: 9200
+    targetPort: 9200
+  selector:
+    app: elasticsearch
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: elasticsearch
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: elasticsearch
+  template:
+    metadata:
+      labels:
+        app: elasticsearch
+    spec:
+      containers:
+      - name: elasticsearch
+        image: elasticsearch:8.15.0
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 9200
+        env:
+        - name: discovery.type
+          value: single-node
+        - name: xpack.security.enabled
+          value: "false"
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 3Gi
+          requests:
+            cpu: 500m
+            memory: 2Gi
+        volumeMounts:
+        - name: elasticsearch-data
+          mountPath: /usr/share/elasticsearch/data
+      volumes:
+      - name: elasticsearch-data
+        persistentVolumeClaim:
+          claimName: elasticsearch-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kibana
+  labels:
+    app: kibana
+spec:
+  type: LoadBalancer
+  ports:
+  - name: http
+    port: 5601
+    targetPort: 5601
+  selector:
+    app: kibana
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kibana
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kibana
+  template:
+    metadata:
+      labels:
+        app: kibana
+    spec:
+      containers:
+      - name: kibana
+        image: kibana:8.15.0
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 5601
+        env:
+        - name: ELASTICSEARCH_URL
+          value: http://elasticsearch:9200
+        resources:
+          limits:
+            cpu: 500m
+            memory: 1Gi
+          requests:
+            cpu: 200m
+            memory: 512Mi
+---
+# ScaledJob creates one Job pod per Pub/Sub message (one pod = one point).
+apiVersion: keda.sh/v1alpha1
+kind: ScaledJob
+metadata:
+  name: parcs-daemon-scaler
+spec:
+  jobTargetRef:
+    parallelism: 1
+    completions: 1
+    backoffLimit: 2
+    ttlSecondsAfterFinished: 300
+    activeDeadlineSeconds: 3600
+    template:
+      metadata:
+        labels:
+          app: parcs-daemon
+      spec:
+        restartPolicy: Never
+        dnsPolicy: ClusterFirst
+        serviceAccountName: parcs-daemon   # Workload Identity: maps to parcs-daemon GCP SA
+        containers:
+        - name: parcs-daemon
+          image: oleksiibohusevych/parcsdaemon
+          imagePullPolicy: Always
+          ports:
+          - containerPort: 1111
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 2Gi
+            requests:
+              cpu: 250m
+              memory: 512Mi
+          volumeMounts:
+          - name: parcs-storage-volume
+            mountPath: /var/lib/storage
+          env:
+          - name: Hosting__Environment
+            value: Kubernetes
+          - name: Kubernetes__NamespaceName
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+          - name: HostApi__Uri
+            value: parcs-hostapi-internal
+          - name: Elasticsearch__BaseUrl
+            value: 'http://elasticsearch:9200'
+          # GCP Pub/Sub configuration — replaces Azure Service Bus env vars.
+          # ProjectId is injected here; TopicId and SubscriptionId default to appsettings.json values.
+          # Authentication uses Workload Identity (no connection string needed).
+          - name: PubSub__ProjectId
+            valueFrom:
+              secretKeyRef:
+                name: parcs-gcp-secret
+                key: projectId
+          - name: PubSub__SubscriptionId
+            value: "point-requested-sub"
+        volumes:
+        - name: parcs-storage-volume
+          persistentVolumeClaim:
+            claimName: parcs-storage-volume-claim
+  minReplicaCount: 0
+  # maxReplicaCount: CPU pool autoscales to 9 nodes (3 baseline × 3 max multiplier in Terraform).
+  # n1-standard-2 has 2 vCPU; daemon requests 250m → ~6–8 daemons per node → 9 × 8 = 72 theoretical max.
+  # Set conservatively to 18 (2 daemons × 9 nodes) to avoid runaway scaling during testing.
+  # Raise this value once you have verified cluster autoscaler behaviour.
+  maxReplicaCount: 18
+  triggers:
+  - type: gcp-pubsub
+    authenticationRef:
+      name: parcs-gcp-auth
+    metadata:
+      # KEDA counts undelivered messages in this subscription to determine scale.
+      subscriptionName: "point-requested-sub"
+      # mode: SubscriptionSize — scale based on number of messages in the subscription
+      mode: SubscriptionSize
+      # value: "1" — one daemon pod per queued message (same semantics as azure-servicebus)
+      value: "1"
+---
+# TriggerAuthentication using GKE Workload Identity.
+# The KEDA operator's Kubernetes ServiceAccount is annotated to impersonate a GCP Service
+# Account that has roles/pubsub.subscriber (see infra/gcp/main.tf for IAM binding).
+# No Kubernetes Secret containing credentials is needed with Workload Identity.
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+metadata:
+  name: parcs-gcp-auth
+spec:
+  podIdentity:
+    provider: gcp   # tells KEDA to use the pod's Workload Identity for Pub/Sub authentication
+---
+# Secret for non-sensitive GCP config (project ID).
+# Create with: kubectl create secret generic parcs-gcp-secret --from-literal=projectId='YOUR_PROJECT_ID'
+apiVersion: v1
+kind: Secret
+metadata:
+  name: parcs-gcp-secret
+type: Opaque
+# data populated at deploy time; placeholder shown here
+# stringData:
+#   projectId: "YOUR_PROJECT_ID"
+---
+# Kubernetes ServiceAccount for PARCS daemon pods.
+# Annotated with the GCP ServiceAccount created by Terraform (parcs-daemon@PROJECT_ID.iam.gserviceaccount.com).
+# GKE Workload Identity maps this K8s SA to the GCP SA so daemon pods can subscribe to Pub/Sub
+# without any key files or connection strings.
+# Replace PROJECT_ID with your GCP project ID.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: parcs-daemon
+  annotations:
+    iam.gke.io/gcp-service-account: parcs-daemon@PROJECT_ID.iam.gserviceaccount.com
+---
+# Kubernetes ServiceAccount for PARCS Host pods.
+# Annotated with the GCP ServiceAccount created by Terraform (parcs-host@PROJECT_ID.iam.gserviceaccount.com).
+# Allows the Host to publish messages to the Pub/Sub topic using Workload Identity.
+# Replace PROJECT_ID with your GCP project ID.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: parcs-host
+  annotations:
+    iam.gke.io/gcp-service-account: parcs-host@PROJECT_ID.iam.gserviceaccount.com
+---
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: parcs-hostapi
+  labels:
+    app: parcs-hostapi
+spec:
+  type: LoadBalancer
+  ports:
+  - name: https
+    port: 443
+    targetPort: 8080
+  selector:
+    app: parcs-hostapi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: parcs-hostapi-internal
+  labels:
+    app: parcs-hostapi
+spec:
+  ports:
+  - name: https
+    port: 443
+    targetPort: 443
+  - name: http
+    port: 80
+    targetPort: 8080
+  - name: tcp-callback
+    port: 2222
+    targetPort: 2222
+  selector:
+    app: parcs-hostapi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: parcs-hostapi
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: parcs-hostapi
+  template:
+    metadata:
+      labels:
+        app: parcs-hostapi
+    spec:
+      dnsPolicy: ClusterFirst
+      serviceAccountName: parcs-host   # Workload Identity: maps to parcs-host GCP SA
+      initContainers:
+      - name: wait-for-elasticsearch
+        image: busybox:1.36
+        command: ['sh', '-c', 'until wget -qO- "http://elasticsearch:9200/_cluster/health?wait_for_status=yellow&timeout=30s" 2>/dev/null | grep -q "\"status\":\"yellow\"\|\"status\":\"green\""; do echo "Waiting for Elasticsearch yellow/green..."; sleep 10; done; echo "Elasticsearch ready"']
+      - name: wait-for-database
+        image: busybox:1.36
+        command: ['sh', '-c', 'until nc -z parcs-database 5432; do echo "Waiting for PostgreSQL..."; sleep 5; done']
+      containers:
+      - name: parcs-hostapi
+        image: oleksiibohusevych/parcshost
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+          name: http
+        - containerPort: 2222
+          name: tcp-callback
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+          requests:
+            cpu: 200m
+            memory: 512Mi
+        env:
+        - name: Hosting__Environment
+          value: Kubernetes
+        - name: Kubernetes__NamespaceName
+          value: Default
+        - name: Kubernetes__DaemonsHeadlessServiceName
+          value: parcs-daemon-headless
+        - name: Database__HostName
+          value: parcs-database
+        - name: Database__DatabaseName
+          value: parcs
+        - name: Database__Username
+          value: parcs_admin
+        - name: Database__Password
+          value: p5sAuuhrSxs9GHxD
+        - name: Database__Port
+          value: '5432'
+        - name: Elasticsearch__BaseUrl
+          value: 'http://elasticsearch:9200'
+        - name: PubSub__ProjectId
+          valueFrom:
+            secretKeyRef:
+              name: parcs-gcp-secret
+              key: projectId
+        - name: PubSub__TopicId
+          value: "point-requested"
+        - name: HostTcp__Port
+          value: "2222"
+        volumeMounts:
+        - name: parcs-storage-volume
+          mountPath: /var/lib/storage
+      volumes:
+      - name: parcs-storage-volume
+        persistentVolumeClaim:
+          claimName: parcs-storage-volume-claim
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: parcs-portal
+  labels:
+    app: parcs-portal
+spec:
+  type: LoadBalancer
+  ports:
+  - name: https
+    port: 443
+    targetPort: 443
+  - name: http
+    port: 80
+    targetPort: 8080
+  selector:
+    app: parcs-portal
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: parcs-portal
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: parcs-portal
+  template:
+    metadata:
+      labels:
+        app: parcs-portal
+    spec:
+      initContainers:
+      - name: wait-for-elasticsearch
+        image: busybox:1.36
+        command: ['sh', '-c', 'until wget -qO- "http://elasticsearch:9200/_cluster/health?wait_for_status=yellow&timeout=30s" 2>/dev/null | grep -q "\"status\":\"yellow\"\|\"status\":\"green\""; do echo "Waiting for Elasticsearch yellow/green..."; sleep 10; done; echo "Elasticsearch ready"']
+      - name: wait-for-hostapi
+        image: busybox:1.36
+        command: ['sh', '-c', 'until wget -qO- http://parcs-hostapi-internal/health; do echo "Waiting for Host API..."; sleep 5; done']
+      containers:
+      - name: parcs-portal
+        image: oleksiibohusevych/parcsportal
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        env:
+        - name: Host__Uri
+          value: parcs-hostapi-internal
+        - name: Portal__Uri
+          value: parcs-portal
+        - name: Portal__SignalrUri
+          value: parcs-portal
+        - name: Elasticsearch__BaseUrl
+          value: 'http://elasticsearch:9200'
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: parcs-database
+  labels:
+    app: parcs-database
+spec:
+  selector:
+    app: parcs-database
+  ports:
+  - name: postgres
+    port: 5432
+    targetPort: 5432
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: parcs-database
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: parcs-database
+  template:
+    metadata:
+      labels:
+        app: parcs-database
+    spec:
+      containers:
+      - name: parcs-database
+        image: postgres:latest
+        imagePullPolicy: Always
+        env:
+        - name: POSTGRES_USER
+          value: parcs_admin
+        - name: POSTGRES_PASSWORD
+          value: p5sAuuhrSxs9GHxD
+        - name: POSTGRES_DB
+          value: parcs
+        - name: PGDATA
+          value: /var/lib/postgresql/data/postgres
+        ports:
+        - containerPort: 5432
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 100m
+            memory: 256Mi
+        volumeMounts:
+        - name: parcs-database-volume
+          mountPath: /var/lib/postgresql/data
+      volumes:
+      - name: parcs-database-volume
+        persistentVolumeClaim:
+          claimName: parcs-database-volume-claim
+---
+# ═══════════════════════════════════════════════════════════════════════════════
+# PARCS Agent MCP Server
+# Image pushed to Google Artifact Registry (replaces Azure Container Registry).
+# Replace REGION and PROJECT_ID with your values.
+# ═══════════════════════════════════════════════════════════════════════════════
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: parcs-agent-mcp
+  labels:
+    app: parcs-agent-mcp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: parcs-agent-mcp
+  template:
+    metadata:
+      labels:
+        app: parcs-agent-mcp
+    spec:
+      serviceAccountName: parcs-agent-mcp-sa
+      containers:
+      - name: parcs-agent-mcp
+        image: oleksiibohusevych/parcs-agent-mcp:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: ASPNETCORE_URLS
+          value: "http://+:8080"
+        - name: Parcs__HostUrl
+          value: "http://parcs-hostapi:8080"
+        - name: Parcs__AgentRunnerModuleId
+          value: "0"
+        - name: Parcs__FallbackWorkerNodeCount
+          value: "19"
+        - name: Parcs__FallbackMaxParallelism
+          value: "133"
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 250m
+            memory: 256Mi
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: parcs-agent-mcp
+  labels:
+    app: parcs-agent-mcp
+spec:
+  type: ClusterIP
+  selector:
+    app: parcs-agent-mcp
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+    name: http
+---
+# ServiceAccount + RBAC so the MCP server can query the Kubernetes API for cluster capacity.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: parcs-agent-mcp-sa
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: parcs-agent-mcp-reader
+rules:
+- apiGroups: [""]
+  resources: ["nodes"]
+  verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: parcs-agent-mcp-reader-binding
+subjects:
+- kind: ServiceAccount
+  name: parcs-agent-mcp-sa
+  namespace: default
+roleRef:
+  kind: ClusterRole
+  name: parcs-agent-mcp-reader
+  apiGroup: rbac.authorization.k8s.io
+---
+# ═══════════════════════════════════════════════════════════════════════════════
+# PVC Session TTL Cleanup CronJob
+# ═══════════════════════════════════════════════════════════════════════════════
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: parcs-session-ttl-cleanup
+spec:
+  schedule: "0 2 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: cleanup
+            image: alpine:3.19
+            env:
+            - name: SESSION_TTL_HOURS
+              value: "24"
+            command:
+            - /bin/sh
+            - -c
+            - |
+              echo "Starting PARCS session cleanup (TTL=${SESSION_TTL_HOURS}h)"
+              CUTOFF_MINUTES=$((SESSION_TTL_HOURS * 60))
+              DELETED=0
+              for dir in /var/lib/storage/Jobs/*/; do
+                if [ -d "$dir" ]; then
+                  AGE_MINUTES=$(( ($(date +%s) - $(stat -c %Y "$dir")) / 60 ))
+                  if [ "$AGE_MINUTES" -gt "$CUTOFF_MINUTES" ]; then
+                    echo "Deleting $dir (age=${AGE_MINUTES}m)"
+                    rm -rf "$dir"
+                    DELETED=$((DELETED + 1))
+                  fi
+                fi
+              done
+              echo "Cleanup complete: deleted ${DELETED} job directories"
+            volumeMounts:
+            - name: parcs-storage
+              mountPath: /var/lib/storage
+          volumes:
+          - name: parcs-storage
+            persistentVolumeClaim:
+              claimName: parcs-storage-volume-claim

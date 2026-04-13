@@ -1,17 +1,18 @@
-using Azure.Messaging.ServiceBus;
+using Google.Cloud.PubSub.V1;
+using Google.Protobuf;
 using Microsoft.Extensions.Options;
 using Parcs.Core.Configuration;
 using Parcs.Core.Models;
 using Parcs.Core.Services.Interfaces;
-using System.Net.Sockets;
 using System.Net;
+using System.Net.Sockets;
 using System.Text.Json;
 using Parcs.Net;
 
 namespace Parcs.Host.Services
 {
     public sealed class PointCreationService(
-        IOptions<ServiceBusConfiguration> serviceBusOptions,
+        IOptions<PubSubConfiguration> pubSubOptions,
         IOptions<HostTcpConfiguration> hostTcpOptions,
         IAddressResolver addressResolver,
         IInternalChannelManager internalChannelManager,
@@ -19,7 +20,7 @@ namespace Parcs.Host.Services
         HostedServices.HostTcpServer hostTcpServer,
         ILogger<PointCreationService> logger) : IPointCreationService
     {
-        private readonly ServiceBusConfiguration _serviceBusConfiguration = serviceBusOptions.Value;
+        private readonly PubSubConfiguration _pubSubConfiguration = pubSubOptions.Value;
         private readonly HostTcpConfiguration _hostTcpConfiguration = hostTcpOptions.Value;
         private readonly IAddressResolver _addressResolver = addressResolver;
         private readonly IInternalChannelManager _internalChannelManager = internalChannelManager;
@@ -34,11 +35,10 @@ namespace Parcs.Host.Services
         }
 
         /// <summary>
-        /// Publishes <paramref name="count"/> point-requested messages to Service Bus in one pass,
+        /// Publishes <paramref name="count"/> point-requested messages to Pub/Sub in one pass,
         /// registers all pending TCP connection slots, then awaits all daemon connections
         /// concurrently. KEDA therefore sees the full queue depth at once and can provision daemon
-        /// pods (and, if needed, new cluster nodes via AKS CA) in parallel — matching Fig. 2 of
-        /// the article.
+        /// pods (and, if needed, new GKE nodes via cluster autoscaler) in parallel.
         /// </summary>
         public async Task<IPoint[]> CreatePointsAsync(int count, long jobId, long moduleId, IDictionary<string, string> arguments, CancellationToken cancellationToken = default)
         {
@@ -47,11 +47,11 @@ namespace Parcs.Host.Services
 
         private async Task<IPoint[]> CreatePointsAsync(int count, long jobId, long moduleId, IDictionary<string, string> arguments, string daemonHostUrl, int daemonPort, CancellationToken cancellationToken)
         {
-            // --- Service Bus / KEDA path ---
-            if (!string.IsNullOrEmpty(_serviceBusConfiguration.ConnectionString) &&
-                !string.IsNullOrEmpty(_serviceBusConfiguration.QueueName))
+            // --- Pub/Sub / KEDA path ---
+            if (!string.IsNullOrEmpty(_pubSubConfiguration.ProjectId) &&
+                !string.IsNullOrEmpty(_pubSubConfiguration.TopicId))
             {
-                return await CreatePointsViaServiceBusAsync(count, jobId, moduleId, arguments, cancellationToken);
+                return await CreatePointsViaPubSubAsync(count, jobId, moduleId, arguments, cancellationToken);
             }
 
             // --- Loopback / internal path (dev / unit-test) ---
@@ -106,62 +106,84 @@ namespace Parcs.Host.Services
             return tcpPoints;
         }
 
-        private async Task<IPoint[]> CreatePointsViaServiceBusAsync(int count, long jobId, long moduleId, IDictionary<string, string> arguments, CancellationToken cancellationToken)
+        private async Task<IPoint[]> CreatePointsViaPubSubAsync(int count, long jobId, long moduleId, IDictionary<string, string> arguments, CancellationToken cancellationToken)
         {
-            await using var serviceBusClient = new ServiceBusClient(_serviceBusConfiguration.ConnectionString);
-            await using var sender = serviceBusClient.CreateSender(_serviceBusConfiguration.QueueName);
+            var topicName = TopicName.FromProjectTopic(
+                _pubSubConfiguration.ProjectId,
+                _pubSubConfiguration.TopicId);
 
-            // Resolve the host address once — all daemons will connect back to this address.
-            var hostAddress = Dns.GetHostName();
-            var hostAddresses = Dns.GetHostAddresses(hostAddress);
-            var hostUrl = hostAddresses.FirstOrDefault(a => !IPAddress.IsLoopback(a))?.ToString() ?? hostAddress;
+            // PublisherClient batches messages automatically; Dispose flushes the buffer.
+            var publisher = await PublisherClient.CreateAsync(topicName);
 
-            // Phase 1 — register all pending connection slots and publish all messages before
-            // awaiting any TCP connections. The TCS must be registered before publishing to avoid
-            // a race where a very fast daemon connects back before we have registered the slot.
-            var connectionTasks = new Task<NetworkChannel>[count];
-            for (int i = 0; i < count; i++)
+            try
             {
-                var correlationId = Guid.NewGuid().ToString();
+                // Resolve the host address once — all daemons connect back here.
+                var hostAddress = Dns.GetHostName();
+                var hostAddresses = Dns.GetHostAddresses(hostAddress);
+                var hostUrl = hostAddresses.FirstOrDefault(a => !IPAddress.IsLoopback(a))?.ToString() ?? hostAddress;
 
-                connectionTasks[i] = _hostTcpServer.WaitForConnectionAsync(correlationId, cancellationToken);
+                // Phase 1 — register all pending TCP connection slots and publish all messages
+                // before awaiting any connections. The TCS must be registered first to avoid a
+                // race where a fast daemon connects before we have registered its slot.
+                var connectionTasks = new Task<NetworkChannel>[count];
 
-                var request = new PointCreationRequest
+                for (int i = 0; i < count; i++)
                 {
-                    JobId = jobId,
-                    ModuleId = moduleId,
-                    Arguments = arguments,
-                    HostUrl = hostUrl,
-                    HostPort = _hostTcpConfiguration.Port,
-                    CorrelationId = correlationId
-                };
+                    var correlationId = Guid.NewGuid().ToString();
 
-                await sender.SendMessageAsync(
-                    new ServiceBusMessage(JsonSerializer.Serialize(request)) { MessageId = correlationId },
-                    cancellationToken);
+                    connectionTasks[i] = _hostTcpServer.WaitForConnectionAsync(correlationId, cancellationToken);
+
+                    var request = new PointCreationRequest
+                    {
+                        JobId = jobId,
+                        ModuleId = moduleId,
+                        Arguments = arguments,
+                        HostUrl = hostUrl,
+                        HostPort = _hostTcpConfiguration.Port,
+                        CorrelationId = correlationId
+                    };
+
+                    // Pub/Sub message: JSON payload encoded as UTF-8 bytes.
+                    var messageId = await publisher.PublishAsync(new PubsubMessage
+                    {
+                        Data = ByteString.CopyFromUtf8(JsonSerializer.Serialize(request)),
+                        // Attributes mirror Service Bus message properties for observability.
+                        Attributes =
+                        {
+                            ["correlationId"] = correlationId,
+                            ["jobId"] = jobId.ToString(),
+                        }
+                    });
+
+                    _logger.LogInformation(
+                        "Published point request {Index}/{Count} for job {JobId} (correlationId={CorrelationId}, messageId={MessageId})",
+                        i + 1, count, jobId, correlationId, messageId);
+                }
 
                 _logger.LogInformation(
-                    "Published point request {Index}/{Count} for job {JobId} (correlationId={CorrelationId})",
-                    i + 1, count, jobId, correlationId);
+                    "All {Count} point requests published for job {JobId}; awaiting daemon connections", count, jobId);
+
+                // Phase 2 — await all daemon TCP connections concurrently.
+                var channels = await Task.WhenAll(connectionTasks);
+
+                _logger.LogInformation("All {Count} daemons connected for job {JobId}", count, jobId);
+
+                // Phase 3 — build Point instances from the resolved NetworkChannels.
+                var points = new IPoint[count];
+                for (int i = 0; i < count; i++)
+                {
+                    channels[i].SetCancellation(cancellationToken);
+                    var argumentsProvider = _argumentsProviderFactory.Create(arguments);
+                    points[i] = new Point(jobId, moduleId, channels[i], argumentsProvider);
+                }
+
+                return points;
             }
-
-            _logger.LogInformation("All {Count} point requests published for job {JobId}; awaiting daemon connections", count, jobId);
-
-            // Phase 2 — await all daemon connections concurrently.
-            var channels = await Task.WhenAll(connectionTasks);
-
-            _logger.LogInformation("All {Count} daemons connected for job {JobId}", count, jobId);
-
-            // Phase 3 — build Point instances from the resolved NetworkChannels.
-            var points = new IPoint[count];
-            for (int i = 0; i < count; i++)
+            finally
             {
-                channels[i].SetCancellation(cancellationToken);
-                var argumentsProvider = _argumentsProviderFactory.Create(arguments);
-                points[i] = new Point(jobId, moduleId, channels[i], argumentsProvider);
+                // Flush any buffered messages and release the gRPC channel.
+                await publisher.ShutdownAsync(TimeSpan.FromSeconds(10));
             }
-
-            return points;
         }
     }
 }

@@ -40,7 +40,8 @@ namespace Parcs.Host.Extensions
                 .Configure<FileSystemConfiguration>(configuration.GetSection(FileSystemConfiguration.SectionName))
                 .Configure<DaemonsConfiguration>(configuration.GetSection(DaemonsConfiguration.SectionName))
                 .Configure<KubernetesConfiguration>(configuration.GetSection(KubernetesConfiguration.SectionName))
-                .Configure<ServiceBusConfiguration>(configuration.GetSection(ServiceBusConfiguration.SectionName))
+                // GCP Pub/Sub replaces Azure Service Bus
+                .Configure<PubSubConfiguration>(configuration.GetSection(PubSubConfiguration.SectionName))
                 .Configure<HostTcpConfiguration>(configuration.GetSection(HostTcpConfiguration.SectionName));
         }
 
