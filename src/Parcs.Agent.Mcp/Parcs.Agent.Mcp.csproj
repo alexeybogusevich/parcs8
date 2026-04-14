@@ -20,7 +20,6 @@
 
     <!-- Kubernetes API for cluster capacity queries -->
     <PackageReference Include="KubernetesClient" Version="15.0.1" />
-    <PackageReference Include="KubernetesClient.Models" Version="12.0.16" />
 
     <!-- Logging -->
     <PackageReference Include="Serilog.AspNetCore" Version="8.0.3" />

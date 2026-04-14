@@ -18,8 +18,6 @@ builder.Services.AddSingleton<HostTcpServer>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<HostTcpServer>());
 builder.Services.AddHttpClient();
 builder.Services.AddDatabase(builder.Configuration);
-builder.Services.AddApplicationInsightsTelemetry();
-
 var app = builder.Build();
 
 app.MigrateDatabase();

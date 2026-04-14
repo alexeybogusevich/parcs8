@@ -74,10 +74,26 @@ public sealed class AgentRunnerModuleRegistrar : IHostedService
             Bytes:    File.ReadAllBytes(path)
         )).ToList();
 
-        ModuleId = await _api.UploadModuleAsync(
-            files, "Parcs.Modules.AgentRunner", cancellationToken);
-
-        _logger.LogInformation("AgentRunner module registered — id={Id}", ModuleId);
+        // Retry with exponential backoff — parcs-hostapi may still be initialising at startup.
+        var delays = new[] { 5, 10, 20, 40, 60 };
+        for (int attempt = 0; ; attempt++)
+        {
+            try
+            {
+                ModuleId = await _api.UploadModuleAsync(
+                    files, "Parcs.Modules.AgentRunner", cancellationToken);
+                _logger.LogInformation("AgentRunner module registered — id={Id}", ModuleId);
+                return;
+            }
+            catch (Exception ex) when (attempt < delays.Length)
+            {
+                var delay = delays[attempt];
+                _logger.LogWarning(
+                    "Module upload failed (attempt {Attempt}/{Max}), retrying in {Delay}s: {Message}",
+                    attempt + 1, delays.Length + 1, delay, ex.Message);
+                await Task.Delay(TimeSpan.FromSeconds(delay), cancellationToken);
+            }
+        }
     }
 
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
