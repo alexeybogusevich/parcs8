@@ -47,7 +47,7 @@ public sealed class ParcsApiClient
             var fileContent = new ByteArrayContent(bytes);
             fileContent.Headers.ContentType =
                 new System.Net.Http.Headers.MediaTypeHeaderValue("application/octet-stream");
-            content.Add(fileContent, "Binaries", filename);
+            content.Add(fileContent, "BinaryFiles", filename);
         }
 
         var response = await _baseUrl
@@ -56,7 +56,7 @@ public sealed class ParcsApiClient
 
         var json = await response.GetStringAsync();
         using var doc = JsonDocument.Parse(json);
-        var moduleId = doc.RootElement.GetProperty("id").GetInt64();
+        var moduleId = doc.RootElement.GetProperty("moduleId").GetInt64();
 
         _logger.LogInformation("Module uploaded — id={ModuleId}", moduleId);
         return moduleId;
@@ -95,13 +95,23 @@ public sealed class ParcsApiClient
             content.Add(fileContent, "InputFiles", filename);
         }
 
-        var jobResponse = await _baseUrl
-            .AppendPathSegment("api/Jobs")
-            .PostAsync(content, cancellationToken: ct);
+        IFlurlResponse jobResponse;
+        try
+        {
+            jobResponse = await _baseUrl
+                .AppendPathSegment("api/Jobs")
+                .PostAsync(content, cancellationToken: ct);
+        }
+        catch (Flurl.Http.FlurlHttpException ex)
+        {
+            var body = await ex.GetResponseStringAsync();
+            _logger.LogError("POST /api/Jobs failed {Status}: {Body}", ex.StatusCode, body);
+            throw new InvalidOperationException($"POST /api/Jobs failed {ex.StatusCode}: {body}", ex);
+        }
 
         var json = await jobResponse.GetStringAsync();
         using var doc = JsonDocument.Parse(json);
-        var jobId = doc.RootElement.GetProperty("id").GetInt64();
+        var jobId = doc.RootElement.GetProperty("jobId").GetInt64();
 
         _logger.LogInformation("Job created — id={JobId}", jobId);
         return jobId;
@@ -117,10 +127,13 @@ public sealed class ParcsApiClient
     {
         _logger.LogInformation("Running job synchronously: jobId={JobId}", jobId);
 
+        // Do NOT pass the caller's ct here — it may have a short deadline (e.g. ASP.NET request timeout).
+        // WithTimeout provides the upper bound; the caller can cancel via its own outer logic if needed.
         await _baseUrl
             .AppendPathSegment("api/SynchronousJobRuns")
+            .WithTimeout(TimeSpan.FromMinutes(10))
             .PostJsonAsync(new { jobId, arguments = (object)(arguments ?? new Dictionary<string, string>()) },
-                           cancellationToken: ct);
+                           cancellationToken: CancellationToken.None);
 
         _logger.LogInformation("Job {JobId} completed", jobId);
     }

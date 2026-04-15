@@ -207,21 +207,26 @@ public sealed class SessionManager
         var assemblyBytes = GetCompiledAssembly(session.SessionId)
             ?? throw new InvalidOperationException($"No compiled assembly for session {session.SessionId}");
 
-        // Build layer_input.json
+        if (!_moduleRegistrar.IsReady)
+            throw new InvalidOperationException(
+                "AgentRunner module is not yet registered with the PARCS host. Retry in a few seconds.");
+
+        // Build layer_input.json — use PascalCase to match LayerInputDto property names
+        // (System.Text.Json deserialisation is case-sensitive by default).
         var layerInputDto = new
         {
-            sessionId              = session.SessionId,
-            layerId                = layer.LayerId,
-            totalWorkers           = parallelism,
-            previousLayerResultJson,
-            customData,
-            parameters,
+            SessionId              = session.SessionId,
+            LayerId                = layer.LayerId,
+            TotalWorkers           = parallelism,
+            PreviousLayerResultJson = previousLayerResultJson,
+            CustomData             = customData,
+            Parameters             = parameters,
         };
         var layerInputBytes = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(layerInputDto));
 
         // Create PARCS job
         var jobId = await _api.CreateJobAsync(
-            moduleId:     session.ParcsModuleId,
+            moduleId:     _moduleRegistrar.ModuleId,   // read at dispatch time, not session-creation time
             assemblyName: _moduleRegistrar.AssemblyName,
             className:    _moduleRegistrar.ClassName,
             inputFiles: [

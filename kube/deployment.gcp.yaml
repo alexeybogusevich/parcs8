@@ -85,6 +85,8 @@ metadata:
   name: elasticsearch
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: elasticsearch
@@ -487,6 +489,8 @@ metadata:
   name: parcs-database
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: parcs-database
@@ -558,7 +562,7 @@ spec:
         - name: ASPNETCORE_URLS
           value: "http://+:8080"
         - name: Parcs__HostUrl
-          value: "http://parcs-hostapi:8080"
+          value: "http://parcs-hostapi-internal"
         - name: Parcs__AgentRunnerModuleId
           value: "0"
         - name: Parcs__FallbackWorkerNodeCount

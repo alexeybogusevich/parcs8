@@ -18,12 +18,16 @@ public sealed class AgentRunnerModuleRegistrar : IHostedService
     private readonly ParcsApiClient _api;
     private readonly IConfiguration _config;
     private readonly ILogger<AgentRunnerModuleRegistrar> _logger;
+    private readonly CancellationTokenSource _cts = new();
 
     /// <summary>The PARCS module ID after registration — set once at startup.</summary>
     public long ModuleId { get; private set; }
 
-    /// <summary>The main assembly name expected by the PARCS module loader.</summary>
-    public string AssemblyName => "Parcs.Modules.AgentRunner.dll";
+    /// <summary>True once the module has been successfully registered.</summary>
+    public bool IsReady => ModuleId > 0;
+
+    /// <summary>The main assembly name expected by the PARCS module loader (no .dll extension — the host validator appends it).</summary>
+    public string AssemblyName => "Parcs.Modules.AgentRunner";
 
     /// <summary>The fully-qualified main-module class name.</summary>
     public string ClassName => "Parcs.Modules.AgentRunner.AgentRunnerMainModule";
@@ -38,7 +42,7 @@ public sealed class AgentRunnerModuleRegistrar : IHostedService
         _logger = logger;
     }
 
-    public async Task StartAsync(CancellationToken cancellationToken)
+    public Task StartAsync(CancellationToken cancellationToken)
     {
         // Allow pre-configured module ID (e.g. in production where the module is pre-registered)
         var preconfiguredId = _config.GetValue<long?>("Parcs:AgentRunnerModuleId");
@@ -47,7 +51,7 @@ public sealed class AgentRunnerModuleRegistrar : IHostedService
             ModuleId = preconfiguredId.Value;
             _logger.LogInformation(
                 "Using pre-configured AgentRunner module id={Id}", ModuleId);
-            return;
+            return Task.CompletedTask;
         }
 
         var moduleDir = Path.Combine(
@@ -59,14 +63,14 @@ public sealed class AgentRunnerModuleRegistrar : IHostedService
             _logger.LogWarning(
                 "AgentRunner module directory not found: {Dir}. " +
                 "Set Parcs:AgentRunnerModuleId to skip auto-registration.", moduleDir);
-            return;
+            return Task.CompletedTask;
         }
 
         var dllFiles = Directory.GetFiles(moduleDir, "*.dll");
         if (dllFiles.Length == 0)
         {
             _logger.LogWarning("No DLLs found in {Dir}. Skipping module registration.", moduleDir);
-            return;
+            return Task.CompletedTask;
         }
 
         var files = dllFiles.Select(path => (
@@ -74,27 +78,42 @@ public sealed class AgentRunnerModuleRegistrar : IHostedService
             Bytes:    File.ReadAllBytes(path)
         )).ToList();
 
-        // Retry with exponential backoff — parcs-hostapi may still be initialising at startup.
-        var delays = new[] { 5, 10, 20, 40, 60 };
-        for (int attempt = 0; ; attempt++)
+        // Fire-and-forget: register in the background so the pod becomes Ready immediately.
+        // The MCP tools check IsReady before proceeding.
+        _ = Task.Run(() => RegisterWithRetryAsync(files, _cts.Token), CancellationToken.None);
+
+        return Task.CompletedTask;
+    }
+
+    public Task StopAsync(CancellationToken cancellationToken)
+    {
+        _cts.Cancel();
+        return Task.CompletedTask;
+    }
+
+    private async Task RegisterWithRetryAsync(
+        List<(string Filename, byte[] Bytes)> files,
+        CancellationToken ct)
+    {
+        var delays = new[] { 5, 10, 20, 40, 60, 120 };
+        for (int attempt = 0; !ct.IsCancellationRequested; attempt++)
         {
             try
             {
-                ModuleId = await _api.UploadModuleAsync(
-                    files, "Parcs.Modules.AgentRunner", cancellationToken);
+                ModuleId = await _api.UploadModuleAsync(files, "Parcs.Modules.AgentRunner", ct);
                 _logger.LogInformation("AgentRunner module registered — id={Id}", ModuleId);
                 return;
             }
-            catch (Exception ex) when (attempt < delays.Length)
+            catch (OperationCanceledException) { return; }
+            catch (Exception ex)
             {
-                var delay = delays[attempt];
+                var delay = attempt < delays.Length ? delays[attempt] : delays[^1];
                 _logger.LogWarning(
-                    "Module upload failed (attempt {Attempt}/{Max}), retrying in {Delay}s: {Message}",
-                    attempt + 1, delays.Length + 1, delay, ex.Message);
-                await Task.Delay(TimeSpan.FromSeconds(delay), cancellationToken);
+                    "Module upload failed (attempt {Attempt}), retrying in {Delay}s: {Message}",
+                    attempt + 1, delay, ex.Message);
+                try { await Task.Delay(TimeSpan.FromSeconds(delay), ct); }
+                catch (OperationCanceledException) { return; }
             }
         }
     }
-
-    public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 }

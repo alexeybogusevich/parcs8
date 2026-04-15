@@ -41,8 +41,10 @@ public sealed class AgentRunnerMainModule : IModule
         var layerInput = JsonSerializer.Deserialize<LayerInputDto>(layerInputJson)
             ?? throw new InvalidOperationException("Failed to deserialise layer_input.json");
 
+        // Prefer TotalWorkers from layer_input.json (set by run_layer parallelism parameter);
+        // fall back to PointsNumber from job arguments for backwards compatibility.
         var options = moduleInfo.BindModuleOptions<AgentRunnerOptions>();
-        var pointsCount = options.PointsNumber;
+        var pointsCount = layerInput.TotalWorkers > 0 ? layerInput.TotalWorkers : options.PointsNumber;
 
         moduleInfo.Logger.LogInformation(
             "AgentRunner starting: session={Session} layer={Layer} workers={Workers}",

@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__parcs__create_session",
+      "mcp__parcs__run_layer",
+      "mcp__parcs__list_sessions",
+      "Bash(dotnet build:*)",
+      "Bash(docker build:*)",
+      "Bash(docker push:*)",
+      "Bash(kubectl rollout:*)",
+      "Bash(kubectl logs:*)",
+      "mcp__parcs__submit_layer",
+      "mcp__parcs__get_layer_results",
+      "Bash(xargs grep:*)",
+      "Bash(grep:*)",
+      "Bash(find \"C:\\\\Users\\\\obohusevych\\\\source\\\\repos\\\\parcs7\" -name \"*.json\" -type f -exec grep -l \"Kestrel\\\\|RequestTimeout\\\\|100000\" {} \\\\;)",
+      "Bash(find \"C:\\\\Users\\\\obohusevych\\\\source\\\\repos\\\\parcs7/src/Parcs.Host\" -name \"*.cs\" -type f -exec grep -l \"builder\\\\\\\\.Host\\\\|builder\\\\\\\\.WebHost\\\\|builder\\\\\\\\.Services\\\\\\\\.Configure\" {} \\\\;)",
+      "Bash(kubectl get:*)",
+      "Bash(kubectl describe:*)",
+      "Bash(kubectl exec:*)",
+      "Bash(docker info *)",
+      "Bash(docker context *)"
+    ]
+  }
+}

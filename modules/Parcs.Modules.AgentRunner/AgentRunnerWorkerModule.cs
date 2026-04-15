@@ -152,9 +152,17 @@ internal sealed class AgentAssemblyLoadContext : AssemblyLoadContext
 
     protected override Assembly? Load(AssemblyName assemblyName)
     {
-        // Pass Parcs.Agent.Runtime to the parent context to maintain type identity.
+        // For Parcs.Agent.Runtime we need the exact same Assembly object that the worker
+        // module itself uses — that keeps IAgentComputation type-identity intact for the cast.
+        // The daemon's Default context may NOT have this DLL, so look it up in whichever
+        // AssemblyLoadContext the worker module (AgentRunnerWorkerModule) was loaded into.
         if (assemblyName.Name == "Parcs.Agent.Runtime")
-            return null; // null → delegate to parent (default) context
+        {
+            var hostingContext = AssemblyLoadContext.GetLoadContext(
+                typeof(AgentRunnerWorkerModule).Assembly);
+            return hostingContext?.Assemblies
+                .FirstOrDefault(a => a.GetName().Name == "Parcs.Agent.Runtime");
+        }
 
         var resolvedPath = _resolver.ResolveAssemblyToPath(assemblyName);
         return resolvedPath is not null ? LoadFromAssemblyPath(resolvedPath) : null;
