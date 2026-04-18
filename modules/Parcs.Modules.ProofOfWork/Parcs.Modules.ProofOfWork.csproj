@@ -1,12 +1,12 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
   <ItemGroup>
-	  <PackageReference Include="Parcs.Net" Version="0.8.0">
+	  <PackageReference Include="Parcs.Net" Version="10.0.0">
 		  <ExcludeAssets>runtime</ExcludeAssets>
 	  </PackageReference>
   </ItemGroup>

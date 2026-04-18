@@ -128,6 +128,9 @@ public sealed class UserAgentComputation : IAgentComputation
         TryAdd("netstandard.dll");
         TryAdd("System.Private.CoreLib.dll");
 
+        // Dynamic dispatch support (required when user code uses 'dynamic')
+        TryAdd("Microsoft.CSharp.dll");
+
         // Parcs.Agent.Runtime — the only project-specific reference
         refs.Add(MetadataReference.CreateFromFile(_agentRuntimePath));
 

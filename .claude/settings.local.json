@@ -19,7 +19,11 @@
       "Bash(kubectl describe:*)",
       "Bash(kubectl exec:*)",
       "Bash(docker info *)",
-      "Bash(docker context *)"
+      "Bash(docker context *)",
+      "mcp__parcs__get_cluster_info",
+      "Bash(python3 *)",
+      "Bash(node -e \"const s=require\\('fs'\\).readFileSync\\(String.raw\\\\`C:\\\\Users\\\\obohusevych\\\\.claude\\\\projects\\\\C--Users-obohusevych-source-repos-parcs7\\\\961e3c59-8a26-4560-a90b-3dab13acea33\\\\tool-results\\\\mcp-parcs-run_layer-1776278875920.txt\\\\`,'utf8'\\); console.log\\(s.slice\\(0,32000\\)\\);\")",
+      "Bash(node *)"
     ]
   }
 }
