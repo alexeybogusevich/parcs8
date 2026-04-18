@@ -1,0 +1,12 @@
+[project]
+name = "mcp-eval"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "langchain>=1.2.15",
+    "langchain-mcp-adapters>=0.2.2",
+    "pydantic>=2.13.2",
+    "pydantic-settings>=2.13.1",
+]
