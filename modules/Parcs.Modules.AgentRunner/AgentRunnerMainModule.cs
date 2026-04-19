@@ -82,6 +82,7 @@ public sealed class AgentRunnerMainModule : IModule
                 PreviousLayerResultJson = layerInput.PreviousLayerResultJson,
                 CustomData            = layerInput.CustomData,
                 Parameters            = layerInput.Parameters,
+                DatasetPath           = layerInput.DatasetPath,
             };
             await channels[i].WriteObjectAsync(workerInput);
         }

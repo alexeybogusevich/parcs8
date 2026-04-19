@@ -12,4 +12,5 @@ public sealed class LayerInputDto
     public string? PreviousLayerResultJson { get; set; }
     public string? CustomData { get; set; }
     public Dictionary<string, string> Parameters { get; set; } = new();
+    public string? DatasetPath { get; set; }
 }

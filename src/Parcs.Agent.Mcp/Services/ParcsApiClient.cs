@@ -29,6 +29,8 @@ public sealed class ParcsApiClient
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<ParcsApiClient> _logger;
 
+    private readonly string _callbackUrl;
+
     public ParcsApiClient(
         IConfiguration configuration,
         IHttpClientFactory httpClientFactory,
@@ -36,6 +38,7 @@ public sealed class ParcsApiClient
     {
         _baseUrl           = configuration["Parcs:HostUrl"]
             ?? throw new InvalidOperationException("Parcs:HostUrl is not configured.");
+        _callbackUrl       = configuration["Parcs:CallbackUrl"] ?? "http://parcs-agent-mcp:8080/noop";
         _httpClientFactory = httpClientFactory;
         _logger            = logger;
     }
@@ -153,7 +156,7 @@ public sealed class ParcsApiClient
             {
                 jobId,
                 arguments   = (object)(arguments ?? new Dictionary<string, string>()),
-                callbackUrl = string.Empty,
+                callbackUrl = _callbackUrl,
             }, cancellationToken: ct);
 
         // Step 2 — stream status events until terminal

@@ -34,7 +34,21 @@
       "Bash(py --version)",
       "Bash(dotnet script *)",
       "Bash(dotnet --version)",
-      "Bash(dotnet run *)"
+      "Bash(dotnet run *)",
+      "Bash(docker pull *)",
+      "Bash(docker tag *)",
+      "Bash(kubectl set *)",
+      "Bash(awk '{print toupper\\(substr\\($1,1,16\\)\\)}')",
+      "Bash(curl *)",
+      "Bash(gcloud container *)",
+      "Bash(jq -r '.resultJson' \"C:/Users/obohusevych/.claude/projects/C--Users-obohusevych-source-repos-parcs7/63014e97-63a5-4c7f-8d4e-0fb6a6cd52a0/tool-results/mcp-parcs-get_layer_results-1776634058455.txt\")",
+      "Read(//tmp/**)",
+      "Bash(mkdir -p /c/tmp)",
+      "Read(//c/tmp/**)",
+      "Bash(cmd *)",
+      "Bash(printenv TEMP *)",
+      "Bash(kubectl delete pods *)",
+      "Bash(kubectl delete *)"
     ]
   }
 }
