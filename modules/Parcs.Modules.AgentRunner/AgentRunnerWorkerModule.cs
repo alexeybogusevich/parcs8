@@ -1,6 +1,8 @@
 using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.Loader;
+using System.Text;
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Parcs.Agent.Runtime;
 using Parcs.Modules.AgentRunner.Models;
@@ -27,11 +29,26 @@ public sealed class AgentRunnerWorkerModule : IModule
     {
         var stopwatch = Stopwatch.StartNew();
 
-        // --- Step 1: receive assembly bytes ---
-        var assemblyBytes = await moduleInfo.Parent.ReadBytesAsync();
+        // --- Step 1: receive worker index from main module ---
+        var handshake = await moduleInfo.Parent.ReadObjectAsync<WorkerHandshake>();
 
-        // --- Step 2: receive worker input ---
-        var input = await moduleInfo.Parent.ReadObjectAsync<AgentLayerInput>();
+        // --- Step 2: read assembly + layer input from shared NFS storage ---
+        var assemblyBytes = ReadInputFile(moduleInfo, "agent_computation.dll");
+        var layerInputJson = Encoding.UTF8.GetString(ReadInputFile(moduleInfo, "layer_input.json"));
+        var layerInput = JsonSerializer.Deserialize<LayerInputDto>(layerInputJson)
+            ?? throw new InvalidOperationException("Failed to deserialise layer_input.json");
+
+        var input = new AgentLayerInput
+        {
+            WorkerIndex             = handshake.WorkerIndex,
+            TotalWorkers            = layerInput.TotalWorkers,
+            SessionId               = layerInput.SessionId,
+            LayerId                 = layerInput.LayerId,
+            PreviousLayerResultJson = layerInput.PreviousLayerResultJson,
+            CustomData              = layerInput.CustomData,
+            Parameters              = layerInput.Parameters,
+            DatasetPath             = layerInput.DatasetPath,
+        };
 
         moduleInfo.Logger.LogInformation(
             "Worker {Index}/{Total} starting — session={Session} layer={Layer}",
@@ -131,6 +148,14 @@ public sealed class AgentRunnerWorkerModule : IModule
         }
 
         return (string?)outputProp?.GetValue(result);
+    }
+
+    private static byte[] ReadInputFile(IModuleInfo moduleInfo, string filename)
+    {
+        using var stream = moduleInfo.InputReader.GetFileStreamForFile(filename);
+        using var ms = new MemoryStream();
+        stream.CopyTo(ms);
+        return ms.ToArray();
     }
 }
 

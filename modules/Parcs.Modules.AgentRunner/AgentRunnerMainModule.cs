@@ -35,8 +35,7 @@ public sealed class AgentRunnerMainModule : IModule
     {
         var stopwatch = Stopwatch.StartNew();
 
-        // --- Step 1: read inputs ---
-        var assemblyBytes = ReadInputFile(moduleInfo, "agent_computation.dll");
+        // --- Step 1: read layer input (assembly stays on NFS; workers read it directly) ---
         var layerInputJson = Encoding.UTF8.GetString(ReadInputFile(moduleInfo, "layer_input.json"));
         var layerInput = JsonSerializer.Deserialize<LayerInputDto>(layerInputJson)
             ?? throw new InvalidOperationException("Failed to deserialise layer_input.json");
@@ -66,25 +65,12 @@ public sealed class AgentRunnerMainModule : IModule
 
         moduleInfo.Logger.LogInformation("All {Count} worker modules launched", pointsCount);
 
-        // --- Step 4: send assembly + per-worker input ---
+        // --- Step 4: send per-worker index only ---
+        // Assembly bytes and layer_input.json are on the shared NFS mount at
+        // /var/lib/storage/Jobs/{jobId}/Input/ — workers read them directly via InputReader.
         for (int i = 0; i < pointsCount; i++)
         {
-            // Send raw assembly bytes
-            await channels[i].WriteDataAsync(assemblyBytes);
-
-            // Send worker-specific input
-            var workerInput = new Parcs.Agent.Runtime.AgentLayerInput
-            {
-                WorkerIndex           = i,
-                TotalWorkers          = pointsCount,
-                SessionId             = layerInput.SessionId,
-                LayerId               = layerInput.LayerId,
-                PreviousLayerResultJson = layerInput.PreviousLayerResultJson,
-                CustomData            = layerInput.CustomData,
-                Parameters            = layerInput.Parameters,
-                DatasetPath           = layerInput.DatasetPath,
-            };
-            await channels[i].WriteObjectAsync(workerInput);
+            await channels[i].WriteObjectAsync(new WorkerHandshake { WorkerIndex = i });
         }
 
         // --- Step 5: collect results (tolerate partial failures) ---
