@@ -114,6 +114,7 @@ public sealed class SessionManager
         string? previousLayerResultJson,
         string? customData,
         Dictionary<string, string> parameters,
+        byte[]? datasetBytes,
         CancellationToken ct)
     {
         var session = GetSession(sessionId)
@@ -126,7 +127,7 @@ public sealed class SessionManager
         {
             var resultJson = await RunLayerAsync(
                 layer, session, parallelism,
-                previousLayerResultJson, customData, parameters, ct);
+                previousLayerResultJson, customData, parameters, datasetBytes, ct);
 
             UpdateLayer(layer.LayerId, l =>
             {
@@ -162,6 +163,7 @@ public sealed class SessionManager
         string? previousLayerResultJson,
         string? customData,
         Dictionary<string, string> parameters,
+        byte[]? datasetBytes,
         CancellationToken ct)
     {
         _ = Task.Run(async () =>
@@ -171,7 +173,7 @@ public sealed class SessionManager
             {
                 var resultJson = await RunLayerAsync(
                     layer, session, parallelism,
-                    previousLayerResultJson, customData, parameters, ct);
+                    previousLayerResultJson, customData, parameters, datasetBytes, ct);
 
                 UpdateLayer(layer.LayerId, l =>
                 {
@@ -202,6 +204,7 @@ public sealed class SessionManager
         string?       previousLayerResultJson,
         string?       customData,
         Dictionary<string, string> parameters,
+        byte[]?       datasetBytes,
         CancellationToken ct)
     {
         var assemblyBytes = GetCompiledAssembly(session.SessionId)
@@ -215,24 +218,32 @@ public sealed class SessionManager
         // (System.Text.Json deserialisation is case-sensitive by default).
         var layerInputDto = new
         {
-            SessionId              = session.SessionId,
-            LayerId                = layer.LayerId,
-            TotalWorkers           = parallelism,
+            SessionId               = session.SessionId,
+            LayerId                 = layer.LayerId,
+            TotalWorkers            = parallelism,
             PreviousLayerResultJson = previousLayerResultJson,
-            CustomData             = customData,
-            Parameters             = parameters,
+            CustomData              = customData,
+            Parameters              = parameters,
+            HasDataset              = datasetBytes is not null,
         };
         var layerInputBytes = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(layerInputDto));
 
+        // Build input file list — dataset.bin is optional.
+        // Workers read it with File.ReadAllBytes("dataset.bin") and check HasDataset first.
+        List<(string, byte[])> inputFiles =
+        [
+            ("agent_computation.dll", assemblyBytes),
+            ("layer_input.json",      layerInputBytes),
+        ];
+        if (datasetBytes is not null)
+            inputFiles.Add(("dataset.bin", datasetBytes));
+
         // Create PARCS job
         var jobId = await _api.CreateJobAsync(
-            moduleId:     _moduleRegistrar.ModuleId,   // read at dispatch time, not session-creation time
+            moduleId:     _moduleRegistrar.ModuleId,
             assemblyName: _moduleRegistrar.AssemblyName,
             className:    _moduleRegistrar.ClassName,
-            inputFiles: [
-                ("agent_computation.dll", assemblyBytes),
-                ("layer_input.json",      layerInputBytes),
-            ],
+            inputFiles:   inputFiles,
             arguments: new Dictionary<string, string>
             {
                 ["PointsNumber"] = parallelism.ToString(),

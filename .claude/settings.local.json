@@ -23,7 +23,18 @@
       "mcp__parcs__get_cluster_info",
       "Bash(python3 *)",
       "Bash(node -e \"const s=require\\('fs'\\).readFileSync\\(String.raw\\\\`C:\\\\Users\\\\obohusevych\\\\.claude\\\\projects\\\\C--Users-obohusevych-source-repos-parcs7\\\\961e3c59-8a26-4560-a90b-3dab13acea33\\\\tool-results\\\\mcp-parcs-run_layer-1776278875920.txt\\\\`,'utf8'\\); console.log\\(s.slice\\(0,32000\\)\\);\")",
-      "Bash(node *)"
+      "Bash(node *)",
+      "Bash(python -c \"print\\('python works'\\)\")",
+      "Bash(py -3 -c \"print\\('py works'\\)\")",
+      "Bash(python3.exe -c \"print\\('python3.exe works'\\)\")",
+      "Bash(python *)",
+      "Bash(where py *)",
+      "Bash(where python *)",
+      "Bash(where python3 *)",
+      "Bash(py --version)",
+      "Bash(dotnet script *)",
+      "Bash(dotnet --version)",
+      "Bash(dotnet run *)"
     ]
   }
 }

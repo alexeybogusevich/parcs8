@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
@@ -35,18 +36,24 @@ namespace Parcs.Agent.Mcp.Tools;
 [McpServerToolType]
 public sealed class ParcsAgentTools
 {
-    private readonly SessionManager          _sessions;
-    private readonly ClusterInfoService      _clusterInfo;
+    private readonly SessionManager           _sessions;
+    private readonly ClusterInfoService       _clusterInfo;
+    private readonly IHttpClientFactory       _httpClientFactory;
     private readonly ILogger<ParcsAgentTools> _logger;
 
+    // In-memory cache so repeated calls with the same datasetUrl don't re-download.
+    private static readonly ConcurrentDictionary<string, byte[]> _datasetCache = new();
+
     public ParcsAgentTools(
-        SessionManager           sessions,
-        ClusterInfoService       clusterInfo,
-        ILogger<ParcsAgentTools> logger)
+        SessionManager            sessions,
+        ClusterInfoService        clusterInfo,
+        IHttpClientFactory        httpClientFactory,
+        ILogger<ParcsAgentTools>  logger)
     {
-        _sessions    = sessions;
-        _clusterInfo = clusterInfo;
-        _logger      = logger;
+        _sessions          = sessions;
+        _clusterInfo       = clusterInfo;
+        _httpClientFactory = httpClientFactory;
+        _logger            = logger;
     }
 
     // ─────────────────────────────────────────────────────────────────
@@ -144,6 +151,14 @@ public sealed class ParcsAgentTools
         string? customData = null,
         [Description("Optional JSON object of key/value parameters, e.g. '{\"start\":\"0\",\"end\":\"1000\"}'. Workers access these via input.Parameters.")]
         string? parametersJson = null,
+        [Description(
+            "Optional URL of a dataset file to download and distribute to every worker as 'dataset.bin'. " +
+            "Downloaded once by the MCP server and attached as a PARCS input file — workers read it with " +
+            "File.ReadAllBytes(\"dataset.bin\") or File.ReadAllText(\"dataset.bin\"). " +
+            "Supports any URL (HuggingFace, GCS, Azure Blob, etc.). " +
+            "The file is cached in memory for the lifetime of the MCP server process, so repeated calls " +
+            "with the same URL do not re-download. Pass null if workers generate their own data from a seed.")]
+        string? datasetUrl = null,
         CancellationToken ct = default)
     {
         if (_sessions.GetSession(sessionId) is null)
@@ -156,11 +171,20 @@ public sealed class ParcsAgentTools
         if (parseError is not null)
             return JsonSerializer.Serialize(new { error = parseError });
 
+        byte[]? datasetBytes = null;
+        if (datasetUrl is not null)
+        {
+            datasetBytes = await FetchDatasetAsync(datasetUrl, ct);
+            if (datasetBytes is null)
+                return JsonSerializer.Serialize(new { error = $"Failed to download dataset from '{datasetUrl}'." });
+        }
+
         _logger.LogInformation(
-            "run_layer — session={Session} parallelism={P}", sessionId, parallelism);
+            "run_layer — session={Session} parallelism={P} dataset={Url}",
+            sessionId, parallelism, datasetUrl ?? "none");
 
         var layer = await _sessions.RunLayerSyncAsync(
-            sessionId, parallelism, previousLayerResultJson, customData, parameters!, ct);
+            sessionId, parallelism, previousLayerResultJson, customData, parameters!, datasetBytes, ct);
 
         return JsonSerializer.Serialize(new
         {
@@ -183,12 +207,14 @@ public sealed class ParcsAgentTools
         "Submits a parallel layer and returns immediately with a layerId. " +
         "Use this when you want to dispatch a long-running layer without blocking, " +
         "then poll with get_layer_results. For most cases prefer run_layer which blocks until done.")]
-    public string SubmitLayer(
+    public async Task<string> SubmitLayerAsync(
         [Description("Session ID from create_session.")] string sessionId,
         [Description("Number of parallel workers (1..maxParallelism).")] int parallelism,
         [Description("JSON output from a previous run_layer / get_layer_results (resultJson field).")] string? previousLayerResultJson = null,
         [Description("Shared string payload sent to every worker.")] string? customData = null,
         [Description("JSON object of key/value parameters, e.g. '{\"key\":\"value\"}'.")] string? parametersJson = null,
+        [Description("Optional URL of a dataset file to download and distribute to every worker as 'dataset.bin'. See run_layer for full description.")]
+        string? datasetUrl = null,
         CancellationToken ct = default)
     {
         var session = _sessions.GetSession(sessionId);
@@ -202,13 +228,21 @@ public sealed class ParcsAgentTools
         if (parseError is not null)
             return JsonSerializer.Serialize(new { error = parseError });
 
+        byte[]? datasetBytes = null;
+        if (datasetUrl is not null)
+        {
+            datasetBytes = await FetchDatasetAsync(datasetUrl, ct);
+            if (datasetBytes is null)
+                return JsonSerializer.Serialize(new { error = $"Failed to download dataset from '{datasetUrl}'." });
+        }
+
         var layer = _sessions.CreateLayer(sessionId);
         _sessions.SubmitLayerBackground(layer, session, parallelism,
-            previousLayerResultJson, customData, parameters!, ct);
+            previousLayerResultJson, customData, parameters!, datasetBytes, ct);
 
         _logger.LogInformation(
-            "submit_layer — session={Session} parallelism={P} layer={LayerId}",
-            sessionId, parallelism, layer.LayerId);
+            "submit_layer — session={Session} parallelism={P} layer={LayerId} dataset={Url}",
+            sessionId, parallelism, layer.LayerId, datasetUrl ?? "none");
 
         return JsonSerializer.Serialize(new
         {
@@ -277,6 +311,30 @@ public sealed class ParcsAgentTools
     // ─────────────────────────────────────────────────────────────────
     // Private helpers
     // ─────────────────────────────────────────────────────────────────
+
+    private async Task<byte[]?> FetchDatasetAsync(string url, CancellationToken ct)
+    {
+        if (_datasetCache.TryGetValue(url, out var cached))
+        {
+            _logger.LogInformation("Dataset cache hit for {Url} ({Bytes} bytes)", url, cached.Length);
+            return cached;
+        }
+
+        _logger.LogInformation("Downloading dataset from {Url} …", url);
+        try
+        {
+            using var http = _httpClientFactory.CreateClient();
+            var bytes = await http.GetByteArrayAsync(url, ct);
+            _datasetCache[url] = bytes;
+            _logger.LogInformation("Dataset downloaded and cached: {Url} ({Bytes} bytes)", url, bytes.Length);
+            return bytes;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to download dataset from {Url}", url);
+            return null;
+        }
+    }
 
     private static Dictionary<string, string>? ParseParameters(string? parametersJson, out string? error)
     {
