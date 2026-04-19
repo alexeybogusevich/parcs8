@@ -172,7 +172,7 @@ public sealed class ParcsAgentTools
             return JsonSerializer.Serialize(new { error = parseError });
 
         string? datasetPath = null;
-        if (datasetUrl is not null)
+        if (!string.IsNullOrWhiteSpace(datasetUrl) && datasetUrl != "null")
         {
             datasetPath = await FetchDatasetAsync(datasetUrl, ct);
             if (datasetPath is null)
@@ -229,7 +229,7 @@ public sealed class ParcsAgentTools
             return JsonSerializer.Serialize(new { error = parseError });
 
         string? datasetPath = null;
-        if (datasetUrl is not null)
+        if (!string.IsNullOrWhiteSpace(datasetUrl) && datasetUrl != "null")
         {
             datasetPath = await FetchDatasetAsync(datasetUrl, ct);
             if (datasetPath is null)
