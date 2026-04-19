@@ -239,8 +239,10 @@ public sealed class SessionManager
             },
             ct: ct);
 
-        // Run synchronously (blocks until PARCS completes the job)
-        await _api.RunJobAsync(jobId, ct: ct);
+        // Submit async and stream SSE events until completion.
+        // This replaces the old blocking SynchronousJobRuns call which caused
+        // proxy timeouts when jobs ran silently for more than a minute.
+        await _api.RunJobAndWaitAsync(jobId, ct: ct);
 
         // Fetch output
         var outputBytes = await _api.GetJobOutputFileAsync(jobId, "agent_results.json", ct)

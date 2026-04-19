@@ -11,21 +11,33 @@ namespace Parcs.Agent.Mcp.Services;
 /// HTTP client for the PARCS Host API.
 ///
 /// Endpoints used:
-///   POST /api/Modules                     — upload module binaries, returns { id }
-///   POST /api/Jobs                        — create job with input files, returns { id }
-///   POST /api/SynchronousJobRuns          — run a job synchronously (blocking)
-///   GET  /api/JobOutputs/{jobId}          — download output zip
+///   POST /api/Modules                      — upload module binaries, returns { moduleId }
+///   POST /api/Jobs                         — create job with input files, returns { jobId }
+///   POST /api/AsynchronousJobRuns          — submit job for async execution (202 Accepted)
+///   GET  /api/Jobs/{jobId}/stream          — SSE stream of job status events
+///   GET  /api/JobOutputs/{jobId}           — download output zip
+///
+/// Why async submit + SSE instead of /api/SynchronousJobRuns:
+///   The synchronous endpoint blocks for the entire job duration (minutes). During that
+///   time no bytes flow back through the MCP SSE connection, so proxies and load-balancers
+///   treat the connection as idle and close it. The async + SSE approach emits heartbeat
+///   comments every few seconds, keeping every hop in the chain alive.
 /// </summary>
 public sealed class ParcsApiClient
 {
     private readonly string _baseUrl;
+    private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<ParcsApiClient> _logger;
 
-    public ParcsApiClient(IConfiguration configuration, ILogger<ParcsApiClient> logger)
+    public ParcsApiClient(
+        IConfiguration configuration,
+        IHttpClientFactory httpClientFactory,
+        ILogger<ParcsApiClient> logger)
     {
-        _baseUrl = configuration["Parcs:HostUrl"]
+        _baseUrl           = configuration["Parcs:HostUrl"]
             ?? throw new InvalidOperationException("Parcs:HostUrl is not configured.");
-        _logger = logger;
+        _httpClientFactory = httpClientFactory;
+        _logger            = logger;
     }
 
     /// <summary>
@@ -118,24 +130,88 @@ public sealed class ParcsApiClient
     }
 
     /// <summary>
-    /// Runs a job synchronously (blocks until completion or cancellation).
+    /// Submits a job for asynchronous execution then blocks until the job reaches a
+    /// terminal status by consuming a Server-Sent Events stream from the Host API.
+    ///
+    /// Flow:
+    ///   1. POST /api/AsynchronousJobRuns  — returns 202 immediately
+    ///   2. GET  /api/Jobs/{jobId}/stream  — SSE events + heartbeat comments keep
+    ///                                       every proxy in the chain alive
+    ///   3. Returns when status == Completed; throws on Failed / Cancelled.
     /// </summary>
-    public async Task RunJobAsync(
+    public async Task RunJobAndWaitAsync(
         long jobId,
         IReadOnlyDictionary<string, string>? arguments = null,
         CancellationToken ct = default)
     {
-        _logger.LogInformation("Running job synchronously: jobId={JobId}", jobId);
+        // Step 1 — submit asynchronously (returns 202 immediately)
+        _logger.LogInformation("Submitting job async: jobId={JobId}", jobId);
 
-        // Do NOT pass the caller's ct here — it may have a short deadline (e.g. ASP.NET request timeout).
-        // WithTimeout provides the upper bound; the caller can cancel via its own outer logic if needed.
         await _baseUrl
-            .AppendPathSegment("api/SynchronousJobRuns")
-            .WithTimeout(TimeSpan.FromMinutes(10))
-            .PostJsonAsync(new { jobId, arguments = (object)(arguments ?? new Dictionary<string, string>()) },
-                           cancellationToken: CancellationToken.None);
+            .AppendPathSegment("api/AsynchronousJobRuns")
+            .PostJsonAsync(new
+            {
+                jobId,
+                arguments   = (object)(arguments ?? new Dictionary<string, string>()),
+                callbackUrl = string.Empty,
+            }, cancellationToken: ct);
 
-        _logger.LogInformation("Job {JobId} completed", jobId);
+        // Step 2 — stream status events until terminal
+        _logger.LogInformation("Streaming job status: jobId={JobId}", jobId);
+
+        var streamUrl = _baseUrl.TrimEnd('/') + $"/api/Jobs/{jobId}/stream";
+
+        // Use a plain HttpClient — Flurl doesn't support streaming SSE responses.
+        // InfiniteTimeSpan because the stream itself drives liveness via heartbeats.
+        using var http = _httpClientFactory.CreateClient();
+        http.Timeout = Timeout.InfiniteTimeSpan;
+
+        using var response = await http.GetAsync(
+            streamUrl, HttpCompletionOption.ResponseHeadersRead, ct);
+
+        response.EnsureSuccessStatusCode();
+
+        await using var stream = await response.Content.ReadAsStreamAsync(ct);
+        using var reader       = new StreamReader(stream);
+
+        while (!ct.IsCancellationRequested)
+        {
+            var line = await reader.ReadLineAsync(ct);
+            if (line is null) break; // stream closed by server
+
+            // Skip SSE comment lines (heartbeats) and blank separator lines
+            if (line.StartsWith(':') || string.IsNullOrWhiteSpace(line))
+                continue;
+
+            if (!line.StartsWith("data:"))
+                continue;
+
+            var json = line["data:".Length..].Trim();
+            using var doc = JsonDocument.Parse(json);
+            var root = doc.RootElement;
+
+            if (root.TryGetProperty("error", out var errProp))
+                throw new InvalidOperationException($"Job stream error: {errProp.GetString()}");
+
+            if (!root.TryGetProperty("status", out var statusProp))
+                continue;
+
+            var status = statusProp.GetString();
+            _logger.LogInformation("Job {JobId} status: {Status}", jobId, status);
+
+            if (status is "Completed")
+                return;
+
+            if (status is "Failed" or "Cancelled")
+            {
+                var failures = root.TryGetProperty("failures", out var fp)
+                    ? string.Join("; ", fp.EnumerateArray().Select(f => f.GetString()))
+                    : "unknown error";
+                throw new InvalidOperationException($"Job {jobId} {status}: {failures}");
+            }
+        }
+
+        throw new InvalidOperationException($"Job {jobId} SSE stream ended without a terminal status.");
     }
 
     /// <summary>
