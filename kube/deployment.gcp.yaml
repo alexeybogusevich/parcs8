@@ -551,6 +551,10 @@ spec:
         app: parcs-agent-mcp
     spec:
       serviceAccountName: parcs-agent-mcp-sa
+      volumes:
+      - name: parcs-storage-volume
+        persistentVolumeClaim:
+          claimName: parcs-storage-volume-claim
       containers:
       - name: parcs-agent-mcp
         image: oleksiibohusevych/parcs-agent-mcp:latest

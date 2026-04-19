@@ -28,4 +28,13 @@ public sealed class AgentLayerInput
 
     /// <summary>Named parameters provided by the agent at submission time.</summary>
     public Dictionary<string, string> Parameters { get; init; } = new();
+
+    /// <summary>
+    /// Absolute path to the dataset file on the shared NFS volume
+    /// (/var/lib/storage/Datasets/…/dataset.bin), or null if no dataset was provided.
+    /// The MCP server downloads the dataset once and writes it to this path;
+    /// all daemon workers read from the same shared filesystem — no file transfer needed.
+    /// Usage: var data = File.ReadAllBytes(input.DatasetPath!);
+    /// </summary>
+    public string? DatasetPath { get; init; }
 }

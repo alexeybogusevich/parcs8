@@ -114,7 +114,7 @@ public sealed class SessionManager
         string? previousLayerResultJson,
         string? customData,
         Dictionary<string, string> parameters,
-        byte[]? datasetBytes,
+        string? datasetPath,
         CancellationToken ct)
     {
         var session = GetSession(sessionId)
@@ -127,7 +127,7 @@ public sealed class SessionManager
         {
             var resultJson = await RunLayerAsync(
                 layer, session, parallelism,
-                previousLayerResultJson, customData, parameters, datasetBytes, ct);
+                previousLayerResultJson, customData, parameters, datasetPath, ct);
 
             UpdateLayer(layer.LayerId, l =>
             {
@@ -163,7 +163,7 @@ public sealed class SessionManager
         string? previousLayerResultJson,
         string? customData,
         Dictionary<string, string> parameters,
-        byte[]? datasetBytes,
+        string? datasetPath,
         CancellationToken ct)
     {
         _ = Task.Run(async () =>
@@ -173,7 +173,7 @@ public sealed class SessionManager
             {
                 var resultJson = await RunLayerAsync(
                     layer, session, parallelism,
-                    previousLayerResultJson, customData, parameters, datasetBytes, ct);
+                    previousLayerResultJson, customData, parameters, datasetPath, ct);
 
                 UpdateLayer(layer.LayerId, l =>
                 {
@@ -204,7 +204,7 @@ public sealed class SessionManager
         string?       previousLayerResultJson,
         string?       customData,
         Dictionary<string, string> parameters,
-        byte[]?       datasetBytes,
+        string?       datasetPath,
         CancellationToken ct)
     {
         var assemblyBytes = GetCompiledAssembly(session.SessionId)
@@ -216,6 +216,9 @@ public sealed class SessionManager
 
         // Build layer_input.json — use PascalCase to match LayerInputDto property names
         // (System.Text.Json deserialisation is case-sensitive by default).
+        // DatasetPath is a path on the shared NFS volume (/var/lib/storage/Datasets/…/dataset.bin)
+        // mounted identically on both the MCP server and every daemon pod.
+        // Workers read it with File.ReadAllBytes(input.DatasetPath) — no file transfer needed.
         var layerInputDto = new
         {
             SessionId               = session.SessionId,
@@ -224,19 +227,15 @@ public sealed class SessionManager
             PreviousLayerResultJson = previousLayerResultJson,
             CustomData              = customData,
             Parameters              = parameters,
-            HasDataset              = datasetBytes is not null,
+            DatasetPath             = datasetPath,   // null when no dataset was provided
         };
         var layerInputBytes = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(layerInputDto));
 
-        // Build input file list — dataset.bin is optional.
-        // Workers read it with File.ReadAllBytes("dataset.bin") and check HasDataset first.
         List<(string, byte[])> inputFiles =
         [
             ("agent_computation.dll", assemblyBytes),
             ("layer_input.json",      layerInputBytes),
         ];
-        if (datasetBytes is not null)
-            inputFiles.Add(("dataset.bin", datasetBytes));
 
         // Create PARCS job
         var jobId = await _api.CreateJobAsync(

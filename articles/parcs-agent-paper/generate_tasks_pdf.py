@@ -8,7 +8,7 @@ from reportlab.platypus import (
 )
 from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY
 
-OUTPUT = "/sessions/sweet-pensive-thompson/mnt/parcs7/articles/parcs-agent-paper/benchmark_tasks.pdf"
+OUTPUT = "/sessions/sweet-pensive-thompson/mnt/parcs7/articles/parcs-agent-paper/benchmark_tasks_v2.pdf"
 
 # ── Styles ─────────────────────────────────────────────────────────────────────
 styles = getSampleStyleSheet()
@@ -28,6 +28,8 @@ data_value     = make_style('DataValue',  'Normal',   fontSize=9.5,leading=14, s
 caption_style  = make_style('Caption',    'Normal',   fontSize=9,  leading=12, textColor=colors.HexColor('#555555'), alignment=TA_CENTER, spaceAfter=12)
 link_label     = make_style('LinkLabel',  'Normal',   fontSize=9,  leading=13, spaceAfter=3,  textColor=colors.HexColor('#6a1b9a'), fontName='Helvetica-Bold')
 link_value     = make_style('LinkValue',  'Normal',   fontSize=9,  leading=13, spaceAfter=5,  textColor=colors.HexColor('#6a1b9a'))
+prompt_label   = make_style('PromptLbl',  'Normal',   fontSize=9,  leading=13, spaceAfter=3,  textColor=colors.HexColor('#4a148c'), fontName='Helvetica-Bold')
+prompt_value   = make_style('PromptVal',  'Normal',   fontSize=9,  leading=14, spaceAfter=5,  alignment=TA_JUSTIFY, textColor=colors.HexColor('#1a237e'))
 
 ACCENT  = colors.HexColor('#1a237e')
 LIGHT   = colors.HexColor('#e8eaf6')
@@ -504,6 +506,160 @@ tasks = [
     },
 ]
 
+# ── Complete agent prompts (verbatim text given to the agent) ──────────────────
+HF_RAW = "https://huggingface.co/datasets/parcs-benchmark/parcs-agent-benchmark/resolve/main/data"
+
+PROMPTS = {
+    1: (
+        "You have a portfolio of 50 assets with equal weights (w_i = 1/50). "
+        "The return covariance matrix \u03a3 \u2208 \u211d^{50\u00d750} is generated from seed=42: "
+        "A = randn(50,50,seed=42); \u03a3 = A\u1d40\u00b7A/50 + 0.01\u00b7I. "
+        "Using 2,000,000 Monte Carlo scenarios (each of 20 workers generates 100,000 using "
+        "seed WorkerIndex*1000+42 and the shared Cholesky factor L of \u03a3), "
+        "estimate the 1-day 99% Value-at-Risk (VaR) and Conditional VaR (CVaR) of the portfolio loss distribution. "
+        "Loss = \u2013(portfolio return). "
+        "Return {var_99, cvar_99} as floats."
+    ),
+    2: (
+        "Price 200 down-and-out European call options on a (S, \u03c3, T) grid: "
+        "S \u2208 {80,85,90,95,100,105,110,115,120,125}, \u03c3 \u2208 {0.10,0.15,0.20,0.25}, "
+        "T \u2208 {0.25,0.5,1.0,2.0,4.0} years. Parameters: K=100, r=0.05, B=0.85\u00b7S. "
+        "Use 500,000 GBM paths per grid point; each of 20 workers prices 10 points using "
+        "seed WorkerIndex*999+7. Compute delta and vega by central finite difference. "
+        "Return a JSON array of {S, sigma, T, price, delta, vega} for all 200 points."
+    ),
+    3: (
+        "Find the shortest Hamiltonian tour through 300 cities. "
+        "Load city coordinates (city_id, x, y) by passing this URL as datasetUrl to run_layer:\n"
+        f"{HF_RAW}/task_03_cities.jsonl\n"
+        "Workers read the file with File.ReadAllText(input.DatasetPath). "
+        "Run 20 independent Simulated Annealing trials (\u03b1=0.9995, T\u2080=1000, 500,000 iterations, "
+        "2-opt neighbourhood), each worker using seed WorkerIndex*777. "
+        "Return {best_tour_length, best_worker_index, all_trial_lengths:[20 floats]}."
+    ),
+    4: (
+        "Simulate a discrete-time SIR epidemic on N=1,000,000 individuals for 365 days across a 20\u00d720 "
+        "parameter grid: R\u2080 \u2208 linspace(0.8,4.0,20), \u03b8 \u2208 linspace(0.01,0.20,20). "
+        "Parameters: \u03b3=1/14, \u03b2=R\u2080\u00b7\u03b3; when I/N \u2265 \u03b8 apply 50% contact-rate reduction. "
+        "Initial conditions: S\u2080=999900, I\u2080=100, R_init=0. "
+        "Each of 20 workers simulates 20 parameter combinations (one row of the grid). "
+        "Return a JSON array of {R0, theta, peak_infected_frac, attack_rate, days_to_peak, intervention_days} "
+        "for all 400 combinations."
+    ),
+    5: (
+        "Train a gradient boosting classifier on a synthetic dataset (80,000 rows, 25 features f0\u2026f24, label). "
+        "Load training data by passing this URL as datasetUrl to run_layer:\n"
+        f"{HF_RAW}/task_05_data.jsonl\n"
+        "Load the hyperparameter grid (20 configs) from:\n"
+        f"{HF_RAW}/task_05_configs.jsonl\n"
+        "Each of 20 workers trains one config (config_index = WorkerIndex) with 5-fold CV. "
+        "Configs: learning_rate\u2208{0.01,0.05,0.1}, max_depth\u2208{3,5,7}, "
+        "n_estimators\u2208{100,300}, subsample\u2208{0.8,1.0}. "
+        "Return {best_config_index, best_auc_roc, ranked_configs:[{config_index, auc_roc}]}."
+    ),
+    6: (
+        "Fit a Cox proportional hazards model on a synthetic patient dataset and compute 95% bootstrap "
+        "confidence intervals for all 5 hazard ratios using B=10,000 resamples. "
+        "Load patient data (N=8,000; columns: cov_0\u2026cov_4, time, event) by passing this URL as datasetUrl:\n"
+        f"{HF_RAW}/task_06_patients.jsonl\n"
+        "Each of 20 workers runs 500 resamples using seed WorkerIndex*1000+b per resample b. "
+        "Return {cov_i: {ci_lower, ci_upper, point_estimate}} for i=0..4."
+    ),
+    7: (
+        "Compute the 600\u00d7600 pairwise similarity matrix using simplified Smith-Waterman "
+        "(match=+2, mismatch=\u22121, gap=\u22122). "
+        "Load sequences (seq_id, length, sequence) by passing this URL as datasetUrl:\n"
+        f"{HF_RAW}/task_07_sequences.jsonl\n"
+        "Normalise scores to [0,1] by dividing by min(len_i, len_j)\u00d72. "
+        "Each of 20 workers computes ~9,000 pairs of the upper-triangular matrix. "
+        "Return {top_20_pairs:[{seq_i, seq_j, score}], matrix_checksum (4 d.p.), n_families_above_0p7}."
+    ),
+    8: (
+        "Train a random forest of 200 decision trees on a synthetic regression dataset. "
+        "Load training data (60,000 rows, features f0\u2026f29, target) by passing this URL as datasetUrl:\n"
+        f"{HF_RAW}/task_08_train.jsonl\n"
+        "Test data (10,000 rows) is at:\n"
+        f"{HF_RAW}/task_08_test.jsonl\n"
+        "Each tree: bootstrap sample, \u221a30\u22485 features/split, max_depth=15, min_leaf=5. "
+        "Each of 20 workers grows 10 trees using seeds WorkerIndex*200+treeIndex. "
+        "Return {oob_rmse, test_rmse, feature_importances:[{feature, importance}] top 10}."
+    ),
+    9: (
+        "Generate and test 10,000 candidate 512-bit odd integers for primality using Miller-Rabin "
+        "(k=20 witness rounds, FP rate < 4^\u221220). For each confirmed prime p, check if (p\u22121)/2 is also prime (safe prime). "
+        "Each of 20 workers tests 500 candidates using seed WorkerIndex*9973 to generate 512-bit odd numbers; "
+        "witness draws use seed candidate_index. "
+        "Return {prime_count, safe_prime_count, empirical_prime_density, "
+        "pnt_predicted_density (=1/ln(2^512)), iteration_histogram}."
+    ),
+    10: (
+        "Reprice a portfolio of 300 instruments under 500 stress scenarios using delta-linear approximation: "
+        "P&L_s = \u03a3_i w_i\u00b7(\u03b4_i\u00b7shock_s). "
+        "Load portfolio (instrument_id, weight, delta_0\u2026delta_14) by passing this URL as datasetUrl:\n"
+        f"{HF_RAW}/task_10_portfolio.jsonl\n"
+        "Load scenarios (scenario_id, shock_0\u2026shock_14) from:\n"
+        f"{HF_RAW}/task_10_scenarios.jsonl\n"
+        "Each of 20 workers prices the full portfolio under 25 scenarios (scenario_ids WorkerIndex*25\u2026WorkerIndex*25+24). "
+        "Return {worst_10_scenarios:[{scenario_id, pnl}], pnl_var_99, pnl_std, "
+        "top_3_loss_drivers per worst scenario}."
+    ),
+    11: (
+        "Score 50,000 molecules against a reference kinase inhibitor fingerprint using Tanimoto similarity "
+        "on 2048-bit Morgan fingerprints. "
+        "Load molecule library (mol_id, fingerprint as hex string, mw, hbd, hba, logp) by passing this URL as datasetUrl:\n"
+        f"{HF_RAW}/task_11_library.jsonl\n"
+        "Reference fingerprint: 2048-bit vector with bit-set probability 0.05 generated from seed=0. "
+        "Proxy score = 0.7\u00b7Tanimoto + 0.1\u00b7(1\u2212MW/700) + 0.1\u00b7(1\u2212HBD/8) + 0.1\u00b7(1\u2212logP/7). "
+        "Lipinski filters: MW\u2264500, HBD\u22645, HBA\u226410, logP\u22645. "
+        "Each of 20 workers scores 2,500 molecules (mol_ids WorkerIndex*2500\u2026WorkerIndex*2500+2499). "
+        "Return {top_100_mol_ids, lipinski_pass_rate, mean_tanimoto}."
+    ),
+    12: (
+        "Simulate 2,000,000 policy years under a compound Poisson risk process: "
+        "claim count N ~ Poisson(\u03bb=200), severity X ~ Lognormal(\u03bc=8, \u03c3=1.5). "
+        "Premium P=(1+0.2)\u00b7E[S]; initial surplus U=500,000. "
+        "Each of 20 workers simulates 100,000 policy years using "
+        "seed_counts=WorkerIndex*2053+1, seed_severities=WorkerIndex*3571+2. "
+        "Return {ruin_prob_1yr, ruin_prob_5yr, ruin_prob_10yr, "
+        "scr_995 (99.5th-percentile annual loss), expected_deficit_given_ruin}."
+    ),
+    13: (
+        "On a synthetic road-network graph compute: shortest-path lengths from 400 source nodes (Dijkstra), "
+        "approximate betweenness centrality, diameter and average path length (hops), "
+        "top-20 most critical edges by removal impact. "
+        "Load graph nodes (node_id, x, y) by passing this URL as datasetUrl:\n"
+        f"{HF_RAW}/task_13_nodes.jsonl\n"
+        "Load edges (u, v, weight_minutes) from:\n"
+        f"{HF_RAW}/task_13_edges.jsonl\n"
+        "Load source assignments (source_id, node, worker_id) from:\n"
+        f"{HF_RAW}/task_13_sources.jsonl\n"
+        "Each of 20 workers runs Dijkstra from its 20 assigned source nodes (worker_id = WorkerIndex). "
+        "Return {top_20_nodes_by_betweenness, top_20_critical_edges, avg_path_length_hops, diameter_hops}."
+    ),
+    14: (
+        "Simulate photon transport through a 50-layer plane-parallel atmosphere. "
+        "Layer l: \u03c4_scat[l]=0.1\u00b7exp(\u22120.05\u00b7l), \u03c4_abs[l]=0.02\u00b7exp(\u22120.08\u00b7l), "
+        "\u03c9[l]=\u03c4_scat/(\u03c4_scat+\u03c4_abs). Solar zenith \u03b8=30\u00b0; Rayleigh phase function. "
+        "Simulate 5,000,000 photons; each of 20 workers traces 250,000 using seed WorkerIndex*6271+3. "
+        "Return {toa_radiance, surface_irradiance, heating_rates:[50 floats], ssa_retrieval_rmse}."
+    ),
+    15: (
+        "Compute the k=8 frequency spectrum (4^8=65,536 k-mers) for each of 20 synthetic genomic sequences "
+        "and for the combined corpus. "
+        "Load sequences (seq_id, length, gc_content, sequence) by passing this URL as datasetUrl:\n"
+        f"{HF_RAW}/task_15_sequences.jsonl\n"
+        "Each of 20 workers processes one sequence (seq_id = WorkerIndex). "
+        "For each sequence: top-50 over/under-represented k-mers vs. null expectation; "
+        "repeat regions (k-mer freq>100 in consecutive 10kb windows). "
+        "Final layer: Jensen-Shannon divergence between each spectrum and corpus mean. "
+        "Return {js_divergences:[20 floats], corpus_top_10_kmers, "
+        "frequency_table_checksums:[20 ints], expected_checksum_per_seq: 499993}."
+    ),
+}
+
+for t in tasks:
+    t['prompt'] = PROMPTS[t['id']]
+
 # ── Attach HuggingFace dataset references ─────────────────────────────────────
 HF_BASE = "https://huggingface.co/datasets/parcs-benchmark/parcs-agent-benchmark"
 HF_SPLITS = {
@@ -624,6 +780,13 @@ story.append(Paragraph(
     "(correctness and completeness), <b>time-to-result</b>, and <b>effective sample size</b> "
     "(fraction of required computation actually performed).",
     body_style))
+story.append(Paragraph(
+    "<b>Dataset distribution:</b> For tasks with pre-generated input data, Agent A passes the "
+    "HuggingFace dataset URL as the <tt>datasetUrl</tt> parameter of <tt>run_layer</tt>. "
+    "The MCP server downloads the file once and writes it to the shared cluster NFS volume; "
+    "all daemon workers read it directly from <tt>input.DatasetPath</tt> \u2014 "
+    "no per-worker download, no data transfer overhead.",
+    body_style))
 story.append(Spacer(1, 0.3*cm))
 
 # Summary table
@@ -719,6 +882,8 @@ for t in tasks:
         f'<br/>Splits: {t["dataset"]}'
     )
     fields_data = [
+        [Paragraph("\u2022 Agent Prompt", prompt_label),
+         Paragraph(t['prompt'], prompt_value)],
         [Paragraph("Formal Definition", label_style),
          Paragraph(t['definition'], value_style)],
         [Paragraph(strategy_label[t['data_strategy']], make_style(f'DL{t["id"]}', 'Normal',
@@ -745,11 +910,13 @@ for t in tasks:
         ('RIGHTPADDING', (0,0), (-1,-1), 6),
         ('TOPPADDING', (0,0), (-1,-1), 5),
         ('BOTTOMPADDING', (0,0), (-1,-1), 5),
+        # Prompt row — dark indigo tint
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#ede7f6')),
         # Data row highlighted
-        ('BACKGROUND', (0,1), (-1,1), sc),
-        ('ROWBACKGROUNDS', (0,0), (-1,-1), [colors.white, LIGHT]),
-        ('BACKGROUND', (0,1), (-1,1), sc),   # override for data row
-        ('BACKGROUND', (0,2), (-1,2), colors.HexColor('#f3e5f5')),  # HF dataset row
+        ('BACKGROUND', (0,2), (-1,2), sc),
+        ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, LIGHT]),
+        ('BACKGROUND', (0,2), (-1,2), sc),   # override for data row
+        ('BACKGROUND', (0,3), (-1,3), colors.HexColor('#f3e5f5')),  # HF dataset row
         ('LINEBELOW', (0,0), (-1,-2), 0.5, MID),
         ('BOX', (0,0), (-1,-1), 0.8, ACCENT),
         ('LINEAFTER', (0,0), (0,-1), 0.5, MID),

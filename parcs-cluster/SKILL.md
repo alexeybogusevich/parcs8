@@ -69,6 +69,7 @@ public interface IAgentComputation
 | `PreviousLayerResultJson` | `string?` | JSON output from the previous `run_layer` call (null for first layer) |
 | `CustomData` | `string?` | Shared string payload broadcast to all workers |
 | `Parameters` | `Dictionary<string,string>` | Named key/value pairs passed at submission time |
+| `DatasetPath` | `string?` | Absolute path to `dataset.bin` on the shared NFS volume. Set automatically when `datasetUrl` is passed to `run_layer`. Read with `File.ReadAllBytes(input.DatasetPath!)`. Null if no dataset was provided. |
 
 ### Returning results
 
@@ -133,9 +134,16 @@ run_layer(
   parallelism:             int,
   previousLayerResultJson: string? = null,
   customData:              string? = null,
-  parametersJson:          string? = null   // JSON object e.g. '{"start":"0","end":"1000"}'
+  parametersJson:          string? = null,  // JSON object e.g. '{"start":"0","end":"1000"}'
+  datasetUrl:              string? = null   // URL of a dataset file to distribute to all workers
 ) → { layerId, sessionId, status, submittedAt, completedAt, resultJson?, errorMessage? }
 ```
+
+**`datasetUrl`** — when provided, the MCP server downloads the file once, writes it to the shared
+NFS volume (`/var/lib/storage/Datasets/`), and passes the path to every worker via
+`input.DatasetPath`. Workers read it with `File.ReadAllBytes(input.DatasetPath!)` — no per-worker
+download, no file transfer overhead. The file is cached by URL so repeated `run_layer` calls with
+the same URL are instant. Supports any HTTP/HTTPS URL (HuggingFace, GCS, Azure Blob, etc.).
 
 `status` is `"Completed"` or `"Failed"`.
 
@@ -158,6 +166,7 @@ run_layer(
 
 Use when you want to dispatch a long layer without blocking. Poll `get_layer_results` every 2–5
 seconds until `status` is `"Completed"` or `"Failed"`. Prefer `run_layer` for most scenarios.
+`submit_layer` also accepts `datasetUrl` with identical semantics to `run_layer`.
 
 ---
 

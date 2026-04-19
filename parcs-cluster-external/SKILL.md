@@ -84,6 +84,7 @@ and returns an `AgentLayerResult`.
 | `PreviousLayerResultJson` | `string?` | JSON output from the previous layer (null on the first layer). Used to chain layers together. |
 | `CustomData` | `string?` | An arbitrary string you passed when calling `run_layer`. Every worker gets the same value. |
 | `Parameters` | `Dictionary<string,string>` | Named string parameters you passed when calling `run_layer`. |
+| `DatasetPath` | `string?` | Path to a pre-downloaded dataset file on shared storage. Automatically populated when you pass `datasetUrl` to `run_layer`. Read with `File.ReadAllBytes(input.DatasetPath!)`. Null if no dataset was provided. |
 
 ### AgentLayerResult — how to return results
 
@@ -220,6 +221,7 @@ If compilation fails, read the `[CSXXXX]` error code and line number, fix the co
 | `previousLayerResultJson` | `string?` | — | Pass the `resultJson` from a previous `run_layer` here to give workers access to earlier results. Null for the first layer. |
 | `customData` | `string?` | — | Any string broadcast to all workers via `input.CustomData`. |
 | `parametersJson` | `string?` | — | JSON object of named parameters, e.g. `'{"total":"100000"}'`. Workers read these via `input.Parameters["total"]`. |
+| `datasetUrl` | `string?` | — | URL of a dataset file (HuggingFace, GCS, any HTTP URL). The MCP server downloads it once, writes it to shared cluster storage, and makes it available to every worker via `input.DatasetPath`. Workers read it with `File.ReadAllBytes(input.DatasetPath!)`. The download is cached — repeated `run_layer` calls with the same URL skip the download entirely. |
 
 **Returns:**
 ```json

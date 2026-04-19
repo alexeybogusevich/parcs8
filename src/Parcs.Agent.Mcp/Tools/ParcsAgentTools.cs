@@ -41,8 +41,8 @@ public sealed class ParcsAgentTools
     private readonly IHttpClientFactory       _httpClientFactory;
     private readonly ILogger<ParcsAgentTools> _logger;
 
-    // In-memory cache so repeated calls with the same datasetUrl don't re-download.
-    private static readonly ConcurrentDictionary<string, byte[]> _datasetCache = new();
+    // Maps datasetUrl → local path on shared NFS storage so repeated calls skip the download.
+    private static readonly ConcurrentDictionary<string, string> _datasetCache = new();
 
     public ParcsAgentTools(
         SessionManager            sessions,
@@ -171,11 +171,11 @@ public sealed class ParcsAgentTools
         if (parseError is not null)
             return JsonSerializer.Serialize(new { error = parseError });
 
-        byte[]? datasetBytes = null;
+        string? datasetPath = null;
         if (datasetUrl is not null)
         {
-            datasetBytes = await FetchDatasetAsync(datasetUrl, ct);
-            if (datasetBytes is null)
+            datasetPath = await FetchDatasetAsync(datasetUrl, ct);
+            if (datasetPath is null)
                 return JsonSerializer.Serialize(new { error = $"Failed to download dataset from '{datasetUrl}'." });
         }
 
@@ -184,7 +184,7 @@ public sealed class ParcsAgentTools
             sessionId, parallelism, datasetUrl ?? "none");
 
         var layer = await _sessions.RunLayerSyncAsync(
-            sessionId, parallelism, previousLayerResultJson, customData, parameters!, datasetBytes, ct);
+            sessionId, parallelism, previousLayerResultJson, customData, parameters!, datasetPath, ct);
 
         return JsonSerializer.Serialize(new
         {
@@ -228,17 +228,17 @@ public sealed class ParcsAgentTools
         if (parseError is not null)
             return JsonSerializer.Serialize(new { error = parseError });
 
-        byte[]? datasetBytes = null;
+        string? datasetPath = null;
         if (datasetUrl is not null)
         {
-            datasetBytes = await FetchDatasetAsync(datasetUrl, ct);
-            if (datasetBytes is null)
+            datasetPath = await FetchDatasetAsync(datasetUrl, ct);
+            if (datasetPath is null)
                 return JsonSerializer.Serialize(new { error = $"Failed to download dataset from '{datasetUrl}'." });
         }
 
         var layer = _sessions.CreateLayer(sessionId);
         _sessions.SubmitLayerBackground(layer, session, parallelism,
-            previousLayerResultJson, customData, parameters!, datasetBytes, ct);
+            previousLayerResultJson, customData, parameters!, datasetPath, ct);
 
         _logger.LogInformation(
             "submit_layer — session={Session} parallelism={P} layer={LayerId} dataset={Url}",
@@ -312,22 +312,40 @@ public sealed class ParcsAgentTools
     // Private helpers
     // ─────────────────────────────────────────────────────────────────
 
-    private async Task<byte[]?> FetchDatasetAsync(string url, CancellationToken ct)
+    // Datasets directory on the shared NFS volume — same mount as daemons use.
+    private const string DatasetsRoot = "/var/lib/storage/Datasets";
+
+    /// <summary>
+    /// Downloads <paramref name="url"/> to the shared NFS volume and returns the path.
+    /// The path is stable per URL (content-addressed by URL hash), so subsequent calls
+    /// with the same URL are instant filesystem hits — no re-download, no re-transfer.
+    /// Returns null on download failure.
+    /// </summary>
+    private async Task<string?> FetchDatasetAsync(string url, CancellationToken ct)
     {
-        if (_datasetCache.TryGetValue(url, out var cached))
+        // Stable subdirectory keyed by URL hash — avoids special characters in paths.
+        var key  = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(
+                       System.Text.Encoding.UTF8.GetBytes(url)))[..16];
+        var dir  = Path.Combine(DatasetsRoot, key);
+        var path = Path.Combine(dir, "dataset.bin");
+
+        if (_datasetCache.ContainsKey(url) || File.Exists(path))
         {
-            _logger.LogInformation("Dataset cache hit for {Url} ({Bytes} bytes)", url, cached.Length);
-            return cached;
+            _logger.LogInformation("Dataset already on shared storage: {Path}", path);
+            _datasetCache.TryAdd(url, path);
+            return path;
         }
 
-        _logger.LogInformation("Downloading dataset from {Url} …", url);
+        _logger.LogInformation("Downloading dataset from {Url} → {Path}", url, path);
         try
         {
-            using var http = _httpClientFactory.CreateClient();
-            var bytes = await http.GetByteArrayAsync(url, ct);
-            _datasetCache[url] = bytes;
-            _logger.LogInformation("Dataset downloaded and cached: {Url} ({Bytes} bytes)", url, bytes.Length);
-            return bytes;
+            Directory.CreateDirectory(dir);
+            using var http   = _httpClientFactory.CreateClient();
+            var bytes        = await http.GetByteArrayAsync(url, ct);
+            await File.WriteAllBytesAsync(path, bytes, ct);
+            _datasetCache[url] = path;
+            _logger.LogInformation("Dataset saved: {Path} ({Bytes} bytes)", path, bytes.Length);
+            return path;
         }
         catch (Exception ex)
         {
