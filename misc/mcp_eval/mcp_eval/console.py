@@ -33,6 +33,15 @@ class ToolStyle:
         return self.label
 
 
+WRITE_TODOS_TOOL_NAME = "write_todos"
+
+TODO_STATUS_MARKERS: dict[str, tuple[str, str]] = {
+    "pending": ("[ ]", "white"),
+    "in_progress": ("[~]", "yellow"),
+    "completed": ("[x]", "green"),
+}
+
+
 TOOL_STYLES: dict[str, ToolStyle] = {
     ParcsMCPToolNames.RunLayer: ToolStyle("Running layer", "cyan"),
     ParcsMCPToolNames.CreateSession: ToolStyle("Creating session", "yellow"),
@@ -40,6 +49,7 @@ TOOL_STYLES: dict[str, ToolStyle] = {
     ParcsMCPToolNames.SubmitLayer: ToolStyle("Submitting layer", "green"),
     ParcsMCPToolNames.GetLayerResults: ToolStyle("Getting layer results", "green"),
     "read_file": ToolStyle("Reading", "magenta", arg_key="file_path"),
+    WRITE_TODOS_TOOL_NAME: ToolStyle("Updating todos", "magenta"),
 }
 
 
@@ -119,8 +129,25 @@ class AgentDisplay:
         style = _style_for(name)
         description = style.describe(args)
         self.console.print(f"  [bold {style.color}]>> {description}...[/]")
+        if name == WRITE_TODOS_TOOL_NAME:
+            self._print_todos(args.get("todos") or [])
         key = tc.get("id") or f"{name}:{len(self._pending)}"
         self._pending[key] = description
+
+    def _print_todos(self, todos: list[Any]) -> None:
+        lines: list[str] = []
+        for todo in todos:
+            if not isinstance(todo, dict):
+                continue
+            status = str(todo.get("status", "pending"))
+            content = str(todo.get("content", ""))
+            marker, color = TODO_STATUS_MARKERS.get(status, ("[ ]", "white"))
+            lines.append(f"[{color}]{marker}[/] {content}")
+        if not lines:
+            return
+        self.console.print(
+            Panel("\n".join(lines), title="Todos", border_style="magenta")
+        )
 
     def _print_tool(self, msg: ToolMessage) -> None:
         name = getattr(msg, "name", "") or ""
