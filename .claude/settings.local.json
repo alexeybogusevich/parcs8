@@ -48,7 +48,8 @@
       "Bash(cmd *)",
       "Bash(printenv TEMP *)",
       "Bash(kubectl delete pods *)",
-      "Bash(kubectl delete *)"
+      "Bash(kubectl delete *)",
+      "Bash(Start-Process \"C:\\\\Program Files\\\\Docker\\\\Docker\\\\Docker Desktop.exe\")"
     ]
   }
 }

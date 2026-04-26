@@ -9,6 +9,11 @@ namespace Parcs.Host.Services
             if (!Directory.Exists(directoryPath))
             {
                 Directory.CreateDirectory(directoryPath);
+                if (OperatingSystem.IsLinux())
+                    File.SetUnixFileMode(directoryPath,
+                        UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
+                        UnixFileMode.GroupRead | UnixFileMode.GroupWrite | UnixFileMode.GroupExecute |
+                        UnixFileMode.OtherRead | UnixFileMode.OtherWrite | UnixFileMode.OtherExecute);
             }
 
             if (file.Length <= 0)
@@ -17,7 +22,15 @@ namespace Parcs.Host.Services
             }
 
             var filePath = Path.Combine(directoryPath, file.FileName);
-            await using var fileStream = new FileStream(filePath, FileMode.Create);
+            var streamOptions = new FileStreamOptions
+            {
+                Mode = FileMode.Create,
+                Access = FileAccess.Write,
+                UnixCreateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite |
+                                 UnixFileMode.GroupRead | UnixFileMode.GroupWrite |
+                                 UnixFileMode.OtherRead | UnixFileMode.OtherWrite,
+            };
+            await using var fileStream = new FileStream(filePath, streamOptions);
             await file.CopyToAsync(fileStream, cancellationToken);
         }
 
