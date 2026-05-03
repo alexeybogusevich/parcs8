@@ -170,10 +170,29 @@ def extract_metrics(messages: list, mode: Mode) -> dict[str, Any]:
     for msg in messages:
         if isinstance(msg, AIMessage):
             m["llm_turns"] += 1
+            # LangChain standard field
             usage = getattr(msg, "usage_metadata", None) or {}
             m["input_tokens"]  += usage.get("input_tokens", 0)
             m["output_tokens"] += usage.get("output_tokens", 0)
             m["total_tokens"]  += usage.get("total_tokens", 0)
+            # Gemini thinking models store counts in response_metadata
+            if not usage:
+                rmeta = getattr(msg, "response_metadata", None) or {}
+                usage_meta = rmeta.get("usage_metadata", {}) or {}
+                m["input_tokens"]  += (
+                    usage_meta.get("prompt_token_count", 0)
+                    or usage_meta.get("input_tokens", 0)
+                )
+                output_toks = (
+                    usage_meta.get("candidates_token_count", 0)
+                    or usage_meta.get("output_tokens", 0)
+                )
+                thoughts_toks = usage_meta.get("thoughts_token_count", 0)
+                m["output_tokens"] += output_toks + thoughts_toks
+                m["total_tokens"]  += (
+                    usage_meta.get("total_token_count", 0)
+                    or m["input_tokens"] + m["output_tokens"]
+                )
 
         elif isinstance(msg, ToolMessage):
             name    = (getattr(msg, "name", "") or "").lower()
@@ -298,17 +317,27 @@ def _parse_run_layer(content: str, m: dict) -> None:
 
 # ── Single-task runner ─────────────────────────────────────────────────────────
 
-async def _stream_agent(agent, prompt: str, display: AgentDisplay, console: Console) -> list:
+async def _stream_agent(
+    agent, prompt: str, system: str, display: AgentDisplay, console: Console
+) -> list:
+    from langchain_core.messages import SystemMessage, HumanMessage
+
+    # Prepend system message in the input — works across all LangGraph versions
+    input_messages = [SystemMessage(content=system), HumanMessage(content=prompt)]
+
     messages: list = []
     with Live(display.spinner, console=console, refresh_per_second=10, transient=True) as live:
         async for chunk in agent.astream(
-            {"messages": [("user", prompt)]},
+            {"messages": input_messages},
             stream_mode="values",
         ):
-            messages = chunk.get("messages") or []
-            new = messages[display.printed_count:]
+            new_msgs = chunk.get("messages") or []
+            if not new_msgs:
+                continue
+            new = new_msgs[display.printed_count:]
             if not new:
                 continue
+            messages = new_msgs
             live.stop()
             for msg in new:
                 display.print_message(msg)
@@ -334,10 +363,10 @@ async def run_task(
     ))
 
     if mode == "parallel":
-        agent  = await create_parcs_agent(model_name)
+        agent, system = await create_parcs_agent(model_name)
         prompt = make_parallel_prompt(task)
     else:
-        agent  = create_sequential_agent(model_name)
+        agent, system = create_sequential_agent(model_name)
         prompt = make_sequential_prompt(task)
 
     display     = AgentDisplay(console)
@@ -348,7 +377,7 @@ async def run_task(
 
     try:
         async with asyncio.timeout(config.eval.timeout_seconds):
-            messages = await _stream_agent(agent, prompt, display, console)
+            messages = await _stream_agent(agent, prompt, system, display, console)
     except TimeoutError:
         agent_error = f"timeout after {config.eval.timeout_seconds}s"
         status = "timeout"
@@ -425,6 +454,17 @@ def _log_result(r: dict[str, Any], console: Console) -> None:
     if r["agent_error"]:
         console.print(f"  [red]{r['status']}: {r['agent_error']}[/]")
         return
+    # Warn when the agent answered without running any computation
+    if r["mode"] == "parallel" and not r.get("run_layer_calls"):
+        console.print(
+            "  [bold red]⚠ NO run_layer CALLS — agent answered from memory, "
+            "not from cluster. Result is unreliable.[/]"
+        )
+    if r["mode"] == "sequential" and not r.get("elapsed_seconds"):
+        console.print(
+            "  [bold red]⚠ NO python_exec calls — agent answered from memory, "
+            "not from computation. Result is unreliable.[/]"
+        )
     color = "cyan" if r["mode"] == "parallel" else "yellow"
     parts = [
         f"[{color}]{r['mode']}[/]",
