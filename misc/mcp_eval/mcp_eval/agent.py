@@ -103,16 +103,88 @@ def get_model(model_name: str | None = None) -> BaseChatModel:
 def _make_react_agent(model: BaseChatModel, tools: list):
     """Create a react agent compatible with all installed LangGraph versions."""
     from langgraph.prebuilt import create_react_agent  # type: ignore
-    import inspect
-
-    sig    = inspect.signature(create_react_agent)
-    params = set(sig.parameters)
-
-    # system message is injected per-call via input messages — don't pass it here
     return create_react_agent(model=model, tools=tools)
 
 
-# ── Agent factories — return (agent, system_prompt) ───────────────────────────
+# ── Forced-first-call executor ─────────────────────────────────────────────────
+# Gemini thinking models skip tools when confident they know the answer.
+# Solution: bind with tool_choice on turn 1 to guarantee at least one tool call,
+# then release on turn 2+ so the model can give the final answer normally.
+
+async def forced_tool_astream(
+    model: BaseChatModel,
+    tools: list,
+    system: str,
+    prompt: str,
+):
+    """Two-phase executor that forces tool use on the first model call.
+
+    Yields LangChain messages as they accumulate, mimicking the agent stream
+    interface so the evaluator display code works unchanged.
+    """
+    from langchain_core.messages import (
+        SystemMessage, HumanMessage, AIMessage, ToolMessage
+    )
+
+    tool_map  = {t.name: t for t in tools}
+    messages  = [SystemMessage(content=system), HumanMessage(content=prompt)]
+    all_msgs  = list(messages)
+
+    # ── Turn 1: force the model to call a tool ─────────────────────────────
+    # tool_choice="any" means "pick any tool" — not a specific one.
+    # This works with Gemini, Claude, and OpenAI via LangChain.
+    model_forced = model.bind_tools(tools, tool_choice="any")
+    ai_msg = await model_forced.ainvoke(messages)
+    all_msgs.append(ai_msg)
+    yield all_msgs[:]   # let the display update
+
+    # ── Execute every tool call the model made ─────────────────────────────
+    tool_calls = getattr(ai_msg, "tool_calls", []) or []
+    for tc in tool_calls:
+        tool_name = tc.get("name", "")
+        tool_args = tc.get("args", {})
+        tool_id   = tc.get("id", tool_name)
+        tool_fn   = tool_map.get(tool_name)
+        if tool_fn is None:
+            content = f"ERROR: unknown tool '{tool_name}'"
+        else:
+            try:
+                content = await tool_fn.ainvoke(tool_args)
+            except Exception as exc:
+                content = f"ERROR: {exc}"
+        tool_msg = ToolMessage(content=str(content), tool_call_id=tool_id, name=tool_name)
+        all_msgs.append(tool_msg)
+        yield all_msgs[:]
+
+    # ── Turn 2+: open-ended react loop for further tool calls / final answer ─
+    model_free = model.bind_tools(tools)
+    while True:
+        ai_msg = await model_free.ainvoke(all_msgs)
+        all_msgs.append(ai_msg)
+        yield all_msgs[:]
+
+        tool_calls = getattr(ai_msg, "tool_calls", []) or []
+        if not tool_calls:
+            break   # model gave a final text answer — done
+
+        for tc in tool_calls:
+            tool_name = tc.get("name", "")
+            tool_args = tc.get("args", {})
+            tool_id   = tc.get("id", tool_name)
+            tool_fn   = tool_map.get(tool_name)
+            if tool_fn is None:
+                content = f"ERROR: unknown tool '{tool_name}'"
+            else:
+                try:
+                    content = await tool_fn.ainvoke(tool_args)
+                except Exception as exc:
+                    content = f"ERROR: {exc}"
+            tool_msg = ToolMessage(content=str(content), tool_call_id=tool_id, name=tool_name)
+            all_msgs.append(tool_msg)
+            yield all_msgs[:]
+
+
+# ── Agent factories — return (executor_fn, system_prompt) ─────────────────────
 
 async def create_parcs_agent(model_name: str | None = None) -> tuple[Any, str]:
     model = get_model(model_name)
@@ -125,9 +197,19 @@ async def create_parcs_agent(model_name: str | None = None) -> tuple[Any, str]:
     if skill_text:
         system += f"\n\n---\n\nPARCS SKILL REFERENCE:\n{skill_text}"
 
-    return _make_react_agent(model, tools), system
+    # Return a bound coroutine so the caller just does `agent(prompt)` -> async gen
+    async def _executor(prompt: str):
+        async for msgs in forced_tool_astream(model, tools, system, prompt):
+            yield msgs
+
+    return _executor, system
 
 
 def create_sequential_agent(model_name: str | None = None) -> tuple[Any, str]:
     model = get_model(model_name)
-    return _make_react_agent(model, [python_exec]), _SEQUENTIAL_SYSTEM
+
+    async def _executor(prompt: str):
+        async for msgs in forced_tool_astream(model, [python_exec], _SEQUENTIAL_SYSTEM, prompt):
+            yield msgs
+
+    return _executor, _SEQUENTIAL_SYSTEM

@@ -320,24 +320,15 @@ def _parse_run_layer(content: str, m: dict) -> None:
 async def _stream_agent(
     agent, prompt: str, system: str, display: AgentDisplay, console: Console
 ) -> list:
-    from langchain_core.messages import SystemMessage, HumanMessage
-
-    # Prepend system message in the input — works across all LangGraph versions
-    input_messages = [SystemMessage(content=system), HumanMessage(content=prompt)]
-
+    """Stream the agent executor and render messages as they arrive."""
     messages: list = []
     with Live(display.spinner, console=console, refresh_per_second=10, transient=True) as live:
-        async for chunk in agent.astream(
-            {"messages": input_messages},
-            stream_mode="values",
-        ):
-            new_msgs = chunk.get("messages") or []
-            if not new_msgs:
-                continue
-            new = new_msgs[display.printed_count:]
+        # agent is now an async generator function: agent(prompt) -> AsyncGen[list]
+        async for all_msgs in agent(prompt):
+            new = all_msgs[display.printed_count:]
             if not new:
                 continue
-            messages = new_msgs
+            messages = all_msgs
             live.stop()
             for msg in new:
                 display.print_message(msg)
