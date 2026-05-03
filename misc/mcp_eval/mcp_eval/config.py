@@ -63,7 +63,7 @@ class LangSmithSettings(BaseModel):
 
 class EvalSettings(BaseModel):
     # Comma-separated Vertex AI model names to evaluate
-    models: str = "gemini-2.0-flash-001,gemini-2.5-pro-001"
+    models: str = "gemini-2.5-flash,gemini-2.5-pro"
     # Where to write/append results
     results_file: Path = _PACKAGE_ROOT / "results" / "benchmark_results.csv"
     # Max time (seconds) we wait for a single agent run before giving up

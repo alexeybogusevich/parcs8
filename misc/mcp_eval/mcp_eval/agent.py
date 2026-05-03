@@ -15,33 +15,21 @@ def get_model(model_name: str | None = None) -> BaseChatModel:
     """Return a chat model based on the configured provider."""
     name = model_name or config.llm.model_name
 
-    # Strip any Model Garden resource-ID prefix (e.g. "google/gemini-2.0-flash-001")
+    # Strip any Model Garden resource-ID prefix (e.g. "google/gemini-2.5-flash")
     clean_name = name.removeprefix("google/").removeprefix("publishers/google/models/")
 
     if config.llm.provider == "vertexai":
-        # The new google-genai SDK uses vertexai=True to route through
-        # the modern Vertex AI endpoint (not the old aiplatform path).
-        # We set GOOGLE_API_KEY to a sentinel so pydantic validation passes,
-        # but the pre-built client takes over for all actual calls.
-        from google import genai as _ggenai  # type: ignore
-        from langchain_google_genai import ChatGoogleGenerativeAI  # type: ignore
+        from langchain_google_vertexai import ChatVertexAI  # type: ignore
 
-        vertex_client = _ggenai.Client(
-            vertexai=True,
+        return ChatVertexAI(
+            model_name=clean_name,
             project=config.llm.project or None,
             location=config.llm.location,
-        )
-        # Sentinel bypasses the "API key required" validator; the client
-        # object overrides it for real calls.
-        os.environ.setdefault("GOOGLE_API_KEY", "_vertex_adc_")
-        return ChatGoogleGenerativeAI(
-            model=clean_name,
             temperature=config.llm.temperature,
-            client=vertex_client,
+            streaming=True,
         )
 
     if config.llm.provider == "google":
-        # Google AI Studio API key
         from langchain_google_genai import ChatGoogleGenerativeAI  # type: ignore
 
         return ChatGoogleGenerativeAI(
@@ -113,6 +101,6 @@ def create_sequential_agent(model_name: str | None = None):
         model=model,
         tools=[python_exec],
         backend=backend,
-        skills=[],   # no PARCS skill
+        skills=[],
         memory=["/memory/SEQUENTIAL.md"],
     )

@@ -2,34 +2,50 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 HF_REPO = "parcs-benchmark/parcs-agent-benchmark"
-# HuggingFace auto-assigned train/test splits from the task_08_* files,
-# so the benchmark split must be loaded directly from its raw file path.
 HF_BENCHMARK_FILE = (
     "hf://datasets/parcs-benchmark/parcs-agent-benchmark/data/benchmark.jsonl"
 )
 
+# ── Task metadata (title + domain — not stored in the HF dataset) ─────────────
+
+TASK_META: dict[int, tuple[str, str]] = {
+    1:  ("Monte Carlo Value-at-Risk",                   "Quantitative Finance"),
+    2:  ("Barrier Option Price Surface",                "Derivatives Pricing"),
+    3:  ("Travelling Salesman — Simulated Annealing",   "Combinatorial Optimisation"),
+    4:  ("Epidemic SIR Parameter Sweep",                "Epidemiology"),
+    5:  ("Gradient Boosting Hyperparameter Search",     "Machine Learning"),
+    6:  ("Bootstrap Survival Analysis (Cox PH)",        "Biostatistics"),
+    7:  ("Protein Sequence All-vs-All Similarity",      "Bioinformatics"),
+    8:  ("Random Forest from Scratch",                  "Machine Learning"),
+    9:  ("Safe Prime Generation (Miller-Rabin)",        "Cryptography"),
+    10: ("Financial Stress Testing — Scenario Repricing","Banking / Risk Management"),
+    11: ("Drug-Like Molecule Virtual Screening",        "Drug Discovery"),
+    12: ("Insurance Collective Risk — Ruin Probability","Actuarial Science"),
+    13: ("Large-Scale Graph Betweenness Centrality",    "Network Science"),
+    14: ("Monte Carlo Radiative Transfer",              "Atmospheric Science"),
+    15: ("Parallel Genome k-mer Frequency Spectrum",   "Bioinformatics / Genomics"),
+}
+
 
 @dataclass
 class BenchmarkTask:
-    task_id: int
+    task_id:  int
     question: str
-    answer: str  # JSON string with reference values
+    answer:   str          # JSON string with reference values
+    title:    str = field(default="")
+    domain:   str = field(default="")
+
+    def __post_init__(self) -> None:
+        if not self.title:
+            self.title, self.domain = TASK_META.get(self.task_id, ("", ""))
 
 
 def load_tasks(task_ids: list[int] | None = None) -> list[BenchmarkTask]:
-    """Download the benchmark split and return the requested tasks.
-
-    Args:
-        task_ids: If provided, return only tasks with these IDs (1-15).
-                  If None or empty, return all 15 tasks.
-    """
     from datasets import load_dataset  # type: ignore
 
-    # Load directly from the raw JSONL file; HuggingFace maps a single file
-    # to the "train" split by default regardless of the filename.
     ds = load_dataset("json", data_files=HF_BENCHMARK_FILE, split="train")
 
     tasks: list[BenchmarkTask] = []
@@ -37,17 +53,17 @@ def load_tasks(task_ids: list[int] | None = None) -> list[BenchmarkTask]:
         tid = int(row["task_id"])
         if task_ids and tid not in task_ids:
             continue
-        tasks.append(
-            BenchmarkTask(
-                task_id=tid,
-                question=str(row["question"]),
-                answer=str(row["answer"]),
-            )
-        )
+        tasks.append(BenchmarkTask(
+            task_id=tid,
+            question=str(row["question"]),
+            answer=str(row["answer"]),
+        ))
 
     tasks.sort(key=lambda t: t.task_id)
     return tasks
 
+
+# ── Prompt suffixes ────────────────────────────────────────────────────────────
 
 PARALLEL_PROMPT_SUFFIX = """
 ---
@@ -78,8 +94,8 @@ SEQUENTIAL_PROMPT_SUFFIX = """
 
 1. Implement the algorithm in Python using numpy / scipy / standard library.
 2. Run it with `python_exec`. The tool returns `elapsed_seconds` in its output.
-3. If the computation is slow, add `import time; t=time.time()` and print the
-   elapsed time explicitly at the end of your script.
+3. If the computation is slow, print `elapsed_seconds: X` explicitly at the
+   end of your script.
 
 When finished, output a fenced JSON block — nothing after it:
 

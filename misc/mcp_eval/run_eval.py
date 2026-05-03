@@ -44,6 +44,7 @@ def parse_args():
                    help="Modes to run: sequential, parallel, or both (default: both)")
     p.add_argument("--results", default="", help="Path to results CSV (overrides config)")
     p.add_argument("--no-skip", action="store_true", help="Re-run already completed tasks")
+    p.add_argument("--reset",   action="store_true", help="Delete the results file and start fresh")
     p.add_argument("--dry-run", action="store_true", help="Print plan without executing")
     return p.parse_args()
 
@@ -63,6 +64,11 @@ async def main() -> None:
     console.print(f"  {len(tasks)} task(s) loaded\n")
 
     results_path = Path(args.results) if args.results else config.eval.results_file
+
+    if args.reset and results_path.exists():
+        results_path.unlink()
+        console.print(f"[yellow]Results file deleted: {results_path}[/]")
+
     already_done = load_completed(results_path)
     skip = not args.no_skip
 
