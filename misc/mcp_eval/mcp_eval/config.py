@@ -9,14 +9,19 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 _PACKAGE_ROOT = Path(__file__).resolve().parent.parent
 _ENV_FILE = _PACKAGE_ROOT / ".env"
 
-load_dotenv(_ENV_FILE)  # makes unmodeled vars (e.g. HF_TOKEN) visible to libs that read os.environ
+load_dotenv(_ENV_FILE)
 
 
 class LLMSettings(BaseModel):
+    provider: str = "openai"  # "openai" | "vertexai"
     model_name: str = "qwen/qwen3.6-27b"
-    temperature: float = 0.6
+    temperature: float = 0.0
+    # OpenAI-compatible (local / OpenRouter)
     base_url: str = "http://localhost:1234/v1"
     api_key: str = "lmstudio"
+    # Vertex AI
+    project: str = ""
+    location: str = "us-central1"
 
 
 class MCPSettings(BaseModel):
@@ -35,13 +40,36 @@ class LangSmithSettings(BaseModel):
     api_key: str | None = None
 
     def apply_to_environ(self) -> None:
-        """Export settings as LANGCHAIN_* env vars consumed by the LangSmith SDK."""
-        os.environ["LANGCHAIN_TRACING_V2"] = "true" if self.tracing_v2 else "false"
+        if not self.tracing_v2:
+            # Hard-disable: unset every env var the LangSmith SDK checks
+            for key in (
+                "LANGCHAIN_TRACING_V2",
+                "LANGCHAIN_API_KEY",
+                "LANGCHAIN_ENDPOINT",
+                "LANGCHAIN_PROJECT",
+                "LANGSMITH_TRACING",
+                "LANGSMITH_API_KEY",
+            ):
+                os.environ.pop(key, None)
+            os.environ["LANGCHAIN_TRACING_V2"] = "false"
+            return
+        os.environ["LANGCHAIN_TRACING_V2"] = "true"
         os.environ["LANGCHAIN_ENDPOINT"] = self.endpoint
         if self.project:
             os.environ["LANGCHAIN_PROJECT"] = self.project
         if self.api_key:
             os.environ["LANGCHAIN_API_KEY"] = self.api_key
+
+
+class EvalSettings(BaseModel):
+    # Comma-separated Vertex AI model names to evaluate
+    models: str = "gemini-2.0-flash-001,gemini-2.5-pro-001"
+    # Where to write/append results
+    results_file: Path = _PACKAGE_ROOT / "results" / "benchmark_results.csv"
+    # Max time (seconds) we wait for a single agent run before giving up
+    timeout_seconds: int = 900
+    # Which task IDs to run (empty = all 15)
+    task_ids: str = ""
 
 
 class Config(BaseSettings):
@@ -56,6 +84,7 @@ class Config(BaseSettings):
     mcp: MCPSettings
     paths: PathSettings = Field(default_factory=PathSettings)
     langsmith: LangSmithSettings = Field(default_factory=LangSmithSettings)
+    eval: EvalSettings = Field(default_factory=EvalSettings)
 
 
 config = Config()
