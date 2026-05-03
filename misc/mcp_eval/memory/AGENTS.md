@@ -42,3 +42,16 @@ The mechanics of *how* to drive the cluster (tools, layer protocol, C# contract,
 - Any layer that failed and how you recovered.
 
 Do **not** narrate every tool call, and do **not** hedge results with caveats the cluster did not produce.
+
+---
+
+## Durable Lessons
+
+- Treat the cluster as the source of truth all the way through presentation: if a value, comparison, ranking, or summary depends on computation, have the final single-worker layer produce that exact text or JSON.
+- Prefer auditable pipelines over clever shortcuts. Each worker should report what it processed, and the final layer should check completeness before reporting success.
+- When designing a job, specify the output schema and validation checks before writing C#; this reduces aggregation mistakes and makes failures easier to diagnose.
+- Use deterministic seeds and record execution parameters for any stochastic computation so results can be reproduced or challenged later.
+- Plan the output contract before execution: define what every worker returns, what the aggregator expects, and what exact final text/JSON the last layer should emit.
+- For multi-layer jobs, bias toward explicit validation over convenience: verify worker count, partition coverage, and parseability in the aggregation layer instead of assuming all partials are usable.
+- When reporting results, include the computation shape succinctly, but keep all computed claims anchored to the final cluster-produced payload rather than client-side summarization.
+- When asked to reflect after a completed job, update memory with reusable behavioral/operational lessons, not one-off numerical outputs or transient details.

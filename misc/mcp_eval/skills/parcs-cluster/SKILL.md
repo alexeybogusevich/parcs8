@@ -224,3 +224,17 @@ of layer 1's output.
 - Avoid `dynamic` keyword if possible; if you need it, it's supported (Microsoft.CSharp is referenced).
 - For CPU-bound work, each daemon gets 500m CPU — prefer work units of at least a few seconds per worker to amortise scheduling overhead.
 - The cluster autoscales via KEDA; spinning up new nodes takes ~60–90 seconds on first use. Subsequent layers reuse warm pods.
+
+---
+
+## Lessons from prior PARCS jobs
+
+- Use a final `parallelism=1` layer not only for numerical aggregation, but also for final answer formatting. This prevents accidental client-side arithmetic or prose-level reinterpretation of worker outputs.
+- Make worker output schemas explicit before coding. Use small JSON objects with named fields such as `workerIndex`, `start`, `end`, `count`, `sum`, `min`, `max`, and `errors`; this makes the aggregation layer simpler and easier to validate.
+- Include lightweight validation data in each partial result when practical, such as processed range bounds or item counts, so the aggregator can detect gaps, overlaps, or failed workers instead of silently combining bad data.
+- Keep C# code self-contained and conservative: prefer strongly typed DTOs, `JsonDocument`/`JsonSerializer`, and deterministic partitioning over reflection-heavy or environment-dependent approaches.
+- For searches, optimization, Monte Carlo, or statistical jobs, return enough metadata for reproducibility: seed strategy, number of trials/items processed per worker, and selected parameters.
+- Before coding, decide the exact JSON contract for both worker outputs and the final aggregation output. Designing the result shape first makes multi-layer jobs easier to test, validate, and present without ad hoc parsing.
+- Prefer aggregators that verify completeness explicitly: count worker results, confirm all required partitions were processed, and fail loudly if any worker output is missing or malformed.
+- When a user asks for a computed comparison, ranking, or summary, make the final layer emit that exact comparison text or structured JSON instead of returning raw partials for the client to interpret.
+- If user asks for reflection or memory updates after a job, capture operational lessons in this skill and behavioral lessons in `/memory/AGENTS.md`; do not store transient job results unless they reveal a reusable pattern.

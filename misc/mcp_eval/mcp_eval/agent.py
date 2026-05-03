@@ -9,7 +9,7 @@ from .config import config
 from deepagents import create_deep_agent
 from langchain_openai import ChatOpenAI
 from deepagents.backends import CompositeBackend, StateBackend, FilesystemBackend
-
+from langchain.agents.middleware import ToolRetryMiddleware
 
 def get_model(model_name: str | None = None) -> BaseChatModel:
     name = model_name or config.llm.model_name
@@ -77,4 +77,11 @@ async def create_parcs_agent():
         backend=backend,
         skills=["/skills/"],
         memory=["/memory/AGENTS.md"],
+        middleware=[
+            ToolRetryMiddleware(
+                max_retries=3,
+                backoff_factor=2.0,
+                initial_delay=1.0,
+            ),
+        ],
     )
