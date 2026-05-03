@@ -159,62 +159,77 @@ public sealed class ParcsApiClient
                 callbackUrl = _callbackUrl,
             }, cancellationToken: ct);
 
-        // Step 2 — stream status events until terminal
+        // Step 2 — stream status events until terminal, reconnecting if the proxy
+        // drops the connection (GKE load balancer has a ~300 s idle timeout).
+        // The /stream endpoint always re-sends the current status on connect, so
+        // reconnecting mid-job is safe — we pick up where we left off.
         _logger.LogInformation("Streaming job status: jobId={JobId}", jobId);
 
         var streamUrl = _baseUrl.TrimEnd('/') + $"/api/Jobs/{jobId}/stream";
-
-        // Use a plain HttpClient — Flurl doesn't support streaming SSE responses.
-        // InfiniteTimeSpan because the stream itself drives liveness via heartbeats.
         using var http = _httpClientFactory.CreateClient();
         http.Timeout = Timeout.InfiniteTimeSpan;
 
-        using var response = await http.GetAsync(
-            streamUrl, HttpCompletionOption.ResponseHeadersRead, ct);
-
-        response.EnsureSuccessStatusCode();
-
-        await using var stream = await response.Content.ReadAsStreamAsync(ct);
-        using var reader       = new StreamReader(stream);
-
-        while (!ct.IsCancellationRequested)
+        const int maxReconnects = 60; // allow up to 60 reconnects (e.g. 60 × 5 min = 5 h max)
+        for (var attempt = 0; attempt <= maxReconnects; attempt++)
         {
-            var line = await reader.ReadLineAsync(ct);
-            if (line is null) break; // stream closed by server
-
-            // Skip SSE comment lines (heartbeats) and blank separator lines
-            if (line.StartsWith(':') || string.IsNullOrWhiteSpace(line))
-                continue;
-
-            if (!line.StartsWith("data:"))
-                continue;
-
-            var json = line["data:".Length..].Trim();
-            using var doc = JsonDocument.Parse(json);
-            var root = doc.RootElement;
-
-            if (root.TryGetProperty("error", out var errProp))
-                throw new InvalidOperationException($"Job stream error: {errProp.GetString()}");
-
-            if (!root.TryGetProperty("status", out var statusProp))
-                continue;
-
-            var status = statusProp.GetString();
-            _logger.LogInformation("Job {JobId} status: {Status}", jobId, status);
-
-            if (status is "Completed")
-                return;
-
-            if (status is "Failed" or "Cancelled")
+            if (attempt > 0)
             {
-                var failures = root.TryGetProperty("failures", out var fp)
-                    ? string.Join("; ", fp.EnumerateArray().Select(f => f.GetString()))
-                    : "unknown error";
-                throw new InvalidOperationException($"Job {jobId} {status}: {failures}");
+                _logger.LogWarning(
+                    "Job {JobId}: SSE stream dropped — reconnecting (attempt {A}/{Max})",
+                    jobId, attempt, maxReconnects);
+                await Task.Delay(TimeSpan.FromSeconds(3), ct);
             }
+
+            using var response = await http.GetAsync(
+                streamUrl, HttpCompletionOption.ResponseHeadersRead, ct);
+            response.EnsureSuccessStatusCode();
+
+            await using var stream = await response.Content.ReadAsStreamAsync(ct);
+            using var reader       = new StreamReader(stream);
+            var streamEnded        = false;
+
+            while (!ct.IsCancellationRequested)
+            {
+                var line = await reader.ReadLineAsync(ct);
+                if (line is null) { streamEnded = true; break; }
+
+                if (line.StartsWith(':') || string.IsNullOrWhiteSpace(line))
+                    continue;
+
+                if (!line.StartsWith("data:"))
+                    continue;
+
+                var json = line["data:".Length..].Trim();
+                using var doc = JsonDocument.Parse(json);
+                var root = doc.RootElement;
+
+                if (root.TryGetProperty("error", out var errProp))
+                    throw new InvalidOperationException($"Job stream error: {errProp.GetString()}");
+
+                if (!root.TryGetProperty("status", out var statusProp))
+                    continue;
+
+                var status = statusProp.GetString();
+                _logger.LogInformation("Job {JobId} status: {Status}", jobId, status);
+
+                if (status is "Completed")
+                    return;
+
+                if (status is "Failed" or "Cancelled")
+                {
+                    var failures = root.TryGetProperty("failures", out var fp)
+                        ? string.Join("; ", fp.EnumerateArray().Select(f => f.GetString()))
+                        : "unknown error";
+                    throw new InvalidOperationException($"Job {jobId} {status}: {failures}");
+                }
+            }
+
+            if (!streamEnded)
+                break; // CancellationToken fired — exit the retry loop
         }
 
-        throw new InvalidOperationException($"Job {jobId} SSE stream ended without a terminal status.");
+        throw new InvalidOperationException(
+            $"Job {jobId} SSE stream ended without a terminal status after {maxReconnects} reconnects.");
     }
 
     /// <summary>
