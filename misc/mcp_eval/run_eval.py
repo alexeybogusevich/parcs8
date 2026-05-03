@@ -1,5 +1,7 @@
 # Silence LangSmith before anything else imports langchain/langsmith
-import os, warnings
+import os
+import warnings
+
 os.environ["LANGCHAIN_TRACING_V2"] = "false"
 os.environ.pop("LANGCHAIN_API_KEY", None)
 os.environ.pop("LANGSMITH_API_KEY", None)
@@ -38,14 +40,29 @@ from mcp_eval.tasks import load_tasks
 
 def parse_args():
     p = ArgumentParser(description="PARCS-Agent benchmark evaluation")
-    p.add_argument("--tasks",   default="", help="Comma-separated task IDs (default: all 15)")
-    p.add_argument("--models",  default="", help="Comma-separated model names (overrides config)")
-    p.add_argument("--modes",   default="sequential,parallel",
-                   help="Modes to run: sequential, parallel, or both (default: both)")
-    p.add_argument("--results", default="", help="Path to results CSV (overrides config)")
-    p.add_argument("--no-skip", action="store_true", help="Re-run already completed tasks")
-    p.add_argument("--reset",   action="store_true", help="Delete the results file and start fresh")
-    p.add_argument("--dry-run", action="store_true", help="Print plan without executing")
+    p.add_argument(
+        "--tasks", default="", help="Comma-separated task IDs (default: all 15)"
+    )
+    p.add_argument(
+        "--models", default="", help="Comma-separated model names (overrides config)"
+    )
+    p.add_argument(
+        "--modes",
+        default="sequential,parallel",
+        help="Modes to run: sequential, parallel, or both (default: both)",
+    )
+    p.add_argument(
+        "--results", default="", help="Path to results CSV (overrides config)"
+    )
+    p.add_argument(
+        "--no-skip", action="store_true", help="Re-run already completed tasks"
+    )
+    p.add_argument(
+        "--reset", action="store_true", help="Delete the results file and start fresh"
+    )
+    p.add_argument(
+        "--dry-run", action="store_true", help="Print plan without executing"
+    )
     return p.parse_args()
 
 
@@ -53,11 +70,15 @@ async def main() -> None:
     args = parse_args()
     console = Console()
 
-    models = [m.strip() for m in (args.models or config.eval.models).split(",") if m.strip()]
-    modes  = [m.strip() for m in args.modes.split(",") if m.strip()]
+    models = [
+        m.strip() for m in (args.models or config.eval.models).split(",") if m.strip()
+    ]
+    modes = [m.strip() for m in args.modes.split(",") if m.strip()]
 
     raw_ids = args.tasks or config.eval.task_ids
-    task_ids = [int(x.strip()) for x in raw_ids.split(",") if x.strip()] if raw_ids else None
+    task_ids = (
+        [int(x.strip()) for x in raw_ids.split(",") if x.strip()] if raw_ids else None
+    )
 
     console.print("[bold]Loading benchmark tasks from HuggingFace…[/]")
     tasks = load_tasks(task_ids)

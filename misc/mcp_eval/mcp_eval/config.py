@@ -87,5 +87,5 @@ class Config(BaseSettings):
     eval: EvalSettings = Field(default_factory=EvalSettings)
 
 
-config = Config()
+config = Config() # type: ignore
 config.langsmith.apply_to_environ()

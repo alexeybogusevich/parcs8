@@ -27,7 +27,7 @@ async def get_parcs_mcp_tools() -> list[BaseTool]:
         raise ValueError("Cluster URL must be provided in the configuration")
 
     client = MultiServerMCPClient(
-        {"parcs": {"transport": "sse", "url": config.mcp.cluster_url + "/sse"}}
+        {"parcs": {"transport": "sse", "url": config.mcp.cluster_url + "/sse", "sse_read_timeout": 1000 }}
     )
 
     return await client.get_tools()
