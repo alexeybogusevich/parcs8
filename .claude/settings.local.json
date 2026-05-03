@@ -49,7 +49,21 @@
       "Bash(printenv TEMP *)",
       "Bash(kubectl delete pods *)",
       "Bash(kubectl delete *)",
-      "Bash(Start-Process \"C:\\\\Program Files\\\\Docker\\\\Docker\\\\Docker Desktop.exe\")"
+      "Bash(Start-Process \"C:\\\\Program Files\\\\Docker\\\\Docker\\\\Docker Desktop.exe\")",
+      "Bash(uv add *)",
+      "Bash(uv run *)",
+      "Bash(gcloud services enable *)",
+      "Bash(gcloud services list *)",
+      "Bash(gcloud organizations *)",
+      "Bash(gcloud resource-manager *)",
+      "Bash(gcloud projects describe parcs-gcp *)",
+      "Bash(gcloud billing projects describe *)",
+      "Bash(gcloud billing accounts describe *)",
+      "Bash(gcloud projects *)",
+      "Bash(tasklist)",
+      "Bash(taskkill /PID 32236 /F)",
+      "Bash(taskkill /PID 31840 /F)",
+      "PowerShell(Get-Process python -ErrorAction SilentlyContinue | Select-Object Id, CPU, WorkingSet, @{n='Mem_MB';e={[math]::Round\\($_.WorkingSet/1MB,1\\)}})"
     ]
   }
 }
