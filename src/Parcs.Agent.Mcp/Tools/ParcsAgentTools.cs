@@ -17,21 +17,12 @@ namespace Parcs.Agent.Mcp.Tools;
 ///
 ///   1. create_session  — compile a C# IAgentComputation class once.
 ///   2. run_layer       — execute that code on N workers; block until done.
-///                        Each worker receives its WorkerIndex, the shared
-///                        previousLayerResultJson from the prior layer, and
-///                        optional customData / parameters.
-///   3. Repeat run_layer for each subsequent statement, threading the
-///                        resultJson of each completed layer into the next
-///                        call as previousLayerResultJson.
+///   3. Repeat run_layer for each subsequent layer, passing previousLayerId
+///      from the last completed layer so workers can access prior results.
 ///
 /// ── Error recovery ──────────────────────────────────────────────────────────
-/// If a layer fails (compile error or runtime exception), the agent calls
-/// create_session again with corrected code and re-runs from the last
-/// successful layer's resultJson — no earlier work is lost.
-///
-/// ── Async variant ───────────────────────────────────────────────────────────
-/// submit_layer + get_layer_results give non-blocking control for long layers;
-/// run_layer is the simple blocking call preferred for most scenarios.
+/// If a layer fails, call create_session again with corrected code and re-run
+/// from the last successful layerId — no earlier work is lost.
 /// </summary>
 [McpServerToolType]
 public sealed class ParcsAgentTools
@@ -41,8 +32,14 @@ public sealed class ParcsAgentTools
     private readonly IHttpClientFactory       _httpClientFactory;
     private readonly ILogger<ParcsAgentTools> _logger;
 
-    // Maps datasetUrl → local path on shared NFS storage so repeated calls skip the download.
+    // Maps datasetUrl → local NFS path; avoids repeated downloads.
     private static readonly ConcurrentDictionary<string, string> _datasetCache = new();
+
+    private static readonly JsonSerializerOptions _jsonOptions = new()
+    {
+        WriteIndented = false,
+        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+    };
 
     public ParcsAgentTools(
         SessionManager            sessions,
@@ -74,7 +71,7 @@ public sealed class ParcsAgentTools
             workerNodeCount            = info.WorkerNodeCount,
             maxParallelism             = info.MaxParallelism,
             daemonCpuRequestMillicores = info.DaemonCpuRequestMillicores,
-        });
+        }, _jsonOptions);
     }
 
     // ─────────────────────────────────────────────────────────────────
@@ -91,14 +88,17 @@ public sealed class ParcsAgentTools
         "AgentLayerInput fields available to each worker:\n" +
         "  • WorkerIndex         – 0-based index of this worker\n" +
         "  • TotalWorkers        – total number of workers in this layer\n" +
-        "  • PreviousLayerResultJson – JSON output of the previous run_layer call (or null for first)\n" +
-        "  • CustomData          – shared string payload passed to all workers\n" +
-        "  • Parameters          – Dictionary<string,string> of named parameters\n\n" +
+        "  • PreviousLayerResultJson – full JSON output of the previous layer (populated " +
+        "    automatically when you pass previousLayerId to run_layer)\n" +
+        "  • CustomData          – shared payload broadcast to all workers\n" +
+        "  • Parameters          – Dictionary<string,string> of named parameters\n" +
+        "  • DatasetPath         – path to the dataset file on shared NFS storage " +
+        "(populated when datasetUrl is passed to run_layer)\n\n" +
         "Return AgentLayerResult.Ok(outputJson) or AgentLayerResult.Error(message).\n\n" +
-        "Returns { sessionId } on success or { error } on compile failure. " +
-        "On compile failure, fix the code and call create_session again — no state is lost.")]
+        "Returns { sessionId } on success or { error } with diagnostics on compile failure. " +
+        "On failure, fix the code and call create_session again — no state is lost.")]
     public string CreateSession(
-        [Description("Complete C# class implementing IAgentComputation, or just the ExecuteAsync body (auto-wrapped).")]
+        [Description("Complete C# class implementing IAgentComputation, or just the ExecuteAsync method body (usings and class wrapper are added automatically).")]
         string sourceCode)
     {
         try
@@ -111,177 +111,101 @@ public sealed class ParcsAgentTools
                 sessionId = session.SessionId,
                 createdAt = session.CreatedAt,
                 message   = "Compiled successfully. Use sessionId with run_layer.",
-            });
+            }, _jsonOptions);
         }
         catch (InvalidOperationException ex) when (ex.Message.StartsWith("Compilation failed"))
         {
-            return JsonSerializer.Serialize(new { error = ex.Message });
+            return JsonSerializer.Serialize(new { error = ex.Message }, _jsonOptions);
         }
     }
 
     // ─────────────────────────────────────────────────────────────────
-    // Tool: run_layer  (synchronous — preferred for incremental execution)
+    // Tool: run_layer  (synchronous — the primary execution tool)
     // ─────────────────────────────────────────────────────────────────
 
     [McpServerTool(Name = "run_layer")]
     [Description(
-        "Executes one statement of the computation: fans out to 'parallelism' daemon workers, " +
-        "waits for all to finish, and returns the aggregated results. " +
-        "This is the primary tool for incremental agentic execution — call it once per statement.\n\n" +
-        "Each worker receives:\n" +
-        "  • Its WorkerIndex and TotalWorkers\n" +
-        "  • previousLayerResultJson — pass the resultJson from the previous layer here so workers " +
-        "    can build on earlier results (this is how multi-layer pipelines maintain state)\n" +
-        "  • customData and parameters for any additional inputs\n\n" +
-        "Returns on completion:\n" +
-        "  { layerId, status:'Completed'|'Failed', resultJson, errorMessage? }\n\n" +
-        "resultJson is a LayerOutputDto with fields:\n" +
-        "  • sessionId, layerId, totalElapsedSeconds\n" +
-        "  • results: [ { workerIndex, success, outputData, errorMessage, elapsedSeconds } ]\n\n" +
-        "If status is Failed, fix the code with create_session and call run_layer again, " +
-        "passing the last successful layer's resultJson as previousLayerResultJson.")]
+        "Executes the compiled session code across 'parallelism' daemon workers in parallel, " +
+        "waits for all workers to finish, and returns aggregated results.\n\n" +
+        "To chain layers, pass the layerId returned by the previous run_layer call as " +
+        "previousLayerId — the server fetches the stored result automatically and makes it " +
+        "available to every worker via input.PreviousLayerResultJson. You never need to " +
+        "read or repeat the full result JSON.\n\n" +
+        "Returns on success:\n" +
+        "  { layerId, status:'Completed', totalElapsedSeconds, successCount, failureCount,\n" +
+        "    results: [ { workerIndex, success, outputData, errorMessage, elapsedSeconds } ] }\n\n" +
+        "On status:'Failed', check errorMessage. If workers ran out of memory, reduce " +
+        "parallelism or simplify per-worker work size and call run_layer again. " +
+        "If the C# code threw, fix it with create_session and retry from the last good layerId.")]
     public async Task<string> RunLayerAsync(
         [Description("Session ID from create_session.")]
         string sessionId,
-        [Description("Number of parallel workers. Should not exceed maxParallelism from get_cluster_info.")]
+
+        [Description("Number of parallel workers. Must not exceed maxParallelism from get_cluster_info.")]
         int parallelism,
-        [Description("Pass the resultJson from the previous run_layer call to give workers access to prior results. Null for the first layer.")]
-        string? previousLayerResultJson = null,
-        [Description("Optional shared string payload sent to every worker unchanged.")]
+
+        [Description("layerId from the previous run_layer call. The server retrieves the stored " +
+                     "result and passes it to every worker as input.PreviousLayerResultJson. " +
+                     "Omit for the first layer.")]
+        string? previousLayerId = null,
+
+        [Description("Optional shared string payload sent unchanged to every worker via input.CustomData. " +
+                     "Use this to broadcast a small configuration value (e.g. a threshold, a mode flag, " +
+                     "or a compact serialised object) that all workers need identically. " +
+                     "For worker-specific inputs, use parameters instead. Maximum a few KB.")]
         string? customData = null,
-        [Description("Optional JSON object of key/value parameters, e.g. '{\"start\":\"0\",\"end\":\"1000\"}'. Workers access these via input.Parameters.")]
-        string? parametersJson = null,
+
+        [Description("Optional named parameters available to every worker via input.Parameters " +
+                     "(a Dictionary<string,string>). Pass as a JSON object: {\"key\": \"value\"}. " +
+                     "Workers read values with input.Parameters[\"key\"].")]
+        Dictionary<string, string>? parameters = null,
+
         [Description(
-            "Optional URL of a dataset file to download and distribute to every worker as 'dataset.bin'. " +
-            "Downloaded once by the MCP server and attached as a PARCS input file — workers read it with " +
-            "File.ReadAllBytes(\"dataset.bin\") or File.ReadAllText(\"dataset.bin\"). " +
-            "Supports any URL (HuggingFace, GCS, Azure Blob, etc.). " +
-            "The file is cached in memory for the lifetime of the MCP server process, so repeated calls " +
-            "with the same URL do not re-download. Pass null if workers generate their own data from a seed.")]
+            "Optional URL of a dataset file. Downloaded once by the MCP server to shared cluster " +
+            "storage; all workers read it from the same NFS path via input.DatasetPath. " +
+            "Supports HuggingFace raw URLs, GCS, Azure Blob, or any public HTTPS URL. " +
+            "The file is cached by URL so repeated calls with the same URL skip the download. " +
+            "Workers read it with File.ReadAllBytes(input.DatasetPath!) or File.ReadAllText(...). " +
+            "Pass null when workers generate their own data from a seed.")]
         string? datasetUrl = null,
+
         CancellationToken ct = default)
     {
         if (_sessions.GetSession(sessionId) is null)
-            return JsonSerializer.Serialize(new { error = $"Session '{sessionId}' not found." });
+            return Err($"Session '{sessionId}' not found.");
 
         if (parallelism < 1 || parallelism > 1000)
-            return JsonSerializer.Serialize(new { error = "parallelism must be between 1 and 1000." });
+            return Err("parallelism must be between 1 and 1000.");
 
-        var parameters = ParseParameters(parametersJson, out var parseError);
-        if (parseError is not null)
-            return JsonSerializer.Serialize(new { error = parseError });
+        // Resolve previousLayerResultJson from stored layer — avoids sending huge JSON over the wire.
+        string? previousLayerResultJson = null;
+        if (!string.IsNullOrWhiteSpace(previousLayerId))
+        {
+            var prevLayer = _sessions.GetLayer(previousLayerId);
+            if (prevLayer is null)
+                return Err($"previousLayerId '{previousLayerId}' not found. Use the layerId returned by the previous run_layer call.");
+            if (prevLayer.Status != LayerStatus.Completed)
+                return Err($"previousLayerId '{previousLayerId}' has status '{prevLayer.Status}' — only Completed layers can be referenced.");
+            previousLayerResultJson = prevLayer.ResultJson;
+        }
 
         string? datasetPath = null;
         if (!string.IsNullOrWhiteSpace(datasetUrl) && datasetUrl != "null")
         {
             datasetPath = await FetchDatasetAsync(datasetUrl, ct);
             if (datasetPath is null)
-                return JsonSerializer.Serialize(new { error = $"Failed to download dataset from '{datasetUrl}'." });
+                return Err($"Failed to download dataset from '{datasetUrl}'.");
         }
 
         _logger.LogInformation(
-            "run_layer — session={Session} parallelism={P} dataset={Url}",
-            sessionId, parallelism, datasetUrl ?? "none");
+            "run_layer — session={Session} parallelism={P} prevLayer={Prev} dataset={Url}",
+            sessionId, parallelism, previousLayerId ?? "none", datasetUrl ?? "none");
 
         var layer = await _sessions.RunLayerSyncAsync(
-            sessionId, parallelism, previousLayerResultJson, customData, parameters!, datasetPath, ct);
+            sessionId, parallelism, previousLayerResultJson,
+            customData, parameters ?? new(), datasetPath, ct);
 
-        return JsonSerializer.Serialize(new
-        {
-            layerId      = layer.LayerId,
-            sessionId    = layer.SessionId,
-            status       = layer.Status.ToString(),
-            submittedAt  = layer.SubmittedAt,
-            completedAt  = layer.CompletedAt,
-            resultJson   = layer.Status == LayerStatus.Completed ? layer.ResultJson : null,
-            errorMessage = layer.Status == LayerStatus.Failed    ? layer.ErrorMessage : null,
-        });
-    }
-
-    // ─────────────────────────────────────────────────────────────────
-    // Tool: submit_layer  (async — fire and poll)
-    // ─────────────────────────────────────────────────────────────────
-
-    [McpServerTool(Name = "submit_layer")]
-    [Description(
-        "Submits a parallel layer and returns immediately with a layerId. " +
-        "Use this when you want to dispatch a long-running layer without blocking, " +
-        "then poll with get_layer_results. For most cases prefer run_layer which blocks until done.")]
-    public async Task<string> SubmitLayerAsync(
-        [Description("Session ID from create_session.")] string sessionId,
-        [Description("Number of parallel workers (1..maxParallelism).")] int parallelism,
-        [Description("JSON output from a previous run_layer / get_layer_results (resultJson field).")] string? previousLayerResultJson = null,
-        [Description("Shared string payload sent to every worker.")] string? customData = null,
-        [Description("JSON object of key/value parameters, e.g. '{\"key\":\"value\"}'.")] string? parametersJson = null,
-        [Description("Optional URL of a dataset file to download and distribute to every worker as 'dataset.bin'. See run_layer for full description.")]
-        string? datasetUrl = null,
-        CancellationToken ct = default)
-    {
-        var session = _sessions.GetSession(sessionId);
-        if (session is null)
-            return JsonSerializer.Serialize(new { error = $"Session '{sessionId}' not found." });
-
-        if (parallelism < 1 || parallelism > 1000)
-            return JsonSerializer.Serialize(new { error = "parallelism must be between 1 and 1000." });
-
-        var parameters = ParseParameters(parametersJson, out var parseError);
-        if (parseError is not null)
-            return JsonSerializer.Serialize(new { error = parseError });
-
-        string? datasetPath = null;
-        if (!string.IsNullOrWhiteSpace(datasetUrl) && datasetUrl != "null")
-        {
-            datasetPath = await FetchDatasetAsync(datasetUrl, ct);
-            if (datasetPath is null)
-                return JsonSerializer.Serialize(new { error = $"Failed to download dataset from '{datasetUrl}'." });
-        }
-
-        var layer = _sessions.CreateLayer(sessionId);
-        _sessions.SubmitLayerBackground(layer, session, parallelism,
-            previousLayerResultJson, customData, parameters!, datasetPath, ct);
-
-        _logger.LogInformation(
-            "submit_layer — session={Session} parallelism={P} layer={LayerId} dataset={Url}",
-            sessionId, parallelism, layer.LayerId, datasetUrl ?? "none");
-
-        return JsonSerializer.Serialize(new
-        {
-            layerId     = layer.LayerId,
-            sessionId,
-            parallelism,
-            submittedAt = layer.SubmittedAt,
-            message     = "Layer queued. Poll get_layer_results with layerId.",
-        });
-    }
-
-    // ─────────────────────────────────────────────────────────────────
-    // Tool: get_layer_results
-    // ─────────────────────────────────────────────────────────────────
-
-    [McpServerTool(Name = "get_layer_results")]
-    [Description(
-        "Returns status and results for a layer submitted via submit_layer. " +
-        "Status: Pending | Running | Completed | Failed. " +
-        "When Completed, resultJson contains LayerOutputDto (see run_layer description). " +
-        "When Failed, errorMessage explains what went wrong. " +
-        "Poll every 2–5 seconds until status is terminal.")]
-    public string GetLayerResults(
-        [Description("Layer ID returned by submit_layer.")] string layerId)
-    {
-        var layer = _sessions.GetLayer(layerId);
-        if (layer is null)
-            return JsonSerializer.Serialize(new { error = $"Layer '{layerId}' not found." });
-
-        return JsonSerializer.Serialize(new
-        {
-            layerId      = layer.LayerId,
-            sessionId    = layer.SessionId,
-            status       = layer.Status.ToString(),
-            submittedAt  = layer.SubmittedAt,
-            completedAt  = layer.CompletedAt,
-            resultJson   = layer.Status == LayerStatus.Completed ? layer.ResultJson : null,
-            errorMessage = layer.Status == LayerStatus.Failed    ? layer.ErrorMessage : null,
-        });
+        return BuildLayerResponse(layer);
     }
 
     // ─────────────────────────────────────────────────────────────────
@@ -295,35 +219,101 @@ public sealed class ParcsAgentTools
     public string ListSessions()
     {
         var sessions = _sessions.ListSessions();
-
         return JsonSerializer.Serialize(new
         {
             count    = sessions.Count,
             sessions = sessions.Select(s => new
             {
-                sessionId   = s.SessionId,
-                createdAt   = s.CreatedAt,
-                moduleId    = s.ParcsModuleId,
+                sessionId = s.SessionId,
+                createdAt = s.CreatedAt,
             }),
-        });
+        }, _jsonOptions);
     }
 
     // ─────────────────────────────────────────────────────────────────
     // Private helpers
     // ─────────────────────────────────────────────────────────────────
 
-    // Datasets directory on the shared NFS volume — same mount as daemons use.
     private const string DatasetsRoot = "/var/lib/storage/Datasets";
 
+    private string Err(string message) =>
+        JsonSerializer.Serialize(new { error = message }, _jsonOptions);
+
     /// <summary>
-    /// Downloads <paramref name="url"/> to the shared NFS volume and returns the path.
-    /// The path is stable per URL (content-addressed by URL hash), so subsequent calls
-    /// with the same URL are instant filesystem hits — no re-download, no re-transfer.
-    /// Returns null on download failure.
+    /// Serialises a completed or failed layer into the tool response.
+    /// resultJson is parsed back to a JsonElement so it embeds as a real nested object
+    /// rather than an escaped string — avoids Unicode-escaped quotes and saves LLM tokens.
     /// </summary>
+    private string BuildLayerResponse(LayerRecord layer)
+    {
+        if (layer.Status == LayerStatus.Failed)
+        {
+            var errMsg = layer.ErrorMessage ?? "unknown error";
+            var hint   = errMsg.Contains("OutOfMemory", StringComparison.OrdinalIgnoreCase) ||
+                         errMsg.Contains("out of memory", StringComparison.OrdinalIgnoreCase)
+                ? " Try reducing parallelism or the per-worker data volume."
+                : string.Empty;
+
+            return JsonSerializer.Serialize(new
+            {
+                layerId      = layer.LayerId,
+                sessionId    = layer.SessionId,
+                status       = "Failed",
+                errorMessage = errMsg + hint,
+            }, _jsonOptions);
+        }
+
+        // Parse stored resultJson back to a JsonElement so it serialises
+        // as a real nested object (no " Unicode escaping of inner quotes).
+        JsonElement? result = null;
+        int successCount = 0, failureCount = 0;
+        double totalElapsed = 0;
+
+        if (layer.ResultJson is not null)
+        {
+            try
+            {
+                var doc = JsonDocument.Parse(layer.ResultJson);
+                result = doc.RootElement.Clone();
+
+                // Extract summary stats directly from the parsed result.
+                if (doc.RootElement.TryGetProperty("TotalElapsedSeconds", out var te) ||
+                    doc.RootElement.TryGetProperty("totalElapsedSeconds", out te))
+                    totalElapsed = te.GetDouble();
+
+                if (doc.RootElement.TryGetProperty("Results", out var results) ||
+                    doc.RootElement.TryGetProperty("results", out results))
+                {
+                    foreach (var r in results.EnumerateArray())
+                    {
+                        var success = (r.TryGetProperty("Success", out var s) ||
+                                      r.TryGetProperty("success", out s)) && s.GetBoolean();
+                        if (success) successCount++; else failureCount++;
+                    }
+                }
+            }
+            catch
+            {
+                // If parsing fails, fall back to returning the raw string.
+            }
+        }
+
+        return JsonSerializer.Serialize(new
+        {
+            layerId             = layer.LayerId,
+            sessionId           = layer.SessionId,
+            status              = layer.Status.ToString(),
+            submittedAt         = layer.SubmittedAt,
+            completedAt         = layer.CompletedAt,
+            totalElapsedSeconds = totalElapsed,
+            successCount,
+            failureCount,
+            result,   // full nested object — not a string
+        }, _jsonOptions);
+    }
+
     private async Task<string?> FetchDatasetAsync(string url, CancellationToken ct)
     {
-        // Stable subdirectory keyed by URL hash — avoids special characters in paths.
         var key  = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(
                        System.Text.Encoding.UTF8.GetBytes(url)))[..16];
         var dir  = Path.Combine(DatasetsRoot, key);
@@ -340,8 +330,8 @@ public sealed class ParcsAgentTools
         try
         {
             Directory.CreateDirectory(dir);
-            using var http   = _httpClientFactory.CreateClient();
-            var bytes        = await http.GetByteArrayAsync(url, ct);
+            using var http = _httpClientFactory.CreateClient();
+            var bytes      = await http.GetByteArrayAsync(url, ct);
             await File.WriteAllBytesAsync(path, bytes, ct);
             _datasetCache[url] = path;
             _logger.LogInformation("Dataset saved: {Path} ({Bytes} bytes)", path, bytes.Length);
@@ -350,23 +340,6 @@ public sealed class ParcsAgentTools
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to download dataset from {Url}", url);
-            return null;
-        }
-    }
-
-    private static Dictionary<string, string>? ParseParameters(string? parametersJson, out string? error)
-    {
-        error = null;
-        if (string.IsNullOrWhiteSpace(parametersJson))
-            return new Dictionary<string, string>();
-
-        try
-        {
-            return JsonSerializer.Deserialize<Dictionary<string, string>>(parametersJson) ?? new();
-        }
-        catch
-        {
-            error = "parametersJson must be a valid JSON object, e.g. {\"key\":\"value\"}.";
             return null;
         }
     }
