@@ -224,8 +224,12 @@ public sealed class SessionManager
             SessionId               = session.SessionId,
             LayerId                 = layer.LayerId,
             TotalWorkers            = parallelism,
-            PreviousLayerResultJson = previousLayerResultJson,
-            CustomData              = customData,
+            // Normalise empty strings to null — workers that deserialise
+            // PreviousLayerResultJson will otherwise receive "" and crash
+            // with "input does not contain any JSON tokens".
+            PreviousLayerResultJson = string.IsNullOrWhiteSpace(previousLayerResultJson)
+                                          ? null : previousLayerResultJson,
+            CustomData              = string.IsNullOrWhiteSpace(customData) ? null : customData,
             Parameters              = parameters,
             DatasetPath             = datasetPath,   // null when no dataset was provided
         };
