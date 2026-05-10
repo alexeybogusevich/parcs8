@@ -1,0 +1,65 @@
+% main.tex — entry point for the CIT (LNTU) submission.
+% Toolchain: pdflatex -> bibtex -> pdflatex -> pdflatex.
+% Build:     latexmk -pdf main.tex
+%
+% See README.md for journal formatting checklist and required section order.
+
+\documentclass[11pt,a4paper,twoside]{article}
+
+% ---- Encoding & languages. T2A for Cyrillic, T1 for Latin.
+\usepackage[T2A,T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[english,ukrainian]{babel}
+% English is set as the *last* loaded language in babel options so it becomes
+% the document's main language; switch to Ukrainian inline via
+% \foreignlanguage{ukrainian}{...} or \selectlanguage{ukrainian}.
+\selectlanguage{english}
+
+% ---- Times-equivalent for pdfLaTeX.
+\usepackage{newtxtext}
+\usepackage{newtxmath}
+
+% ---- Quotes: Ukrainian angle quotes « ».
+\usepackage{csquotes}
+
+% ---- Hyperlinks (kept quiet — no coloured boxes).
+\usepackage[hidelinks]{hyperref}
+% expansion disabled because the Cyrillic LH bitmap fallback isn't scalable.
+\usepackage[protrusion=true,expansion=false]{microtype}
+
+% ---- Tables (MCP tool surface) and code listings (C# excerpts).
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{listings}
+
+% Numerical citation marks like [1], [3].
+\usepackage[numbers,square,sort&compress]{natbib}
+
+% ---- Project-local style.
+\usepackage{cit-style}
+
+\begin{document}
+
+% Header: UDC, ORCID, authors, affiliations, title.
+\input{sections/header}
+
+% Bilingual abstracts + keywords.
+\input{sections/abstract-en}
+\input{sections/abstract-uk}
+
+% Body sections, in the order required by the journal:
+%   problem -> related work -> main material (incl. unsolved parts + aim) -> conclusions/perspectives.
+\input{sections/01-problem}
+\input{sections/02-related-work}
+\input{sections/03-main}
+\input{sections/04-conclusion}
+
+% ---- References
+\citrefheading{References}
+\renewcommand{\refname}{}
+% unsrt orders by citation order to keep numbering aligned with the
+% hand-numbered Ukrainian list in bib/bibliography-uk.tex.
+\bibliographystyle{unsrt}
+\bibliography{bib/references}
+
+\end{document}

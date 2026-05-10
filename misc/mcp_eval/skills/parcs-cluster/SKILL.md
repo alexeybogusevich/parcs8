@@ -140,13 +140,6 @@ run_layer(
 
 ---
 
-### `submit_layer` + `get_layer_results` *(async — fire and poll)*
-
-Use when you want to dispatch a long layer without blocking. Poll `get_layer_results` every 2–5
-seconds until `status` is `"Completed"` or `"Failed"`. Prefer `run_layer` for most scenarios.
-
----
-
 ### `list_sessions`
 
 Lists all active sessions in this MCP server instance. Useful for resuming a pipeline after a
@@ -238,3 +231,9 @@ of layer 1's output.
 - Prefer aggregators that verify completeness explicitly: count worker results, confirm all required partitions were processed, and fail loudly if any worker output is missing or malformed.
 - When a user asks for a computed comparison, ranking, or summary, make the final layer emit that exact comparison text or structured JSON instead of returning raw partials for the client to interpret.
 - If user asks for reflection or memory updates after a job, capture operational lessons in this skill and behavioral lessons in `/memory/AGENTS.md`; do not store transient job results unless they reveal a reusable pattern.
+- For any non-trivial PARCS request, write down the layer plan before touching `create_session`: worker responsibilities, partitioning formula, expected worker JSON, aggregator input expectations, and final output contract.
+- Make the aggregation layer validate structure before semantics: check that `results.Length` matches the intended worker count, every `success` flag is true, and every `outputData` payload parses before computing any final answer.
+- If a task is small enough that cluster startup and coordination overhead would dominate, say so and either right-size the worker count aggressively or avoid over-parallelising the job.
+- When the MCP tool contract evolves, trust the live tool schema over stale examples in the skill text. In particular, `run_layer` resumes with `previousLayerId` rather than an inline previous-result JSON payload, so examples and plans should be written in terms of layer IDs and server-managed result passing.
+- Treat the cluster's final layer as responsible for presentable output, but still keep that output machine-checkable when possible: emit concise JSON or exact answer text that can be shown to the user without additional interpretation.
+- In recovery planning, preserve resumability explicitly: identify the last successful `layerId`, recompile if needed, and continue from that layer instead of rerunning unaffected earlier layers.

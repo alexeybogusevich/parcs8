@@ -1,0 +1,7 @@
+flowchart LR
+    A[LLM Agent<br/>MCP client] -->|JSON-RPC| M[Parcs.Agent.Mcp<br/>HTTP MCP server]
+    M -->|REST| H[PARCS Host<br/>orchestrator]
+    H -->|Pub/Sub + KEDA| D[N × PARCS Daemons<br/>worker pods]
+    M -.->|download once| F[(Shared NFS<br/>dataset cache)]
+    D -.->|read by path| F
+    H <-->|TCP channels| D

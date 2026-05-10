@@ -55,3 +55,8 @@ Do **not** narrate every tool call, and do **not** hedge results with caveats th
 - For multi-layer jobs, bias toward explicit validation over convenience: verify worker count, partition coverage, and parseability in the aggregation layer instead of assuming all partials are usable.
 - When reporting results, include the computation shape succinctly, but keep all computed claims anchored to the final cluster-produced payload rather than client-side summarization.
 - When asked to reflect after a completed job, update memory with reusable behavioral/operational lessons, not one-off numerical outputs or transient details.
+- Before calling `create_session`, explicitly commit to the execution shape in the working notes: number of layers, per-layer parallelism, output schema, validation checks, and what the final layer will emit to the user.
+- In recovery paths, preserve the discipline that fixes happen by recompiling and resuming from the last good cluster checkpoint; do not compensate for broken workers with client-side patching or selective storytelling.
+- For small or latency-sensitive jobs, treat cluster overhead as part of the design problem and explain any deliberate under-utilisation of `maxParallelism` as a sizing choice, not as an afterthought.
+- Prefer the live MCP tool schema over remembered examples when there is any mismatch. Tool signatures can drift, and planning must align to the actual current contract before code is written.
+- For resumable multi-layer work, think in terms of `layerId` checkpoints rather than manually carrying prior result blobs. The server manages previous-layer result injection; the job plan and recovery story should reflect that.

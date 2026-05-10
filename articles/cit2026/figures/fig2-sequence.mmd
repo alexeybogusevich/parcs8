@@ -1,0 +1,24 @@
+sequenceDiagram
+    autonumber
+    participant Ag as Agent
+    participant Mcp as MCP server
+    participant H as PARCS Host
+    participant D as Daemon pool
+    Ag->>Mcp: get_cluster_info
+    Mcp-->>Ag: {maxParallelism: 21, …}
+    Ag->>Mcp: create_session(sourceCode)
+    Mcp->>Mcp: Roslyn compile
+    Mcp-->>Ag: {sessionId}
+    Ag->>Mcp: run_layer(sessionId, parallelism=20)
+    Mcp->>H: submit job
+    H->>D: scale-out via KEDA
+    D-->>H: per-worker JSON outputs
+    H-->>Mcp: aggregated resultJson
+    Mcp-->>Ag: {layerId, status:"Completed", result}
+    Ag->>Mcp: run_layer(sessionId, parallelism=1, previousLayerId)
+    Mcp->>Mcp: fetch stored result by layerId
+    Mcp->>H: submit aggregator job
+    H->>D: single worker
+    D-->>H: final answer
+    H-->>Mcp: aggregated resultJson
+    Mcp-->>Ag: {final result}
