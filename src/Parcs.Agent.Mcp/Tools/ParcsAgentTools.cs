@@ -209,6 +209,32 @@ public sealed class ParcsAgentTools
     }
 
     // ─────────────────────────────────────────────────────────────────
+    // Tool: get_layer_result
+    // ─────────────────────────────────────────────────────────────────
+
+    [McpServerTool(Name = "get_layer_result")]
+    [Description(
+        "Returns the stored result of a previously executed layer by its layerId.\n\n" +
+        "Primary use cases:\n" +
+        "  1. Recovery after connection drop: if run_layer returns status 'Running' " +
+        "(the SSE connection was interrupted before the job finished), call this tool " +
+        "after a short wait to retrieve the result once the cluster has completed it.\n" +
+        "  2. Lazy reads: retrieve a completed layer's result on demand without re-running.\n\n" +
+        "Returns { layerId, status:'Completed', result } on success, " +
+        "{ layerId, status:'Failed', errorMessage } on failure, or " +
+        "{ layerId, status:'Running' } if the layer is still executing.")]
+    public string GetLayerResult(
+        [Description("layerId returned by run_layer.")]
+        string layerId)
+    {
+        var layer = _sessions.GetLayer(layerId);
+        if (layer is null)
+            return Err($"Layer '{layerId}' not found.");
+
+        return BuildLayerResponse(layer);
+    }
+
+    // ─────────────────────────────────────────────────────────────────
     // Tool: list_sessions
     // ─────────────────────────────────────────────────────────────────
 
@@ -246,6 +272,19 @@ public sealed class ParcsAgentTools
     /// </summary>
     private string BuildLayerResponse(LayerRecord layer)
     {
+        if (layer.Status == LayerStatus.Running)
+        {
+            return JsonSerializer.Serialize(new
+            {
+                layerId   = layer.LayerId,
+                sessionId = layer.SessionId,
+                status    = "Running",
+                message   = $"The SSE connection was interrupted before this layer finished. " +
+                            $"The job is still executing on the cluster. " +
+                            $"Call get_layer_result(\"{layer.LayerId}\") in a few seconds to retrieve the result.",
+            }, _jsonOptions);
+        }
+
         if (layer.Status == LayerStatus.Failed)
         {
             var errMsg = layer.ErrorMessage ?? "unknown error";

@@ -104,9 +104,12 @@ public sealed class SessionManager
     // ─────────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Executes a layer synchronously: submits it, waits for completion, and returns the layer record.
-    /// The layer's status is set to Completed or Failed before this method returns.
-    /// Use this when the caller wants to block until results are available (e.g. the run_layer MCP tool).
+    /// Executes a layer and waits for the result, but survives client disconnection.
+    /// The actual job runs with <see cref="CancellationToken.None"/> so it is never
+    /// aborted by an MCP client dropping the SSE connection. If the client's <paramref name="ct"/>
+    /// fires before the job finishes, the method returns the layer record with
+    /// <see cref="LayerStatus.Running"/> — the caller should surface the layerId so the
+    /// client can poll via <c>get_layer_result</c> once the job completes.
     /// </summary>
     public async Task<LayerRecord> RunLayerSyncAsync(
         string sessionId,
@@ -123,30 +126,53 @@ public sealed class SessionManager
         var layer = CreateLayer(sessionId);
         UpdateLayer(layer.LayerId, l => l.Status = LayerStatus.Running);
 
+        // Signal completion (success or failure) without coupling the job to the client CT.
+        var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                var resultJson = await RunLayerAsync(
+                    layer, session, parallelism,
+                    previousLayerResultJson, customData, parameters, datasetPath,
+                    CancellationToken.None);
+
+                UpdateLayer(layer.LayerId, l =>
+                {
+                    l.Status      = LayerStatus.Completed;
+                    l.ResultJson  = resultJson;
+                    l.CompletedAt = DateTimeOffset.UtcNow;
+                });
+
+                _logger.LogInformation("Layer {LayerId} completed (sync)", layer.LayerId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Layer {LayerId} failed (sync): {Msg}", layer.LayerId, ex.Message);
+                UpdateLayer(layer.LayerId, l =>
+                {
+                    l.Status       = LayerStatus.Failed;
+                    l.ErrorMessage = ex.Message;
+                    l.CompletedAt  = DateTimeOffset.UtcNow;
+                });
+            }
+            finally
+            {
+                tcs.TrySetResult(true);
+            }
+        }, CancellationToken.None);
+
         try
         {
-            var resultJson = await RunLayerAsync(
-                layer, session, parallelism,
-                previousLayerResultJson, customData, parameters, datasetPath, ct);
-
-            UpdateLayer(layer.LayerId, l =>
-            {
-                l.Status     = LayerStatus.Completed;
-                l.ResultJson = resultJson;
-                l.CompletedAt = DateTimeOffset.UtcNow;
-            });
-
-            _logger.LogInformation("Layer {LayerId} completed (sync)", layer.LayerId);
+            await tcs.Task.WaitAsync(ct);
         }
-        catch (Exception ex)
+        catch (OperationCanceledException)
         {
-            _logger.LogError(ex, "Layer {LayerId} failed (sync): {Msg}", layer.LayerId, ex.Message);
-            UpdateLayer(layer.LayerId, l =>
-            {
-                l.Status       = LayerStatus.Failed;
-                l.ErrorMessage = ex.Message;
-                l.CompletedAt  = DateTimeOffset.UtcNow;
-            });
+            // Client disconnected before the job finished.
+            // The background task continues; the layer record will be updated when it completes.
+            // Return the Running record so the caller can surface the layerId for polling.
+            _logger.LogWarning("Layer {LayerId} still running after client disconnect", layer.LayerId);
         }
 
         return GetLayer(layer.LayerId)!;
@@ -173,7 +199,8 @@ public sealed class SessionManager
             {
                 var resultJson = await RunLayerAsync(
                     layer, session, parallelism,
-                    previousLayerResultJson, customData, parameters, datasetPath, ct);
+                    previousLayerResultJson, customData, parameters, datasetPath,
+                    CancellationToken.None);
 
                 UpdateLayer(layer.LayerId, l =>
                 {
