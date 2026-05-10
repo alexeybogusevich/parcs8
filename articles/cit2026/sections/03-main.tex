@@ -2,9 +2,9 @@
 % Covers PARCS-Agent architecture, MCP tool surface, layer execution model,
 % and the Monte Carlo VaR case study.
 
-\citsection{\foreignlanguage{ukrainian}{Виклад основного матеріалу й обґрунтування отриманих результатів дослідження}}
+\citsection{PARCS-Agent: Architecture, Protocol, and Case Study}
 
-\medskip\noindent\textit{3.1 PARCS-Agent architecture.}\quad
+\medskip\noindent\textbf{PARCS-Agent architecture}\par\nopagebreak
 PARCS-Agent comprises three cooperating components: an MCP server, the existing PARCS Host and Daemon services, and a thin runtime contract shared between them. The MCP server is implemented as an ASP.NET Core service (\texttt{Parcs.Agent.Mcp}) deployed alongside the PARCS Host within the same Kubernetes namespace. It encapsulates five collaborating internal services: a \texttt{RoslynCompilerService}, which compiles agent-supplied source against the agent runtime contract; a \texttt{SessionManager}, which maintains compiled sessions and their layer history; a \texttt{ClusterInfoService}, which queries the Kubernetes API for current capacity; a \texttt{ParcsApiClient}, which submits jobs to the PARCS Host through its existing REST surface; and an \texttt{AgentRunnerModuleRegistrar} hosted service that registers the agent-runner module at start-up.
 
 The agent does not communicate with the PARCS Host directly. All interaction proceeds through the MCP server, which simultaneously functions as a translation layer between MCP and PARCS job semantics and as a state owner for compiled sessions, layer outputs, and the dataset cache.
@@ -26,7 +26,7 @@ The agent does not communicate with the PARCS Host directly. All interaction pro
 
 The architecture exhibits two characteristic properties. First, all parallelism is encapsulated below the MCP boundary, so that the agent observes only synchronous tool invocations. Second, bulk input data does not transit the protocol: the MCP server retrieves a referenced URL once into a shared volume and provides each worker with an identical on-disk path, eliminating the per-worker file replication that would otherwise occur.
 
-\medskip\noindent\textit{3.2 The MCP tool surface.}\quad
+\medskip\noindent\textbf{The MCP tool surface}\par\nopagebreak
 The MCP server exposes four tools, summarised in Table~1. The tool definitions correspond directly to the production source \texttt{ParcsAgentTools.cs} in~\cite{bohusevych2026parcs}.
 
 \cittabcaption{1}{%
@@ -59,7 +59,7 @@ The surface is deliberately minimal. There is no separate fire-and-forget execut
 
 \textit{Failure semantics that preserve session state.}\quad A compilation error is reported as \texttt{\{error\}} from \texttt{create\_session} without affecting earlier sessions. A worker exception during \texttt{run\_layer} is reported with \texttt{status: "Failed"} and accompanying diagnostic detail, including a hint when the failure mode is recognisable (such as out-of-memory). The session itself remains usable, and recovery proceeds by submitting corrected source through \texttt{create\_session} and resuming with the last successful \texttt{layerId} passed as \texttt{previousLayerId}. No prior work is lost. This semantics accommodates the empirical observation that LLMs occasionally produce correct code only on a second attempt, in which case a less forgiving protocol would force redundant re-execution.
 
-\medskip\noindent\textit{3.3 The layer execution model.}\quad
+\medskip\noindent\textbf{The layer execution model}\par\nopagebreak
 A computation is decomposed into a sequence of \emph{layers}. Each layer comprises a parallel fan-out across $N$ workers, a barrier, and a single aggregated JSON value that constitutes the input to the subsequent layer. This fan-out~/~barrier construct is the only execution primitive exposed to the agent; the protocol provides no direct support for point-to-point communication, scatter--gather, or shared memory.
 
 The agent-side contract is the single-method interface \texttt{IAgentComputation} from \texttt{Parcs.Agent.Runtime}:
@@ -93,7 +93,7 @@ The \texttt{AgentLayerInput} type exposes the fields \texttt{WorkerIndex}, \text
 
 \textit{Choice of execution language.}\quad PARCS is implemented in .NET, existing modules are distributed as .NET assemblies, and Roslyn provides a JIT-quality compiler accessible from the same process as the MCP server. The use of C\# preserves a single compilation and execution stack from agent input to worker output. The choice carries a trade-off: the agent must produce C\# rather than Python, the language more frequently encountered in LLM pre-training. In practice, frontier models handle the language without measurable quality degradation, in part because the generated code consists of straight-line procedural logic and contains no platform-specific parallel constructs.
 
-\medskip\noindent\textit{3.4 Case study: Monte Carlo Value-at-Risk.}\quad
+\medskip\noindent\textbf{Case study: Monte Carlo Value-at-Risk}\par\nopagebreak
 The case considered in this subsection is drawn from a benchmark harness developed alongside the system but reserved for a future evaluation publication. The task is canonical in quantitative finance and serves here as an illustrative example: estimation of the 1-day 99\,\% Value-at-Risk (VaR) and Conditional Value-at-Risk (CVaR) of a portfolio of 50 equally weighted assets whose return covariance matrix $\Sigma$ is generated from a fixed random seed. The reference protocol specifies $2\,000\,000$ Monte Carlo scenarios, a sample count for which a single-threaded sandbox is poorly suited and which is naturally addressed by fan-out across the cluster's worker pool.
 
 The decomposition produced by the agent, following the system-prompt scaffold provided to it, comprises two layers preceded by a capability-discovery call:
@@ -115,7 +115,7 @@ The implementation contains no synchronisation primitives, no channel constructi
 The case study illustrates four architectural properties of the system, which together constitute the substantive contribution of the present paper.
 
 \begin{enumerate}[leftmargin=1.5cm,topsep=2pt,itemsep=2pt]
-  \item \textit{The agent provides only per-worker logic.} Fan-out across 20 workers, the barrier between the two layers, and the propagation of layer~1's aggregated output to layer~2 --- accomplished through the agent passing layer~1's \texttt{layerId} as \texttt{previousLayerId} --- are all platform concerns invisible to the agent.
+  \item \textit{The agent provides only per-worker logic.} Fan-out across 20 workers, the barrier between layers, and the propagation of layer~1's aggregated output to layer~2 (via the agent passing layer~1's \texttt{layerId} as \texttt{previousLayerId}) are all platform concerns invisible to the agent.
   \item \textit{Aggregation reuses the parallel primitive.} The reducer in layer~2 is a \texttt{run\_layer} invocation with \texttt{parallelism = 1}. The protocol does not distinguish a ``map'' phase from a ``reduce'' phase; \texttt{parallelism} is a numeric parameter rather than a semantic mode.
   \item \textit{Recoverable failure preserves session state.} If the first compilation attempt is rejected --- a realistic occurrence given the difficulty LLMs encounter with C\# numeric generics --- the agent invokes \texttt{create\_session} again with corrected source. The artefacts of the failed compilation are discarded; layer~1 has not yet been executed and no prior work is lost. Should the failure occur during layer~2 instead, the agent retries \texttt{run\_layer} with the same \texttt{previousLayerId} referencing the still-stored layer~1 result, avoiding re-execution of the more expensive sampling step.
   \item \textit{Dataset distribution decouples from worker count.} In an extension where $\Sigma$ is loaded from a multi-megabyte file rather than transmitted as \texttt{customData}, the agent provides a \texttt{datasetUrl} argument on the first \texttt{run\_layer} call. Subsequent layers referencing the same URL incur no additional transport cost regardless of the number of workers.
