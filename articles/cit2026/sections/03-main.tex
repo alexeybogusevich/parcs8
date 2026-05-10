@@ -2,7 +2,7 @@
 % Covers PARCS-Agent architecture, MCP tool surface, layer execution model,
 % and the Monte Carlo VaR case study.
 
-\citsection{PARCS-Agent: Architecture, Protocol, and Case Study}
+\citsection{Main material and results}
 
 \medskip\noindent\textbf{PARCS-Agent architecture}\par\nopagebreak
 PARCS-Agent comprises three cooperating components: an MCP server, the existing PARCS Host and Daemon services, and a thin runtime contract shared between them. The MCP server is implemented as an ASP.NET Core service (\texttt{Parcs.Agent.Mcp}) deployed alongside the PARCS Host within the same Kubernetes namespace. It encapsulates five collaborating internal services: a \texttt{RoslynCompilerService}, which compiles agent-supplied source against the agent runtime contract; a \texttt{SessionManager}, which maintains compiled sessions and their layer history; a \texttt{ClusterInfoService}, which queries the Kubernetes API for current capacity; a \texttt{ParcsApiClient}, which submits jobs to the PARCS Host through its existing REST surface; and an \texttt{AgentRunnerModuleRegistrar} hosted service that registers the agent-runner module at start-up.

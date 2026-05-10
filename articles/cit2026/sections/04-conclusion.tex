@@ -1,6 +1,6 @@
 % sections/04-conclusion.tex --- Висновки та перспективи подальшого дослідження.
 
-\citsection{Conclusions}
+\citsection{Conclusions and further research}
 
 This paper presented PARCS-Agent, an architectural pattern in which a Model Context Protocol server provides the interface between a language-model agent and a Kubernetes-based PARCS distributed computing cluster. The contribution is positioned at three complementary levels. At the architectural level, a session--layer--worker hierarchy decouples the agent's reasoning steps from cluster orchestration. At the protocol level, four MCP tools --- capability discovery, session compilation, blocking layer execution, and session enumeration --- align with the agent's step-wise decomposition without imposing distributed-computing concepts on the agent's prompt. At the methodological level, runtime compilation of agent-supplied per-worker logic preserves the synchronous coding paradigm at the agent's surface while delivering parallel execution beneath it, thereby circumventing the documented difficulty LLMs encounter when generating parallel code directly.
 

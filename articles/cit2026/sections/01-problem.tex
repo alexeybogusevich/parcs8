@@ -1,6 +1,6 @@
 % sections/01-problem.tex --- Постановка наукової проблеми.
 
-\citsection{The Compute Constraint in LLM Agent Toolchains}
+\citsection{Problem statement}
 
 Recent years have witnessed substantial progress in the capabilities of language-model agents along several dimensions: multi-step reasoning, programmatic code generation, retrieval-grounded answering, and the orchestration of long sequences of external tool invocations. The computational substrate on which such agents execute their actions, however, has remained essentially unchanged. The dominant architectural pattern, established by Toolformer and ReAct and adopted by all major contemporary agent frameworks, executes agent-generated code within a single-threaded sandbox, typically a Python interpreter, a code-interpreter container, or an analogous single-process runtime. Within this paradigm the model produces straight-line code, a single process executes it, and the agent's wall-clock latency coincides with the script's serial execution time.
 

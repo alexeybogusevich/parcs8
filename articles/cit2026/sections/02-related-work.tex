@@ -8,7 +8,7 @@
 %   [13]=anthropic2024mcp     [14]=hou2025mcp  [15]=luo2025mcpsmelly
 %   [16]=bohusevych2026parcs  [17]=bohusevych2024tsp
 
-\citsection{Related Work}
+\citsection{Analysis of related research}
 
 \textit{Tool-augmented language-model agents.}\quad
 The pattern of equipping a language model with callable tools originates in Toolformer~\cite{schick2023toolformer}, which trained a model to insert API calls into its own output without supervised labels, and ReAct~\cite{yao2023react}, which interleaved reasoning traces with observations from search and database queries. Subsequent work scaled the approach in scope and depth: ToolLLM~\cite{qin2024toolllm} addressed a curated collection of 16\,000 REST endpoints; Gorilla~\cite{patil2023gorilla} mitigated hallucinated API signatures in machine-learning framework calls; SciAgent~\cite{ma2024sciagent} extended the pattern to scientific reasoning across mathematics, physics, and finance. The survey of Mialon et al.~\cite{mialon2023augmented} situates these developments within the broader landscape of augmented language models. A common assumption underlies this line of research: every tool invocation constitutes a local synchronous function call, in which the server receives arguments, returns a result, and terminates, while the agent's own process serves as the sole locus of execution.

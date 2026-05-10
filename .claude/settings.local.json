@@ -64,7 +64,8 @@
       "Bash(taskkill /PID 32236 /F)",
       "Bash(taskkill /PID 31840 /F)",
       "PowerShell(Get-Process python -ErrorAction SilentlyContinue | Select-Object Id, CPU, WorkingSet, @{n='Mem_MB';e={[math]::Round\\($_.WorkingSet/1MB,1\\)}})",
-      "Bash(latexmk -pdf main.tex)"
+      "Bash(latexmk -pdf main.tex)",
+      "WebFetch(domain:vak.in.ua)"
     ]
   }
 }
