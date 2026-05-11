@@ -54,11 +54,13 @@
 \input{sections/03-main}
 \input{sections/04-conclusion}
 
-% ---- References
+% ---- Ukrainian bibliography (DSTU 8302:2015) — required by journal.
+\citrefheading{\foreignlanguage{ukrainian}{Список бібліографічного опису}}
+\input{bib/bibliography-uk}
+
+% ---- English references list — same order, unsrt keeps numbering aligned.
 \citrefheading{References}
 \renewcommand{\refname}{}
-% unsrt orders by citation order to keep numbering aligned with the
-% hand-numbered Ukrainian list in bib/bibliography-uk.tex.
 \bibliographystyle{unsrt}
 \bibliography{bib/references}
 
