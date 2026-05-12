@@ -1,7 +1,7 @@
 public async Task<AgentLayerResult> ExecuteAsync(
     AgentLayerInput input, CancellationToken ct)
 {
-    int scenarios = 100_000;
+    int scenarios = 10_000;
     int n = 50;
     double[,] L = LoadCholeskyFromCustomData(input.CustomData!);
     double[]  w = Enumerable.Repeat(1.0 / n, n).ToArray();
