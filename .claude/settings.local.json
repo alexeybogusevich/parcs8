@@ -74,7 +74,9 @@
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\obohusevych\\\\source\\\\repos\\\\parcs7\\\\articles\\\\previous\" -File)",
       "Bash(Select-Object FullName)",
       "WebFetch(domain:link.springer.com)",
-      "WebFetch(domain:www.scirp.org)"
+      "WebFetch(domain:www.scirp.org)",
+      "Bash(pdflatex main.tex)",
+      "Bash(bibtex main *)"
     ]
   }
 }
