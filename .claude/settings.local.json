@@ -68,7 +68,13 @@
       "WebFetch(domain:vak.in.ua)",
       "mcp__parcs__get_layer_result",
       "Bash(pip install *)",
-      "Bash(latexmk -pdf -g main.tex)"
+      "Bash(latexmk -pdf -g main.tex)",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\obohusevych\\\\source\\\\repos\\\\parcs7\\\\articles\\\\previous\" -File)",
+      "Bash(Select-Object FullName)",
+      "WebFetch(domain:link.springer.com)",
+      "WebFetch(domain:www.scirp.org)"
     ]
   }
 }
