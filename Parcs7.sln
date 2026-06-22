@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.5.33424.131
+# Visual Studio Version 18
+VisualStudioVersion = 18.2.11415.280 d18.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Parcs.Daemon", "src\Parcs.Daemon\Parcs.Daemon.csproj", "{9868AF2C-7537-4215-8102-E68AD0033386}"
 EndProject
@@ -30,6 +30,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "kube", "kube", "{9A51C28B-99DB-421A-879D-F3F12BAE0A4C}"
 	ProjectSection(SolutionItems) = preProject
 		kube\deployment.azure.yaml = kube\deployment.azure.yaml
+		kube\deployment.gcp.yaml = kube\deployment.gcp.yaml
 		kube\deployment.local.yaml = kube\deployment.local.yaml
 	EndProjectSection
 EndProject

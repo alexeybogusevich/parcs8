@@ -69,6 +69,10 @@ public sealed class SessionManager
     public SessionRecord? GetSession(string sessionId) =>
         _sessions.TryGetValue(sessionId, out var s) ? s : null;
 
+    /// <summary>Returns all sessions ordered by creation time descending.</summary>
+    public IReadOnlyList<SessionRecord> ListSessions() =>
+        [.. _sessions.Values.OrderByDescending(s => s.CreatedAt)];
+
     public byte[]? GetCompiledAssembly(string sessionId) =>
         SessionCompiledAssemblies.TryGetValue(sessionId, out var b) ? b : null;
 
@@ -100,6 +104,81 @@ public sealed class SessionManager
     // ─────────────────────────────────────────────────────────────────
 
     /// <summary>
+    /// Executes a layer and waits for the result, but survives client disconnection.
+    /// The actual job runs with <see cref="CancellationToken.None"/> so it is never
+    /// aborted by an MCP client dropping the SSE connection. If the client's <paramref name="ct"/>
+    /// fires before the job finishes, the method returns the layer record with
+    /// <see cref="LayerStatus.Running"/> — the caller should surface the layerId so the
+    /// client can poll via <c>get_layer_result</c> once the job completes.
+    /// </summary>
+    public async Task<LayerRecord> RunLayerSyncAsync(
+        string sessionId,
+        int parallelism,
+        string? previousLayerResultJson,
+        string? customData,
+        Dictionary<string, string> parameters,
+        string? datasetPath,
+        CancellationToken ct)
+    {
+        var session = GetSession(sessionId)
+            ?? throw new InvalidOperationException($"Session '{sessionId}' not found.");
+
+        var layer = CreateLayer(sessionId);
+        UpdateLayer(layer.LayerId, l => l.Status = LayerStatus.Running);
+
+        // Signal completion (success or failure) without coupling the job to the client CT.
+        var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                var resultJson = await RunLayerAsync(
+                    layer, session, parallelism,
+                    previousLayerResultJson, customData, parameters, datasetPath,
+                    CancellationToken.None);
+
+                UpdateLayer(layer.LayerId, l =>
+                {
+                    l.Status      = LayerStatus.Completed;
+                    l.ResultJson  = resultJson;
+                    l.CompletedAt = DateTimeOffset.UtcNow;
+                });
+
+                _logger.LogInformation("Layer {LayerId} completed (sync)", layer.LayerId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Layer {LayerId} failed (sync): {Msg}", layer.LayerId, ex.Message);
+                UpdateLayer(layer.LayerId, l =>
+                {
+                    l.Status       = LayerStatus.Failed;
+                    l.ErrorMessage = ex.Message;
+                    l.CompletedAt  = DateTimeOffset.UtcNow;
+                });
+            }
+            finally
+            {
+                tcs.TrySetResult(true);
+            }
+        }, CancellationToken.None);
+
+        try
+        {
+            await tcs.Task.WaitAsync(ct);
+        }
+        catch (OperationCanceledException)
+        {
+            // Client disconnected before the job finished.
+            // The background task continues; the layer record will be updated when it completes.
+            // Return the Running record so the caller can surface the layerId for polling.
+            _logger.LogWarning("Layer {LayerId} still running after client disconnect", layer.LayerId);
+        }
+
+        return GetLayer(layer.LayerId)!;
+    }
+
+    /// <summary>
     /// Starts executing a layer in a background task.
     /// Callers can poll via <see cref="GetLayer"/> to check status.
     /// </summary>
@@ -110,6 +189,7 @@ public sealed class SessionManager
         string? previousLayerResultJson,
         string? customData,
         Dictionary<string, string> parameters,
+        string? datasetPath,
         CancellationToken ct)
     {
         _ = Task.Run(async () =>
@@ -119,7 +199,8 @@ public sealed class SessionManager
             {
                 var resultJson = await RunLayerAsync(
                     layer, session, parallelism,
-                    previousLayerResultJson, customData, parameters, ct);
+                    previousLayerResultJson, customData, parameters, datasetPath,
+                    CancellationToken.None);
 
                 UpdateLayer(layer.LayerId, l =>
                 {
@@ -150,40 +231,59 @@ public sealed class SessionManager
         string?       previousLayerResultJson,
         string?       customData,
         Dictionary<string, string> parameters,
+        string?       datasetPath,
         CancellationToken ct)
     {
         var assemblyBytes = GetCompiledAssembly(session.SessionId)
             ?? throw new InvalidOperationException($"No compiled assembly for session {session.SessionId}");
 
-        // Build layer_input.json
+        if (!_moduleRegistrar.IsReady)
+            throw new InvalidOperationException(
+                "AgentRunner module is not yet registered with the PARCS host. Retry in a few seconds.");
+
+        // Build layer_input.json — use PascalCase to match LayerInputDto property names
+        // (System.Text.Json deserialisation is case-sensitive by default).
+        // DatasetPath is a path on the shared NFS volume (/var/lib/storage/Datasets/…/dataset.bin)
+        // mounted identically on both the MCP server and every daemon pod.
+        // Workers read it with File.ReadAllBytes(input.DatasetPath) — no file transfer needed.
         var layerInputDto = new
         {
-            sessionId              = session.SessionId,
-            layerId                = layer.LayerId,
-            totalWorkers           = parallelism,
-            previousLayerResultJson,
-            customData,
-            parameters,
+            SessionId               = session.SessionId,
+            LayerId                 = layer.LayerId,
+            TotalWorkers            = parallelism,
+            // Normalise empty strings to null — workers that deserialise
+            // PreviousLayerResultJson will otherwise receive "" and crash
+            // with "input does not contain any JSON tokens".
+            PreviousLayerResultJson = string.IsNullOrWhiteSpace(previousLayerResultJson)
+                                          ? null : previousLayerResultJson,
+            CustomData              = string.IsNullOrWhiteSpace(customData) ? null : customData,
+            Parameters              = parameters,
+            DatasetPath             = datasetPath,   // null when no dataset was provided
         };
         var layerInputBytes = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(layerInputDto));
 
+        List<(string, byte[])> inputFiles =
+        [
+            ("agent_computation.dll", assemblyBytes),
+            ("layer_input.json",      layerInputBytes),
+        ];
+
         // Create PARCS job
         var jobId = await _api.CreateJobAsync(
-            moduleId:     session.ParcsModuleId,
+            moduleId:     _moduleRegistrar.ModuleId,
             assemblyName: _moduleRegistrar.AssemblyName,
             className:    _moduleRegistrar.ClassName,
-            inputFiles: [
-                ("agent_computation.dll", assemblyBytes),
-                ("layer_input.json",      layerInputBytes),
-            ],
+            inputFiles:   inputFiles,
             arguments: new Dictionary<string, string>
             {
                 ["PointsNumber"] = parallelism.ToString(),
             },
             ct: ct);
 
-        // Run synchronously (blocks until PARCS completes the job)
-        await _api.RunJobAsync(jobId, ct: ct);
+        // Submit async and stream SSE events until completion.
+        // This replaces the old blocking SynchronousJobRuns call which caused
+        // proxy timeouts when jobs ran silently for more than a minute.
+        await _api.RunJobAndWaitAsync(jobId, ct: ct);
 
         // Fetch output
         var outputBytes = await _api.GetJobOutputFileAsync(jobId, "agent_results.json", ct)

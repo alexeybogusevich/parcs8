@@ -1,0 +1,106 @@
+% cit-style.sty — formatting helpers for the CIT (LNTU) journal submission.
+% Owns: page geometry, font sizes, section/caption macros, paragraph indents.
+% Loaded by main.tex after babel/fontenc/inputenc are set up.
+
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{cit-style}[2026/05/10 CIT LNTU journal style helpers]
+
+\RequirePackage{geometry}
+\RequirePackage{setspace}
+\RequirePackage{indentfirst}
+\RequirePackage{graphicx}
+\RequirePackage{caption}
+\RequirePackage{xcolor}
+\RequirePackage{enumitem}
+\RequirePackage{listings}
+\RequirePackage{xcolor}
+
+% ---- C# listings style for AgentRunner code excerpts.
+\lstdefinelanguage{CSharpExt}{
+    morekeywords={async,await,Task,public,private,protected,internal,static,
+        var,new,return,namespace,using,class,interface,struct,enum,
+        if,else,for,foreach,while,do,switch,case,break,continue,
+        true,false,null,this,base,override,virtual,abstract,sealed,
+        readonly,const,in,out,ref,params,double,int,bool,string,object,void,
+        CancellationToken,default},
+    sensitive=true,
+    morecomment=[l]{//},
+    morecomment=[s]{/*}{*/},
+    morestring=[b]",
+    morestring=[b]'
+}
+\lstset{
+    basicstyle=\ttfamily\small,
+    keywordstyle=\bfseries,
+    commentstyle=\itshape\color{gray},
+    stringstyle=\color{black!70},
+    showstringspaces=false,
+    columns=fullflexible,
+    breaklines=true,
+    breakatwhitespace=true,
+    aboveskip=0.5em,
+    belowskip=0.5em,
+    xleftmargin=1cm,
+    xrightmargin=0.5cm,
+    language=CSharpExt
+}
+
+% ---- Page geometry: A4, mirror margins, top/bottom 1.5 cm, inner 2.5, outer 2.0 cm.
+\geometry{
+    a4paper,
+    twoside,
+    top=1.5cm,
+    bottom=1.5cm,
+    inner=2.5cm,
+    outer=2.0cm,
+    headsep=0.25cm,
+    footskip=0.5cm
+}
+
+% No page numbers per journal requirement.
+\pagestyle{empty}
+
+% Single line spacing.
+\singlespacing
+
+% Body indent 1.25 cm (abstract uses 1.0 cm via local \setlength inside its env).
+\setlength{\parindent}{1.25cm}
+\setlength{\parskip}{0pt}
+
+% ---- Section heading: bold inline with trailing period, paragraph break before, no numbering.
+%      Per the journal's ZRAZOK example.
+\newcommand{\citsection}[1]{%
+    \par\medskip\noindent\textbf{#1.}\par\nopagebreak%
+}
+
+% ---- Centred reference-block heading.
+\newcommand{\citrefheading}[1]{%
+    \par\bigskip\begin{center}\textbf{#1}\end{center}\par\nopagebreak%
+}
+
+% ---- Bilingual figure caption: \citfigcaption{N}{Ukrainian title}{English title}.
+\newcommand{\citfigcaption}[3]{%
+    \begin{center}\small\textbf{Рис.~#1.}~#2~/~\textbf{Fig.~#1.}~#3\end{center}%
+}
+
+% ---- Bilingual table caption: \cittabcaption{N}{Ukrainian title}{English title}.
+\newcommand{\cittabcaption}[3]{%
+    \begin{center}\small\textbf{Таблиця~#1.}~#2~/~\textbf{Table~#1.}~#3\end{center}%
+}
+
+% ---- Abstract environment: 9 pt, 1 cm indent, justified.
+\newenvironment{citabstract}{%
+    \par\medskip\begingroup\fontsize{9}{11}\selectfont\setlength{\parindent}{1cm}%
+}{%
+    \par\endgroup\medskip%
+}
+
+% ---- Reference-list environment: 9 pt entries, no enumeration spacing weirdness.
+\newenvironment{citreflist}{%
+    \begingroup\fontsize{9}{11}\selectfont%
+    \begin{enumerate}[leftmargin=*,labelsep=0.4em,itemsep=2pt,topsep=2pt]%
+}{%
+    \end{enumerate}\endgroup%
+}
+
+\endinput

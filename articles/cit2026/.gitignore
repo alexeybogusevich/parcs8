@@ -1,0 +1,27 @@
+# LaTeX build artefacts
+*.aux
+*.bbl
+*.blg
+*.log
+*.out
+*.toc
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.lof
+*.lot
+*.dvi
+*.nav
+*.snm
+*.vrb
+*.bcf
+*.run.xml
+*.xdv
+
+# Generated PDF (final submission PDF should be produced on demand, not committed)
+main.pdf
+
+# Editor / OS
+.vscode/
+.DS_Store
+Thumbs.db

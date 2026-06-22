@@ -57,14 +57,32 @@ namespace Parcs.Host.Validators
             var assemblyPath = Path.Combine(assemblyDirectoryPath, assemblyFileName);
 
             var runtimeDirectory = RuntimeEnvironment.GetRuntimeDirectory();
-            var pathToSystemRuntime = Path.Combine(runtimeDirectory, "System.Runtime.dll");
-            var pathToSystemPrivateCoreLib = Path.Combine(runtimeDirectory, "System.Private.CoreLib.dll");
 
-            var resolver = new PathAssemblyResolver(new string[] { assemblyFileName, pathToSystemRuntime, pathToSystemPrivateCoreLib });
+            // Include DLLs from the module directory, the host app directory (provides Parcs.Net etc.),
+            // and the core runtime so all transitive dependencies can be resolved by MetadataLoadContext.
+            var resolverPaths = Directory.GetFiles(assemblyDirectoryPath, $"*.{AssemblyExtension}")
+                .Concat(Directory.GetFiles(AppContext.BaseDirectory, $"*.{AssemblyExtension}"))
+                .Concat(Directory.GetFiles(runtimeDirectory, $"*.{AssemblyExtension}"))
+                .Distinct();
+
+            var resolver = new PathAssemblyResolver(resolverPaths);
             using var metadataLoadContext = new MetadataLoadContext(resolver);
-            var assembly = metadataLoadContext.LoadFromAssemblyPath(assemblyPath);
 
-            return assembly.GetTypes().Any(c => c.FullName == className || c.Name == className);
+            try
+            {
+                var assembly = metadataLoadContext.LoadFromAssemblyPath(assemblyPath);
+                return assembly.GetTypes().Any(c => c.FullName == className || c.Name == className);
+            }
+            catch (ReflectionTypeLoadException ex)
+            {
+                // Partial type load — check whatever types were loaded successfully.
+                return ex.Types.Where(t => t is not null)
+                    .Any(t => t!.FullName == className || t.Name == className);
+            }
+            catch
+            {
+                return false;
+            }
         }
     }
 }

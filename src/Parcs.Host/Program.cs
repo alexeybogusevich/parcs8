@@ -3,6 +3,13 @@ using Parcs.Host.HostedServices;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// SynchronousJobRuns blocks until all KEDA daemon pods complete — extend timeouts.
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.Limits.KeepAliveTimeout    = TimeSpan.FromMinutes(15);
+    options.Limits.RequestHeadersTimeout = TimeSpan.FromMinutes(1);
+});
+
 builder.Host.AddElasticSearchLogging(builder.Configuration);
 builder.Services.AddApiControllers();
 builder.Services.AddValidation();
@@ -18,8 +25,6 @@ builder.Services.AddSingleton<HostTcpServer>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<HostTcpServer>());
 builder.Services.AddHttpClient();
 builder.Services.AddDatabase(builder.Configuration);
-builder.Services.AddApplicationInsightsTelemetry();
-
 var app = builder.Build();
 
 app.MigrateDatabase();

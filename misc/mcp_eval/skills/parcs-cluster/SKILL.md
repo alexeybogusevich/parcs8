@@ -1,0 +1,239 @@
+---
+name: parcs-cluster
+description: >
+  Use this skill whenever the user wants to run distributed or parallel computation on the PARCS
+  cluster. Triggers include: running parallel algorithms, distributing work across workers, executing
+  C# code in parallel, using the PARCS MCP server, submitting compute jobs, running multi-layer
+  pipelines, parallelising number crunching, Monte Carlo simulations, matrix operations, search
+  problems, or any task where splitting work across many cores would speed things up. Also triggers
+  when the user asks about cluster capacity, session management, or layer execution. Use this skill
+  even if the user doesn't say "PARCS" explicitly — if they want to go fast with parallel C#, this
+  is the right tool.
+---
+
+# PARCS Cluster — Distributed Parallel Compute via MCP
+
+The PARCS cluster exposes a set of MCP tools that let you write and execute parallel C# code across
+multiple worker pods in a GKE cluster. You submit C# source, PARCS compiles it with Roslyn, fans it
+out to N daemon workers via Pub/Sub + KEDA, and returns aggregated results.
+
+## Execution Model
+
+A computation is a sequence of **layers**. Each layer fans out to N workers in parallel, waits for
+all to complete, and returns the aggregated results. Workers in layer 2 can read layer 1's output
+via `PreviousLayerResultJson`, enabling multi-stage pipelines.
+
+```
+create_session(sourceCode)
+    └─► run_layer(sessionId, parallelism=N)          ← layer 1
+            └─► run_layer(sessionId, parallelism=N,   ← layer 2, reads layer 1 results
+                          previousLayerResultJson=...) 
+```
+
+If a layer fails, call `create_session` again with fixed code and re-run from the last successful
+layer's `resultJson` — no earlier work is lost.
+
+---
+
+## The IAgentComputation Interface
+
+Every session requires a C# class implementing this interface from `Parcs.Agent.Runtime`:
+
+```csharp
+public interface IAgentComputation
+{
+    Task<AgentLayerResult> ExecuteAsync(AgentLayerInput input, CancellationToken ct);
+}
+```
+
+### AgentLayerInput fields available to each worker
+
+| Field | Type | Description |
+|---|---|---|
+| `WorkerIndex` | `int` | 0-based index within this layer's worker pool |
+| `TotalWorkers` | `int` | Total workers in this layer |
+| `PreviousLayerResultJson` | `string?` | JSON output from the previous `run_layer` call (null for first layer) |
+| `CustomData` | `string?` | Shared string payload broadcast to all workers |
+| `Parameters` | `Dictionary<string,string>` | Named key/value pairs passed at submission time |
+
+### Returning results
+
+```csharp
+return AgentLayerResult.Ok(outputJson);    // success — outputJson is any JSON string
+return AgentLayerResult.Error("message");  // failure — layer status becomes Failed
+```
+
+### Required usings (always included automatically in body-only mode)
+
+```csharp
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
+using Parcs.Agent.Runtime;
+```
+
+If you submit a **full class** (containing `class` + `IAgentComputation`), include your own usings.
+If you submit just a **method body**, the wrapper class and usings are added automatically.
+
+---
+
+## MCP Tools
+
+### `get_cluster_info`
+Returns current cluster capacity. Call this first to decide parallelism.
+
+```json
+{
+  "workerNodeCount": 3,
+  "maxParallelism": 21,
+  "daemonCpuRequestMillicores": 500
+}
+```
+
+Never request more workers than `maxParallelism`. KEDA autoscales nodes on demand, so using the
+full `maxParallelism` is safe and encouraged for large jobs.
+
+---
+
+### `create_session`
+
+```
+create_session(sourceCode: string) → { sessionId, createdAt, message } | { error }
+```
+
+- Compiles the C# source with Roslyn
+- Returns `sessionId` on success; returns `{ error }` with compiler diagnostics on failure
+- On compile error: fix the code and call `create_session` again — no state is lost
+
+---
+
+### `run_layer` *(preferred — blocks until done)*
+
+```
+run_layer(
+  sessionId:               string,
+  parallelism:             int,
+  previousLayerResultJson: string? = null,
+  customData:              string? = null,
+  parametersJson:          string? = null   // JSON object e.g. '{"start":"0","end":"1000"}'
+) → { layerId, sessionId, status, submittedAt, completedAt, resultJson?, errorMessage? }
+```
+
+`status` is `"Completed"` or `"Failed"`.
+
+`resultJson` is a `LayerOutputDto`:
+```json
+{
+  "sessionId": "...",
+  "layerId": "...",
+  "totalElapsedSeconds": 4.2,
+  "results": [
+    { "workerIndex": 0, "success": true,  "outputData": "...", "elapsedSeconds": 4.1 },
+    { "workerIndex": 1, "success": false, "errorMessage": "...", "elapsedSeconds": 0.3 }
+  ]
+}
+```
+
+---
+
+### `list_sessions`
+
+Lists all active sessions in this MCP server instance. Useful for resuming a pipeline after a
+connection drop.
+
+---
+
+## Patterns
+
+### Work partitioning by index
+
+The standard approach: each worker handles its slice of the total work.
+
+```csharp
+// Divide range [0, total) evenly across workers
+int total = int.Parse(input.Parameters["total"]);
+int chunkSize = (total + input.TotalWorkers - 1) / input.TotalWorkers;
+int start = input.WorkerIndex * chunkSize;
+int end   = Math.Min(start + chunkSize, total);
+
+for (int i = start; i < end; i++)
+{
+    // process item i
+}
+```
+
+### Reading previous layer results
+
+```csharp
+var previousResults = JsonSerializer.Deserialize<List<MyResultType>>(
+    input.PreviousLayerResultJson!);
+```
+
+Each worker in the previous layer wrote its own JSON. The `results` array in `LayerOutputDto`
+contains each worker's `outputData` — deserialize appropriately in the coordinator layer.
+
+### Seeded randomness (reproducible across workers)
+
+```csharp
+var rng = new Random(input.WorkerIndex * 1337 + 42);
+```
+
+Using a seed derived from `WorkerIndex` ensures deterministic and non-overlapping random streams.
+
+---
+
+## Multi-layer pipeline example
+
+```
+Layer 1 (N workers): Each worker scans its partition → returns partial results JSON
+Layer 2 (1 worker):  Aggregator reads previousLayerResultJson → merges → returns final answer
+```
+
+Pass `parallelism=1` on the aggregator layer and use `previousLayerResultJson` to feed it all
+of layer 1's output.
+
+---
+
+## Error handling
+
+| Situation | What to do |
+|---|---|
+| `create_session` returns `{ error }` | Read the `[CSXXXX]` diagnostic, fix the code, re-call `create_session` |
+| `run_layer` returns `status: "Failed"` | Check `errorMessage`; fix code with `create_session`; re-run passing last successful `resultJson` as `previousLayerResultJson` |
+| Individual worker `success: false` | Decide whether to retry the whole layer or handle partial results |
+| Session not found | Call `list_sessions` to find active sessions; create a new one if needed |
+
+---
+
+## Tips
+
+- Always call `get_cluster_info` first and cap `parallelism` at `maxParallelism`.
+- Prefer `run_layer` over `submit_layer` + polling unless the layer will run for many minutes.
+- Serialize worker outputs as compact JSON — `outputData` is a string field on the result.
+- Avoid `dynamic` keyword if possible; if you need it, it's supported (Microsoft.CSharp is referenced).
+- For CPU-bound work, each daemon gets 500m CPU — prefer work units of at least a few seconds per worker to amortise scheduling overhead.
+- The cluster autoscales via KEDA; spinning up new nodes takes ~60–90 seconds on first use. Subsequent layers reuse warm pods.
+
+---
+
+## Lessons from prior PARCS jobs
+
+- Use a final `parallelism=1` layer not only for numerical aggregation, but also for final answer formatting. This prevents accidental client-side arithmetic or prose-level reinterpretation of worker outputs.
+- Make worker output schemas explicit before coding. Use small JSON objects with named fields such as `workerIndex`, `start`, `end`, `count`, `sum`, `min`, `max`, and `errors`; this makes the aggregation layer simpler and easier to validate.
+- Include lightweight validation data in each partial result when practical, such as processed range bounds or item counts, so the aggregator can detect gaps, overlaps, or failed workers instead of silently combining bad data.
+- Keep C# code self-contained and conservative: prefer strongly typed DTOs, `JsonDocument`/`JsonSerializer`, and deterministic partitioning over reflection-heavy or environment-dependent approaches.
+- For searches, optimization, Monte Carlo, or statistical jobs, return enough metadata for reproducibility: seed strategy, number of trials/items processed per worker, and selected parameters.
+- Before coding, decide the exact JSON contract for both worker outputs and the final aggregation output. Designing the result shape first makes multi-layer jobs easier to test, validate, and present without ad hoc parsing.
+- Prefer aggregators that verify completeness explicitly: count worker results, confirm all required partitions were processed, and fail loudly if any worker output is missing or malformed.
+- When a user asks for a computed comparison, ranking, or summary, make the final layer emit that exact comparison text or structured JSON instead of returning raw partials for the client to interpret.
+- If user asks for reflection or memory updates after a job, capture operational lessons in this skill and behavioral lessons in `/memory/AGENTS.md`; do not store transient job results unless they reveal a reusable pattern.
+- For any non-trivial PARCS request, write down the layer plan before touching `create_session`: worker responsibilities, partitioning formula, expected worker JSON, aggregator input expectations, and final output contract.
+- Make the aggregation layer validate structure before semantics: check that `results.Length` matches the intended worker count, every `success` flag is true, and every `outputData` payload parses before computing any final answer.
+- If a task is small enough that cluster startup and coordination overhead would dominate, say so and either right-size the worker count aggressively or avoid over-parallelising the job.
+- When the MCP tool contract evolves, trust the live tool schema over stale examples in the skill text. In particular, `run_layer` resumes with `previousLayerId` rather than an inline previous-result JSON payload, so examples and plans should be written in terms of layer IDs and server-managed result passing.
+- Treat the cluster's final layer as responsible for presentable output, but still keep that output machine-checkable when possible: emit concise JSON or exact answer text that can be shown to the user without additional interpretation.
+- In recovery planning, preserve resumability explicitly: identify the last successful `layerId`, recompile if needed, and continue from that layer instead of rerunning unaffected earlier layers.

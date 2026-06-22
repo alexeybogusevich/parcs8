@@ -19,7 +19,7 @@ namespace Parcs.Core.Services
             return filePath switch
             {
                 null => throw new ArgumentException($"{filename} not found among the input files for the job."),
-                _ => new FileStream(filePath, FileMode.Open)
+                _ => new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read)
             };
         }
     }

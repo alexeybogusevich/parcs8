@@ -1,0 +1,18 @@
+# Copy this file to terraform.tfvars and fill in your values.
+# terraform.tfvars is git-ignored; never commit real project IDs or credentials.
+
+project_id = "your-gcp-project-id"
+region     = "us-central1"
+zone       = "us-central1-c"
+
+cluster_name     = "parcs-cluster"
+cpu_node_count   = 3
+cpu_machine_type = "n1-standard-2"
+
+artifact_registry_location = "us-central1"
+
+pubsub_topic_name        = "point-requested"
+pubsub_subscription_name = "point-requested-sub"
+
+keda_namespace  = "keda"
+parcs_namespace = "default"

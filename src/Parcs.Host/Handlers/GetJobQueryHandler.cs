@@ -36,23 +36,42 @@ namespace Parcs.Host.Handlers
                 return null;
             }
 
-            var moduleFiles = Directory.GetFiles(_moduleDirectoryPathBuilder.Build(job.ModuleId));
             var moduleOptions = new List<string>();
 
-            foreach (var assemblyPath in moduleFiles.Where(f => Path.GetFileName(f).Contains(".dll")).ToList())
+            try
             {
-                using var assemblyMetadataContext = _metadataLoadContextProvider.Get(assemblyPath, typeof(IModule).Assembly.Location);
+                var moduleFiles = Directory.GetFiles(_moduleDirectoryPathBuilder.Build(job.ModuleId));
 
-                var assembly = assemblyMetadataContext.LoadFromAssemblyPath(assemblyPath);
-                var assemblyModuleOptions = assembly
-                    .GetTypes()
-                    .Where(t => t.GetInterface(nameof(IModuleOptions)) is not null)
-                    .SelectMany(t => t.GetProperties())
-                    .Select(p => p.Name)
-                    .Distinct()
-                    .ToArray();
+                foreach (var assemblyPath in moduleFiles.Where(f => Path.GetFileName(f).Contains(".dll")).ToList())
+                {
+                    try
+                    {
+                        using var assemblyMetadataContext = _metadataLoadContextProvider.Get(assemblyPath, typeof(IModule).Assembly.Location);
 
-                moduleOptions.AddRange(assemblyModuleOptions);
+                        var assembly = assemblyMetadataContext.LoadFromAssemblyPath(assemblyPath);
+                        var assemblyModuleOptions = assembly
+                            .GetTypes()
+                            .Where(t =>
+                            {
+                                try { return t.GetInterface(nameof(IModuleOptions)) is not null; }
+                                catch { return false; }
+                            })
+                            .SelectMany(t => t.GetProperties())
+                            .Select(p => p.Name)
+                            .Distinct()
+                            .ToArray();
+
+                        moduleOptions.AddRange(assemblyModuleOptions);
+                    }
+                    catch
+                    {
+                        // Skip assemblies that cannot be reflected (e.g. missing dependencies).
+                    }
+                }
+            }
+            catch
+            {
+                // Module directory may not exist yet; options stay empty.
             }
 
             return new GetJobQueryResponse

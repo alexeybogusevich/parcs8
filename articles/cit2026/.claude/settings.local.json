@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pandoc --version)",
+      "Bash(pdflatex --version)",
+      "Bash(latexmk --version)",
+      "Bash(latexmk -pdf main.tex)"
+    ]
+  }
+}
