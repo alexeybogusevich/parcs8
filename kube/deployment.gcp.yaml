@@ -283,7 +283,7 @@ kind: ServiceAccount
 metadata:
   name: parcs-daemon
   annotations:
-    iam.gke.io/gcp-service-account: parcs-daemon@parcs-gcp.iam.gserviceaccount.com
+    iam.gke.io/gcp-service-account: parcs-daemon@project-42bf3d0d-188a-4d3d-b56.iam.gserviceaccount.com
 ---
 # Kubernetes ServiceAccount for PARCS Host pods.
 # Annotated with the GCP ServiceAccount created by Terraform (parcs-host@parcs-gcp.iam.gserviceaccount.com).
@@ -294,7 +294,7 @@ kind: ServiceAccount
 metadata:
   name: parcs-host
   annotations:
-    iam.gke.io/gcp-service-account: parcs-host@parcs-gcp.iam.gserviceaccount.com
+    iam.gke.io/gcp-service-account: parcs-host@project-42bf3d0d-188a-4d3d-b56.iam.gserviceaccount.com
 ---
 ---
 apiVersion: v1
