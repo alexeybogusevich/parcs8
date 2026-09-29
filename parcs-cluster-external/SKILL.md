@@ -29,14 +29,17 @@ This is useful whenever a problem can be split into independent parts — for ex
 
 ## Step 0 — Connect to the cluster
 
-The cluster exposes an MCP server over SSE. Add it to Claude Code once:
+The cluster exposes an MCP server over Streamable HTTP (preferred) and legacy SSE. It requires a
+bearer token — get it from whoever manages the cluster, never commit it. Add it to Claude Code
+once:
 
 ```bash
-claude mcp add parcs --transport sse http://34.76.43.4:8080/sse
+export PARCS_MCP_TOKEN=...
+claude mcp add parcs --transport http http://34.116.216.29:8080/ --header "Authorization: Bearer $PARCS_MCP_TOKEN"
 ```
 
-After this, the PARCS tools (`get_cluster_info`, `create_session`, `run_layer`, etc.) are
-available in your session.
+After this, the PARCS tools (`get_cluster_info`, `create_session`, `run_layer`, `submit_layer`,
+`get_layer_result`, `list_sessions`) are available in your session.
 
 ---
 
@@ -56,8 +59,9 @@ Always call `get_cluster_info` first. It tells you how many workers are availabl
 ```
 
 - `maxParallelism` — the maximum number of workers you can use at once. Never exceed this.
-- `daemonCpuRequestMillicores` — each worker gets 500m of CPU (half a core).
-- The cluster autoscales: if nodes need to spin up, the first run may take 60–90 seconds longer.
+- `daemonCpuRequestMillicores` — each worker gets 250m of CPU (a quarter core).
+- The cluster autoscales: if nodes need to spin up, the first run may take significantly longer than a warm one — 160–287s measured with 16–21 workers, not just 60–90s. Size client-side timeouts accordingly.
+- `maxParallelism` reflects current cluster capacity, not a fixed ceiling — it rises as KEDA scales nodes up.
 
 ---
 
@@ -386,7 +390,7 @@ For most tasks, prefer `run_layer` which handles waiting automatically.
 | `create_session` returns `{ error: "Compilation failed..." }` | Read the `[CSXXXX]` error and line number. Fix the code and call `create_session` again. |
 | `run_layer` returns `status: "Failed"` | Read `errorMessage`. Fix code with a new `create_session` call, then re-run from the last successful layer. |
 | One worker has `success: false` | The other workers' results are still usable. Decide whether to retry the whole layer or work with partial results. |
-| First run is slow (60–90 seconds) | Normal — the cluster is scaling up nodes. Subsequent layers run on warm pods and are much faster. |
+| First run is slow (measured 160–287s with 16–21 workers) | Normal — the cluster is scaling up nodes. Subsequent layers run on warm pods and are much faster. Prefer `submit_layer` + polling for a first layer so a slow cold start can't drop your only way to get the layerId. |
 | `"Session not found"` error | The session may have expired. Call `list_sessions` to check, or `create_session` to start fresh. |
 
 ---

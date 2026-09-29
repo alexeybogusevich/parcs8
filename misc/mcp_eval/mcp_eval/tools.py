@@ -11,7 +11,7 @@ class ParcsMCPToolNames(StrEnum):
 
     RunLayer = "run_layer"
     ListSessions = "list_sessions"
-    GetLayerResults = "get_layer_results"
+    GetLayerResult = "get_layer_result"
     SubmitLayer = "submit_layer"
     CreateSession = "create_session"
     GetClusterInfo = "get_cluster_info"
@@ -38,8 +38,14 @@ async def get_parcs_mcp_tools() -> list[BaseTool]:
     if not config.mcp.cluster_url:
         raise ValueError("Cluster URL must be provided in the configuration")
 
+    connection: dict = {"transport": "sse", "url": config.mcp.cluster_url + "/sse"}
+    # The live cluster's MCP endpoint requires this since it started rejecting
+    # unauthenticated requests — see Program.cs's Authentication:BearerToken check.
+    if config.mcp.bearer_token:
+        connection["headers"] = {"Authorization": f"Bearer {config.mcp.bearer_token}"}
+
     client = MultiServerMCPClient(
-        {"parcs": {"transport": "sse", "url": config.mcp.cluster_url + "/sse" }}, # "sse_read_timeout": 1000
+        {"parcs": connection}, # "sse_read_timeout": 1000
         callbacks=Callbacks(on_progress=on_progress),
     )
 

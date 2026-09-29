@@ -193,7 +193,7 @@ spec:
         serviceAccountName: parcs-daemon   # Workload Identity: maps to parcs-daemon GCP SA
         containers:
         - name: parcs-daemon
-          image: oleksiibohusevych/parcsdaemon
+          image: europe-central2-docker.pkg.dev/project-42bf3d0d-188a-4d3d-b56/parcs/parcsdaemon:latest
           imagePullPolicy: Always
           ports:
           - containerPort: 1111
@@ -272,6 +272,18 @@ type: Opaque
 # data populated at deploy time; placeholder shown here
 # stringData:
 #   projectId: "YOUR_parcs-gcp"
+---
+# Bearer token checked by parcs-agent-mcp on every request (see Program.cs). Generate a random
+# value — do not commit a real one. Create before applying this manifest:
+#   kubectl create secret generic parcs-mcp-auth --from-literal=bearerToken="$(openssl rand -hex 32)"
+apiVersion: v1
+kind: Secret
+metadata:
+  name: parcs-mcp-auth
+type: Opaque
+# data populated at deploy time; placeholder shown here
+# stringData:
+#   bearerToken: "YOUR_RANDOM_TOKEN"
 ---
 # Kubernetes ServiceAccount for PARCS daemon pods.
 # Annotated with the GCP ServiceAccount created by Terraform (parcs-daemon@parcs-gcp.iam.gserviceaccount.com).
@@ -357,7 +369,7 @@ spec:
         command: ['sh', '-c', 'until nc -z parcs-database 5432; do echo "Waiting for PostgreSQL..."; sleep 5; done']
       containers:
       - name: parcs-hostapi
-        image: oleksiibohusevych/parcshost
+        image: europe-central2-docker.pkg.dev/project-42bf3d0d-188a-4d3d-b56/parcs/parcshost:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 8080
@@ -557,7 +569,7 @@ spec:
           claimName: parcs-storage-volume-claim
       containers:
       - name: parcs-agent-mcp
-        image: oleksiibohusevych/parcs-agent-mcp:latest
+        image: europe-central2-docker.pkg.dev/project-42bf3d0d-188a-4d3d-b56/parcs/parcs-agent-mcp:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 8080
@@ -576,6 +588,11 @@ spec:
           value: "3"
         - name: Parcs__FallbackMaxParallelism
           value: "18"
+        - name: Authentication__BearerToken
+          valueFrom:
+            secretKeyRef:
+              name: parcs-mcp-auth
+              key: bearerToken
         resources:
           limits:
             cpu: 500m
@@ -616,10 +633,15 @@ spec:
 # External LoadBalancer — exposes the MCP server to Claude Code (or any MCP client) outside the cluster.
 # GKE will provision a GCP Load Balancer and assign a public IP.
 # After applying: kubectl get svc parcs-agent-mcp-external -w  (wait for EXTERNAL-IP)
-# Then configure Claude Code MCP with: http://EXTERNAL-IP:8080/sse
+# Then configure Claude Code MCP with:
+#   claude mcp add parcs --transport http http://EXTERNAL-IP:8080/ --header "Authorization: Bearer <token>"
 #
-# SECURITY NOTE: The MCP endpoint has no authentication. Restrict access using GCP firewall rules
-# or a Kubernetes NetworkPolicy to allow only your IP range in production.
+# SECURITY NOTE: Program.cs requires the Authorization: Bearer <token> header on every request
+# except /health and /noop — see the parcs-mcp-auth Secret below (create it before applying:
+# kubectl create secret generic parcs-mcp-auth --from-literal=bearerToken='<a random token>').
+# Traffic is still unencrypted HTTP (no TLS on this bare LoadBalancer) — put this behind an
+# HTTPS-terminating Ingress before treating the token as a real secret boundary, and additionally
+# restrict access with GCP firewall rules or a Kubernetes NetworkPolicy in production.
 apiVersion: v1
 kind: Service
 metadata:

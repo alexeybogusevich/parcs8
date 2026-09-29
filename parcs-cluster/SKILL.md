@@ -19,15 +19,21 @@ out to N daemon workers via Pub/Sub + KEDA, and returns aggregated results.
 
 ## Connection
 
-MCP server (SSE transport):
+The endpoint requires a bearer token (get it from whoever manages the cluster — never commit it).
+Set it in your shell first: `export PARCS_MCP_TOKEN=...`
+
+MCP server (Streamable HTTP — preferred; supports resuming a stream after a disconnect):
 ```
-http://34.76.43.4:8080/sse
+http://34.116.216.29:8080/
 ```
 
 Add to Claude Code once:
 ```bash
-claude mcp add parcs --transport sse http://34.76.43.4:8080/sse
+claude mcp add parcs --transport http http://34.116.216.29:8080/ --header "Authorization: Bearer $PARCS_MCP_TOKEN"
 ```
+
+The legacy SSE endpoint (`http://34.116.216.29:8080/sse`, `--transport sse`) still works for older
+clients, but prefer Streamable HTTP for anything new.
 
 ---
 
@@ -245,5 +251,7 @@ of layer 1's output.
 - Prefer `run_layer` over `submit_layer` + polling unless the layer will run for many minutes.
 - Serialize worker outputs as compact JSON — `outputData` is a string field on the result.
 - Avoid `dynamic` keyword if possible; if you need it, it's supported (Microsoft.CSharp is referenced).
-- For CPU-bound work, each daemon gets 500m CPU — prefer work units of at least a few seconds per worker to amortise scheduling overhead.
-- The cluster autoscales via KEDA; spinning up new nodes takes ~60–90 seconds on first use. Subsequent layers reuse warm pods.
+- For CPU-bound work, each daemon gets 250m CPU (a quarter core) — prefer work units of at least a few seconds per worker to amortise scheduling overhead.
+- The cluster autoscales via KEDA; spinning up new nodes has measured 160–287s on first use with 16–21 workers, not just 60–90s — size client-side timeouts accordingly. Subsequent layers reuse warm pods.
+- `maxParallelism` reflects current cluster capacity, not a fixed ceiling — it rises as KEDA scales nodes up, and can vary across calls on the same day.
+- Prefer `submit_layer` over `run_layer` for anything that might run long: it returns a `layerId` immediately instead of blocking, so a dropped connection never loses your only way to retrieve the result. Poll with `get_layer_result`.

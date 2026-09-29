@@ -1,0 +1,11 @@
+.git/
+.gitignore
+**/bin/
+**/obj/
+**/node_modules/
+**/.venv/
+**/*.pdb
+articles/
+docs/
+misc/mcp_eval/.venv/
+misc/mcp_eval/results/

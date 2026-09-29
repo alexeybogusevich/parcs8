@@ -1,3 +1,4 @@
+using Google.Api.Gax;
 using Google.Cloud.PubSub.V1;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -64,7 +65,26 @@ namespace Parcs.Daemon.HostedServices
                 _pubSubConfiguration.ProjectId,
                 _pubSubConfiguration.SubscriptionId);
 
-            _subscriber = await SubscriberClient.CreateAsync(subscriptionName);
+            // This pod is designed to process exactly one message and then stop (see class
+            // remarks). The client's defaults allow several messages to be delivered to the
+            // handler concurrently within one process (ClientCount defaults to
+            // Environment.ProcessorCount pull streams), which breaks that invariant — a pod could
+            // grab a second message for a different point while finishing (or shutting down
+            // after) its first, orphaning that connection. Pin flow control to exactly one
+            // outstanding message and one pull stream so this pod never accepts a second message.
+            var subscriberBuilder = new SubscriberClientBuilder
+            {
+                SubscriptionName = subscriptionName,
+                ClientCount = 1,
+                Settings = new SubscriberClient.Settings
+                {
+                    FlowControlSettings = new FlowControlSettings(
+                        maxOutstandingElementCount: 1,
+                        maxOutstandingByteCount: null),
+                },
+            };
+
+            _subscriber = await subscriberBuilder.BuildAsync(cancellationToken);
 
             _logger.LogInformation(
                 "Starting Pub/Sub subscriber for subscription {SubscriptionId} in project {ProjectId}",
