@@ -273,18 +273,6 @@ type: Opaque
 # stringData:
 #   projectId: "YOUR_parcs-gcp"
 ---
-# Bearer token checked by parcs-agent-mcp on every request (see Program.cs). Generate a random
-# value — do not commit a real one. Create before applying this manifest:
-#   kubectl create secret generic parcs-mcp-auth --from-literal=bearerToken="$(openssl rand -hex 32)"
-apiVersion: v1
-kind: Secret
-metadata:
-  name: parcs-mcp-auth
-type: Opaque
-# data populated at deploy time; placeholder shown here
-# stringData:
-#   bearerToken: "YOUR_RANDOM_TOKEN"
----
 # Kubernetes ServiceAccount for PARCS daemon pods.
 # Annotated with the GCP ServiceAccount created by Terraform (parcs-daemon@parcs-gcp.iam.gserviceaccount.com).
 # GKE Workload Identity maps this K8s SA to the GCP SA so daemon pods can subscribe to Pub/Sub
@@ -588,11 +576,6 @@ spec:
           value: "3"
         - name: Parcs__FallbackMaxParallelism
           value: "18"
-        - name: Authentication__BearerToken
-          valueFrom:
-            secretKeyRef:
-              name: parcs-mcp-auth
-              key: bearerToken
         resources:
           limits:
             cpu: 500m
@@ -634,14 +617,11 @@ spec:
 # GKE will provision a GCP Load Balancer and assign a public IP.
 # After applying: kubectl get svc parcs-agent-mcp-external -w  (wait for EXTERNAL-IP)
 # Then configure Claude Code MCP with:
-#   claude mcp add parcs --transport http http://EXTERNAL-IP:8080/ --header "Authorization: Bearer <token>"
+#   claude mcp add parcs --transport http http://EXTERNAL-IP:8080/
 #
-# SECURITY NOTE: Program.cs requires the Authorization: Bearer <token> header on every request
-# except /health and /noop — see the parcs-mcp-auth Secret below (create it before applying:
-# kubectl create secret generic parcs-mcp-auth --from-literal=bearerToken='<a random token>').
-# Traffic is still unencrypted HTTP (no TLS on this bare LoadBalancer) — put this behind an
-# HTTPS-terminating Ingress before treating the token as a real secret boundary, and additionally
-# restrict access with GCP firewall rules or a Kubernetes NetworkPolicy in production.
+# SECURITY NOTE: The MCP endpoint has no authentication (removed for now — see git history for
+# the bearer-token middleware if it needs to come back) and no TLS. Restrict access using GCP
+# firewall rules or a Kubernetes NetworkPolicy to allow only your IP range in production.
 apiVersion: v1
 kind: Service
 metadata:

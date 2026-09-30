@@ -26,9 +26,6 @@ class LLMSettings(BaseModel):
 
 class MCPSettings(BaseModel):
     cluster_url: str
-    # Bearer token required by the live cluster's auth middleware (see Program.cs). Ask
-    # whoever manages the cluster for the current value — never commit it.
-    bearer_token: str | None = None
 
 
 class PathSettings(BaseModel):

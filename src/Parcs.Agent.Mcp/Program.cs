@@ -29,38 +29,6 @@ builder.Services
 
 var app = builder.Build();
 
-// ── Auth ──────────────────────────────────────────────────────────────────────
-// Minimum viable auth: a shared bearer token checked on every request except the K8s
-// health/callback endpoints. Set via the Authentication__BearerToken env var (see
-// kube/deployment.gcp.yaml — sourced from a Secret, never committed).
-var bearerToken = builder.Configuration["Authentication:BearerToken"];
-if (!string.IsNullOrEmpty(bearerToken))
-{
-    app.Use(async (context, next) =>
-    {
-        if (context.Request.Path == "/health" || context.Request.Path == "/noop")
-        {
-            await next();
-            return;
-        }
-
-        var expected = $"Bearer {bearerToken}";
-        if (context.Request.Headers.Authorization.ToString() != expected)
-        {
-            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-            await context.Response.WriteAsync("Unauthorized");
-            return;
-        }
-
-        await next();
-    });
-}
-else
-{
-    app.Logger.LogWarning(
-        "Authentication:BearerToken is not set — the MCP endpoint is running with NO authentication.");
-}
-
 app.MapMcp();
 
 // Health probe (used by Kubernetes liveness/readiness probes)

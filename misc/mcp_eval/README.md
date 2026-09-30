@@ -95,8 +95,6 @@ Open `.env` in any text editor and set the following values:
 ```
 # The PARCS cluster MCP endpoint — ask Oleksii for the current IP
 MCP__CLUSTER_URL=http://34.116.216.29:8080
-# Required — the endpoint rejects unauthenticated requests. Ask Oleksii for the current token.
-MCP__BEARER_TOKEN=
 
 # Google Cloud settings for Vertex AI
 LLM__PROVIDER=vertexai

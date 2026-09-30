@@ -19,9 +19,6 @@ out to N daemon workers via Pub/Sub + KEDA, and returns aggregated results.
 
 ## Connection
 
-The endpoint requires a bearer token (get it from whoever manages the cluster — never commit it).
-Set it in your shell first: `export PARCS_MCP_TOKEN=...`
-
 MCP server (Streamable HTTP — preferred; supports resuming a stream after a disconnect):
 ```
 http://34.116.216.29:8080/
@@ -29,7 +26,7 @@ http://34.116.216.29:8080/
 
 Add to Claude Code once:
 ```bash
-claude mcp add parcs --transport http http://34.116.216.29:8080/ --header "Authorization: Bearer $PARCS_MCP_TOKEN"
+claude mcp add parcs --transport http http://34.116.216.29:8080/
 ```
 
 The legacy SSE endpoint (`http://34.116.216.29:8080/sse`, `--transport sse`) still works for older

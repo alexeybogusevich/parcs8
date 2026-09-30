@@ -29,13 +29,11 @@ This is useful whenever a problem can be split into independent parts — for ex
 
 ## Step 0 — Connect to the cluster
 
-The cluster exposes an MCP server over Streamable HTTP (preferred) and legacy SSE. It requires a
-bearer token — get it from whoever manages the cluster, never commit it. Add it to Claude Code
-once:
+The cluster exposes an MCP server over Streamable HTTP (preferred) and legacy SSE. Add it to
+Claude Code once:
 
 ```bash
-export PARCS_MCP_TOKEN=...
-claude mcp add parcs --transport http http://34.116.216.29:8080/ --header "Authorization: Bearer $PARCS_MCP_TOKEN"
+claude mcp add parcs --transport http http://34.116.216.29:8080/
 ```
 
 After this, the PARCS tools (`get_cluster_info`, `create_session`, `run_layer`, `submit_layer`,
