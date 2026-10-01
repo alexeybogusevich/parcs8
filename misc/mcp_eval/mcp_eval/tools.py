@@ -11,7 +11,7 @@ class ParcsMCPToolNames(StrEnum):
 
     RunLayer = "run_layer"
     ListSessions = "list_sessions"
-    GetLayerResults = "get_layer_results"
+    GetLayerResult = "get_layer_result"
     SubmitLayer = "submit_layer"
     CreateSession = "create_session"
     GetClusterInfo = "get_cluster_info"

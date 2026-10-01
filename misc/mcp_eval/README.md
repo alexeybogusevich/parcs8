@@ -94,11 +94,11 @@ Open `.env` in any text editor and set the following values:
 
 ```
 # The PARCS cluster MCP endpoint — ask Oleksii for the current IP
-MCP__CLUSTER_URL=http://34.76.43.4:8080
+MCP__CLUSTER_URL=http://34.116.216.29:8080
 
 # Google Cloud settings for Vertex AI
 LLM__PROVIDER=vertexai
-LLM__PROJECT=parcs-gcp
+LLM__PROJECT=project-42bf3d0d-188a-4d3d-b56
 LLM__LOCATION=us-central1
 
 # Models to evaluate

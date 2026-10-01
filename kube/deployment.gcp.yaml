@@ -193,7 +193,7 @@ spec:
         serviceAccountName: parcs-daemon   # Workload Identity: maps to parcs-daemon GCP SA
         containers:
         - name: parcs-daemon
-          image: oleksiibohusevych/parcsdaemon
+          image: europe-central2-docker.pkg.dev/project-42bf3d0d-188a-4d3d-b56/parcs/parcsdaemon:latest
           imagePullPolicy: Always
           ports:
           - containerPort: 1111
@@ -283,7 +283,7 @@ kind: ServiceAccount
 metadata:
   name: parcs-daemon
   annotations:
-    iam.gke.io/gcp-service-account: parcs-daemon@parcs-gcp.iam.gserviceaccount.com
+    iam.gke.io/gcp-service-account: parcs-daemon@project-42bf3d0d-188a-4d3d-b56.iam.gserviceaccount.com
 ---
 # Kubernetes ServiceAccount for PARCS Host pods.
 # Annotated with the GCP ServiceAccount created by Terraform (parcs-host@parcs-gcp.iam.gserviceaccount.com).
@@ -294,7 +294,7 @@ kind: ServiceAccount
 metadata:
   name: parcs-host
   annotations:
-    iam.gke.io/gcp-service-account: parcs-host@parcs-gcp.iam.gserviceaccount.com
+    iam.gke.io/gcp-service-account: parcs-host@project-42bf3d0d-188a-4d3d-b56.iam.gserviceaccount.com
 ---
 ---
 apiVersion: v1
@@ -357,7 +357,7 @@ spec:
         command: ['sh', '-c', 'until nc -z parcs-database 5432; do echo "Waiting for PostgreSQL..."; sleep 5; done']
       containers:
       - name: parcs-hostapi
-        image: oleksiibohusevych/parcshost
+        image: europe-central2-docker.pkg.dev/project-42bf3d0d-188a-4d3d-b56/parcs/parcshost:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 8080
@@ -557,7 +557,7 @@ spec:
           claimName: parcs-storage-volume-claim
       containers:
       - name: parcs-agent-mcp
-        image: oleksiibohusevych/parcs-agent-mcp:latest
+        image: europe-central2-docker.pkg.dev/project-42bf3d0d-188a-4d3d-b56/parcs/parcs-agent-mcp:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 8080
@@ -616,10 +616,12 @@ spec:
 # External LoadBalancer — exposes the MCP server to Claude Code (or any MCP client) outside the cluster.
 # GKE will provision a GCP Load Balancer and assign a public IP.
 # After applying: kubectl get svc parcs-agent-mcp-external -w  (wait for EXTERNAL-IP)
-# Then configure Claude Code MCP with: http://EXTERNAL-IP:8080/sse
+# Then configure Claude Code MCP with:
+#   claude mcp add parcs --transport http http://EXTERNAL-IP:8080/
 #
-# SECURITY NOTE: The MCP endpoint has no authentication. Restrict access using GCP firewall rules
-# or a Kubernetes NetworkPolicy to allow only your IP range in production.
+# SECURITY NOTE: The MCP endpoint has no authentication (removed for now — see git history for
+# the bearer-token middleware if it needs to come back) and no TLS. Restrict access using GCP
+# firewall rules or a Kubernetes NetworkPolicy to allow only your IP range in production.
 apiVersion: v1
 kind: Service
 metadata:

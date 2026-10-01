@@ -47,7 +47,7 @@ TOOL_STYLES: dict[str, ToolStyle] = {
     ParcsMCPToolNames.CreateSession: ToolStyle("Creating session", "yellow"),
     ParcsMCPToolNames.GetClusterInfo: ToolStyle("Getting cluster info", "blue"),
     ParcsMCPToolNames.SubmitLayer: ToolStyle("Submitting layer", "green"),
-    ParcsMCPToolNames.GetLayerResults: ToolStyle("Getting layer results", "green"),
+    ParcsMCPToolNames.GetLayerResult: ToolStyle("Getting layer result", "green"),
     "read_file": ToolStyle("Reading", "magenta", arg_key="file_path"),
     WRITE_TODOS_TOOL_NAME: ToolStyle("Updating todos", "magenta"),
 }

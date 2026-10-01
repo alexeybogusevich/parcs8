@@ -18,7 +18,13 @@ builder.Services.AddHostedService(sp => sp.GetRequiredService<AgentRunnerModuleR
 // ── MCP server ────────────────────────────────────────────────────────────────
 builder.Services
     .AddMcpServer()
-    .WithHttpTransport()
+    .WithHttpTransport(options =>
+    {
+        // Default is 2 minutes; run_layer blocks synchronously for the whole layer duration
+        // (cold starts alone have measured 160-287s), so the default idle window can close the
+        // connection before a legitimately long-running layer ever gets to reply.
+        options.IdleTimeout = TimeSpan.FromMinutes(30);
+    })
     .WithTools<ParcsAgentTools>();
 
 var app = builder.Build();

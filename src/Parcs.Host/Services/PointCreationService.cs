@@ -163,8 +163,23 @@ namespace Parcs.Host.Services
                 _logger.LogInformation(
                     "All {Count} point requests published for job {JobId}; awaiting daemon connections", count, jobId);
 
-                // Phase 2 — await all daemon TCP connections concurrently.
-                var channels = await Task.WhenAll(connectionTasks);
+                // Phase 2 — await all daemon TCP connections concurrently, bounded by a timeout.
+                // Without this, one daemon that never connects (lost Pub/Sub message, pod never
+                // scheduled, or a duplicate-message race — see PointCreationConsumer) hangs this
+                // call forever, since nothing downstream times out either.
+                var connectTimeout = TimeSpan.FromSeconds(_hostTcpConfiguration.DaemonConnectTimeoutSeconds);
+                var allConnected = Task.WhenAll(connectionTasks);
+                var completed = await Task.WhenAny(allConnected, Task.Delay(connectTimeout, cancellationToken));
+
+                if (completed != allConnected)
+                {
+                    var connectedCount = connectionTasks.Count(t => t.IsCompletedSuccessfully);
+                    throw new TimeoutException(
+                        $"Timed out after {connectTimeout.TotalSeconds}s waiting for daemons to connect for job " +
+                        $"{jobId}: {connectedCount}/{count} connected.");
+                }
+
+                var channels = await allConnected;
 
                 _logger.LogInformation("All {Count} daemons connected for job {JobId}", count, jobId);
 

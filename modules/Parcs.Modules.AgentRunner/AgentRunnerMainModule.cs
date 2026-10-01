@@ -29,7 +29,13 @@ namespace Parcs.Modules.AgentRunner;
 /// </summary>
 public sealed class AgentRunnerMainModule : IModule
 {
-    private static readonly JsonSerializerOptions JsonOpts = new() { WriteIndented = true };
+    // camelCase so agent_results.json matches every other payload the MCP server returns
+    // (the tool responses, and this same JSON fed back as PreviousLayerResultJson).
+    private static readonly JsonSerializerOptions JsonOpts = new()
+    {
+        WriteIndented = true,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+    };
 
     public async Task RunAsync(IModuleInfo moduleInfo, CancellationToken cancellationToken = default)
     {

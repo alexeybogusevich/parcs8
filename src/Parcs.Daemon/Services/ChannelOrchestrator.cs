@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using Parcs.Core.Models.Interfaces;
+using Parcs.Daemon.Exceptions;
 using Parcs.Daemon.Services.Interfaces;
 using Parcs.Net;
 
@@ -28,6 +29,12 @@ namespace Parcs.Daemon.Services
 
                     await _signalHandlerFactory.Create(signal).HandleAsync(managedChannel, cancellationToken);
                 }
+            }
+            catch (DuplicateJobException)
+            {
+                // Let this propagate to PointCreationConsumer, which Nacks the message so
+                // Pub/Sub redelivers it to a pod that isn't already busy with this job.
+                throw;
             }
             catch (Exception ex)
             {
