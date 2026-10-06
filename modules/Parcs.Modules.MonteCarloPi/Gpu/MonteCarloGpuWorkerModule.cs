@@ -1,5 +1,6 @@
 using ILGPU;
 using ILGPU.Runtime;
+using ILGPU.Runtime.CPU;
 using ILGPU.Runtime.Cuda;
 using Microsoft.Extensions.Logging;
 using Parcs.Net;
@@ -39,8 +40,8 @@ namespace Parcs.Modules.MonteCarloPi.Gpu
         {
             moduleInfo.Logger.LogInformation("Monte Carlo GPU Worker started");
 
-            var samples = await moduleInfo.Parent.ReadDataAsync<long>();
-            var seed = await moduleInfo.Parent.ReadDataAsync<int>();
+            var samples = await moduleInfo.Parent.ReadLongAsync();
+            var seed = await moduleInfo.Parent.ReadIntAsync();
 
             moduleInfo.Logger.LogInformation(
                 "GPU Worker processing {Samples:N0} samples with seed {Seed}", samples, seed);

@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
+using Parcs.Modules.MonteCarloPi.Parallel;
 using Parcs.Net;
 
 namespace Parcs.Modules.MonteCarloPi.Gpu
@@ -46,7 +47,7 @@ namespace Parcs.Modules.MonteCarloPi.Gpu
                 {
                     await channels[workerIndex].WriteDataAsync(samplesPerWorker);
                     await channels[workerIndex].WriteDataAsync(options.Seed + workerIndex);
-                    return await channels[workerIndex].ReadDataAsync<long>();
+                    return await channels[workerIndex].ReadLongAsync();
                 }));
             }
 

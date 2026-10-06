@@ -14,8 +14,8 @@ namespace Parcs.Modules.MonteCarloPi.Parallel
             moduleInfo.Logger.LogInformation("Monte Carlo Worker started");
             
             // Receive number of samples to process
-            var samples = await moduleInfo.Parent.ReadDataAsync<long>();
-            var seed = await moduleInfo.Parent.ReadDataAsync<int>();
+            var samples = await moduleInfo.Parent.ReadLongAsync();
+            var seed = await moduleInfo.Parent.ReadIntAsync();
             
             moduleInfo.Logger.LogInformation("Worker processing {Samples:N0} samples with seed {Seed}", samples, seed);
             

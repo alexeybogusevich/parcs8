@@ -45,7 +45,7 @@ namespace Parcs.Modules.MonteCarloPi.Parallel
                 {
                     await channels[workerIndex].WriteDataAsync(samplesPerWorker);
                     await channels[workerIndex].WriteDataAsync(options.Seed + workerIndex); // Different seed per worker
-                    var hits = await channels[workerIndex].ReadDataAsync<long>();
+                    var hits = await channels[workerIndex].ReadLongAsync();
                     return hits;
                 }));
             }
@@ -80,7 +80,7 @@ namespace Parcs.Modules.MonteCarloPi.Parallel
         }
     }
     
-    public class MonteCarloOptions
+    public class MonteCarloOptions : IModuleOptions
     {
         public long TotalSamples { get; set; } = 100_000_000; // 100M samples
         public int Workers { get; set; } = 4;

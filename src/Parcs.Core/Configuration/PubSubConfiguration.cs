@@ -27,5 +27,12 @@ namespace Parcs.Core.Configuration
         /// e.g. "point-requested-sub".
         /// </summary>
         public string SubscriptionId { get; set; }
+
+        /// <summary>
+        /// Topic the Host publishes to for jobs with JobEntity.RequiresGpu = true, consumed by
+        /// the separate GPU daemon ScaledJob. Only read by the Host (publisher side) — the GPU
+        /// daemon pods don't need to know this name, only their own SubscriptionId.
+        /// </summary>
+        public string GpuTopicId { get; set; }
     }
 }

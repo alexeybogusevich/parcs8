@@ -29,7 +29,6 @@
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.9.0" />
     <PackageReference Include="System.Reflection.MetadataLoadContext" Version="10.0.0" />
     <!-- GCP Pub/Sub replaces Azure Service Bus for point-creation messaging -->
-    <PackageReference Include="Google.Cloud.PubSub.V1" Version="3.8.0" />
   </ItemGroup>
 
   <ItemGroup>

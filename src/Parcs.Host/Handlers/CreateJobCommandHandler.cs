@@ -28,6 +28,7 @@ namespace Parcs.Host.Handlers
                 ModuleId = request.ModuleId,
                 AssemblyName = request.AssemblyName,
                 ClassName = request.ClassName,
+                RequiresGpu = request.RequiresGpu,
                 Statuses =
                 [
                     new JobStatusEntity { Status = (short)JobStatus.Created },

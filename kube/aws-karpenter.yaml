@@ -1,0 +1,120 @@
+# Karpenter node pools for PARCS on EKS (apply after infra/aws/main.tf).
+#
+# Daemon pods are created by KEDA one per point request. When they cannot be scheduled on
+# existing capacity, Karpenter launches an EC2 instance sized for the pending pods — the EKS
+# equivalent of the AKS/GKE Cluster Autoscaler, but without fixed node groups — and removes it
+# once it is empty.
+#
+# Replace parcs-cluster with your cluster name if you changed var.cluster_name.
+
+# ─── CPU daemons ──────────────────────────────────────────────────────────────
+apiVersion: karpenter.k8s.aws/v1
+kind: EC2NodeClass
+metadata:
+  name: parcs-cpu
+spec:
+  amiSelectorTerms:
+  - alias: al2023@latest
+  role: KarpenterNodeRole-parcs-cluster
+  subnetSelectorTerms:
+  - tags:
+      karpenter.sh/discovery: parcs-cluster
+  securityGroupSelectorTerms:
+  - tags:
+      karpenter.sh/discovery: parcs-cluster
+---
+apiVersion: karpenter.sh/v1
+kind: NodePool
+metadata:
+  name: parcs-cpu-daemons
+spec:
+  template:
+    metadata:
+      labels:
+        pool: daemon
+    spec:
+      nodeClassRef:
+        group: karpenter.k8s.aws
+        kind: EC2NodeClass
+        name: parcs-cpu
+      requirements:
+      - key: kubernetes.io/arch
+        operator: In
+        values: ["amd64"]
+      - key: karpenter.sh/capacity-type
+        operator: In
+        values: ["on-demand"]   # add "spot" for cheaper, interruptible experiments
+      # 2–4 vCPU general-purpose instances, comparable to Standard_D2ds_v4 / n1-standard-2.
+      - key: karpenter.k8s.aws/instance-category
+        operator: In
+        values: ["m", "c"]
+      - key: karpenter.k8s.aws/instance-cpu
+        operator: In
+        values: ["2", "4"]
+      - key: karpenter.k8s.aws/instance-generation
+        operator: Gt
+        values: ["4"]
+  limits:
+    cpu: "72"   # ≈ maxReplicaCount × daemon CPU limit, guards against runaway scale-out
+  disruption:
+    consolidationPolicy: WhenEmptyOrUnderutilized
+    consolidateAfter: 1m
+---
+# ─── GPU daemons ──────────────────────────────────────────────────────────────
+# Bottlerocket's NVIDIA variant ships the driver and device plugin, so nvidia.com/gpu is
+# advertised without extra DaemonSets.
+apiVersion: karpenter.k8s.aws/v1
+kind: EC2NodeClass
+metadata:
+  name: parcs-gpu
+spec:
+  amiSelectorTerms:
+  - alias: bottlerocket@latest
+  role: KarpenterNodeRole-parcs-cluster
+  subnetSelectorTerms:
+  - tags:
+      karpenter.sh/discovery: parcs-cluster
+  securityGroupSelectorTerms:
+  - tags:
+      karpenter.sh/discovery: parcs-cluster
+  blockDeviceMappings:
+  - deviceName: /dev/xvdb
+    ebs:
+      volumeSize: 80Gi   # CUDA runtime image is large
+      volumeType: gp3
+---
+apiVersion: karpenter.sh/v1
+kind: NodePool
+metadata:
+  name: parcs-gpu-daemons
+spec:
+  template:
+    metadata:
+      labels:
+        accelerator: nvidia
+    spec:
+      nodeClassRef:
+        group: karpenter.k8s.aws
+        kind: EC2NodeClass
+        name: parcs-gpu
+      # Same taint as the AKS/GKE GPU pools, so only GPU daemon pods land here.
+      taints:
+      - key: sku
+        value: gpu
+        effect: NoSchedule
+      requirements:
+      - key: karpenter.sh/capacity-type
+        operator: In
+        values: ["on-demand"]
+      # g4dn = NVIDIA T4 (same GPU as the GKE pool), g5 = A10G, g6 = L4.
+      - key: karpenter.k8s.aws/instance-family
+        operator: In
+        values: ["g4dn", "g5", "g6"]
+      - key: karpenter.k8s.aws/instance-gpu-count
+        operator: In
+        values: ["1"]
+  limits:
+    nvidia.com/gpu: "4"   # keep within the account's "Running On-Demand G and VT instances" quota
+  disruption:
+    consolidationPolicy: WhenEmpty
+    consolidateAfter: 1m

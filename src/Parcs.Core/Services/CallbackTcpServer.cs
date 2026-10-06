@@ -1,24 +1,32 @@
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Parcs.Core.Configuration;
 using Parcs.Core.Models;
-using System.Net.Sockets;
-using System.Net;
 using System.Collections.Concurrent;
+using System.Net;
+using System.Net.Sockets;
 
-namespace Parcs.Host.HostedServices
+namespace Parcs.Core.Services
 {
-    public sealed class HostTcpServer(
+    /// <summary>
+    /// Accepts connections from daemons that picked up a point request from the queue and dials
+    /// back to the point's parent. Runs on the Host (top-level points) and on every daemon
+    /// (nested points created by modules running there), which is what keeps the recursive
+    /// control space working when points are provisioned through KEDA.
+    /// </summary>
+    public sealed class CallbackTcpServer(
         IOptions<HostTcpConfiguration> hostTcpOptions,
-        ILogger<HostTcpServer> logger) : IHostedService
+        ILogger<CallbackTcpServer> logger) : IHostedService
     {
         private readonly HostTcpConfiguration _hostTcpConfiguration = hostTcpOptions.Value;
-        private readonly ILogger<HostTcpServer> _logger = logger;
+        private readonly ILogger<CallbackTcpServer> _logger = logger;
         private TcpListener _tcpListener;
 
         // Cancelled in StopAsync to cleanly exit the AcceptConnectionsAsync loop.
         private CancellationTokenSource _cts = new();
 
-        // Keyed by correlationId — each pending CreatePointAsync call registers its own TCS.
+        // Keyed by correlationId — each pending point request registers its own TCS.
         private readonly ConcurrentDictionary<string, TaskCompletionSource<NetworkChannel>> _pendingConnections = new();
 
         public Task StartAsync(CancellationToken cancellationToken)
@@ -28,7 +36,7 @@ namespace Parcs.Host.HostedServices
             _tcpListener = new TcpListener(IPAddress.Any, _hostTcpConfiguration.Port);
             _tcpListener.Start();
 
-            _logger.LogInformation("Host TCP server started on port {Port}", _hostTcpConfiguration.Port);
+            _logger.LogInformation("Callback TCP server started on port {Port}", _hostTcpConfiguration.Port);
 
             // Use _cts.Token (not the startup cancellationToken) so StopAsync can signal the loop to exit.
             _ = Task.Run(async () => await AcceptConnectionsAsync(_cts.Token), CancellationToken.None);
@@ -115,9 +123,25 @@ namespace Parcs.Host.HostedServices
             return tcs.Task;
         }
 
+        /// <summary>Address and port that child daemons should dial back to.</summary>
+        public (string Address, int Port) GetAdvertisedEndpoint()
+        {
+            if (!string.IsNullOrEmpty(_hostTcpConfiguration.AdvertisedAddress))
+            {
+                return (_hostTcpConfiguration.AdvertisedAddress, _hostTcpConfiguration.Port);
+            }
+
+            var hostName = Dns.GetHostName();
+            var address = Dns.GetHostAddresses(hostName)
+                .FirstOrDefault(a => a.AddressFamily == AddressFamily.InterNetwork && !IPAddress.IsLoopback(a))
+                ?.ToString() ?? hostName;
+
+            return (address, _hostTcpConfiguration.Port);
+        }
+
         public Task StopAsync(CancellationToken cancellationToken)
         {
-            _logger.LogInformation("Stopping Host TCP server");
+            _logger.LogInformation("Stopping callback TCP server");
 
             // Cancel first — causes AcceptTcpClientAsync(_cts.Token) to throw
             // OperationCanceledException, which the loop catches and breaks on cleanly.

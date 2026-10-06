@@ -1,5 +1,6 @@
 using ILGPU;
 using ILGPU.Runtime;
+using ILGPU.Runtime.CPU;
 using ILGPU.Runtime.Cuda;
 using Parcs.Modules.FloydWarshall.Models;
 using Parcs.Net;
@@ -55,12 +56,6 @@ namespace Parcs.Modules.FloydWarshall.Gpu
             using var gpuChunk = acc.Allocate1D(flatChunk);
             using var gpuRow = acc.Allocate1D<int>(width);
 
-            var relaxKernel = acc.LoadAutoGroupedStreamKernel<
-                Index1D,
-                ArrayView1D<int, Stride1D.Dense>,
-                ArrayView1D<int, Stride1D.Dense>,
-                int, int>(RelaxRowsKernel);
-
             for (int k = 0; k < width; k++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -92,8 +87,7 @@ namespace Parcs.Modules.FloydWarshall.Gpu
                 gpuRow.CopyFromCPU(currentRow.ToArray());
 
                 // Each thread updates one cell in the chunk for this pivot k.
-                relaxKernel((int)(chunkHeight * width), gpuChunk.View, gpuRow.View, chunkHeight, width);
-                acc.Synchronize();
+                RunRelaxKernel(acc, gpuChunk, gpuRow, chunkHeight, width, k);
             }
 
             // Download final results and reconstruct the Matrix.
@@ -112,34 +106,9 @@ namespace Parcs.Modules.FloydWarshall.Gpu
         /// Each thread corresponds to one (i, j) cell and applies the Floyd-Warshall relaxation:
         ///   dist[i][j] = min(dist[i][j], dist[i][k] + dist[k][j])
         /// where dist[i][k] is read from the chunk and dist[k][j] from the broadcast pivot row.
+        /// k is passed as a scalar parameter since ILGPU kernels can't close over C# loop
+        /// variables.
         /// </summary>
-        static void RelaxRowsKernel(
-            Index1D index,
-            ArrayView1D<int, Stride1D.Dense> chunk,
-            ArrayView1D<int, Stride1D.Dense> pivotRow,
-            int chunkHeight,
-            int width)
-        {
-            int idx = index;
-            if (idx >= chunkHeight * width) return;
-
-            int i = idx / width;   // local row within chunk
-            int j = idx % width;   // column
-
-            int aij = chunk[i * width + j];     // current distance
-            int aik = chunk[i * width + (idx / width)]; // chunk[i][k] — recompute k from idx is wrong; use correct k
-
-            // NOTE: k is not passed directly to avoid closure issues in ILGPU.
-            // The pivot row is gpuRow (passed as pivotRow); chunk[i][k] must be passed differently.
-            // This kernel is called once per k, so chunk[i][k] is chunk[i * width + colK].
-            // We cannot reference a loop variable from the outer C# loop inside an ILGPU kernel.
-            // Instead, pass chunk[i][k] via a separate scalar buffer (see overload below).
-            _ = aik; // suppress warning; actual logic uses the overload below
-            _ = aij;
-        }
-
-        // ── Corrected kernel that receives the pivot column index as a parameter ──────────────
-
         static void RelaxRowsKernelWithK(
             Index1D index,
             ArrayView1D<int, Stride1D.Dense> chunk,

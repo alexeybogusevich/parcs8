@@ -134,6 +134,7 @@ namespace Parcs.Portal.Services
 
                 multipartContentBuilder.AddString(nameof(CreateJobHostRequest.AssemblyName), createJobHostRequest.AssemblyName);
                 multipartContentBuilder.AddString(nameof(CreateJobHostRequest.ClassName), createJobHostRequest.ClassName);
+                multipartContentBuilder.AddString(nameof(CreateJobHostRequest.RequiresGpu), createJobHostRequest.RequiresGpu.ToString());
             }
 
             try

@@ -45,6 +45,7 @@ namespace Parcs.Portal.Components
                 AssemblyName = CreateJobViewModel.AssemblyName,
                 InputFiles = CreateJobViewModel.InputFiles ?? [],
                 ModuleId = ModuleId,
+                RequiresGpu = CreateJobViewModel.RequiresGpu,
             };
 
             try

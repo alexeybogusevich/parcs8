@@ -1,158 +1,115 @@
-using Google.Api.Gax;
-using Google.Cloud.PubSub.V1;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using Parcs.Core.Configuration;
+using Parcs.Core.Messaging;
 using Parcs.Core.Models;
 using Parcs.Daemon.Services.Interfaces;
 using System.Net;
 using System.Net.Sockets;
-using System.Text.Json;
 
 namespace Parcs.Daemon.HostedServices
 {
     /// <summary>
-    /// Pulls one point-creation request from Google Cloud Pub/Sub, establishes a TCP connection
-    /// back to the Host, and orchestrates the daemon's work for that job.
+    /// Takes one point-creation request from the point queue (Pub/Sub, Service Bus or SQS),
+    /// connects back to the point's parent (the Host or another daemon), and orchestrates this
+    /// daemon's work for that point.
     ///
-    /// This is the GCP equivalent of the former Azure Service Bus consumer.
-    ///
-    /// Pub/Sub guarantees at-least-once delivery:
-    ///   • ACK  → message removed from the subscription (job processed or permanently invalid).
-    ///   • NACK → message returned to the subscription for redelivery (transient error).
-    ///
-    /// The daemon pod is designed to process exactly one message and then stop
-    /// (<see cref="IHostApplicationLifetime.StopApplication"/>), matching KEDA's
-    /// ScaledJob model where a new pod is created per message.
+    /// The pod processes exactly one request and then stops
+    /// (<see cref="IHostApplicationLifetime.StopApplication"/>), matching KEDA's ScaledJob model
+    /// where a new pod is created per message. A failed request is returned to the queue for
+    /// redelivery; the ScaledJob backoffLimit caps retries at the pod level.
     /// </summary>
     public sealed class PointCreationConsumer(
-        IOptions<PubSubConfiguration> pubSubOptions,
+        IPointRequestReceiver pointRequestReceiver,
+        ICurrentPointRequestAccessor currentPointRequestAccessor,
         IChannelOrchestrator channelOrchestrator,
         ILogger<PointCreationConsumer> logger,
         IHostApplicationLifetime applicationLifetime) : IHostedService
     {
-        private readonly PubSubConfiguration _pubSubConfiguration = pubSubOptions.Value;
+        private readonly IPointRequestReceiver _pointRequestReceiver = pointRequestReceiver;
+        private readonly ICurrentPointRequestAccessor _currentPointRequestAccessor = currentPointRequestAccessor;
         private readonly IChannelOrchestrator _channelOrchestrator = channelOrchestrator;
         private readonly ILogger<PointCreationConsumer> _logger = logger;
         private readonly IHostApplicationLifetime _applicationLifetime = applicationLifetime;
 
-        private SubscriberClient _subscriber;
         private CancellationTokenSource _cts;
+        private Task _consumeTask;
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
-            if (string.IsNullOrEmpty(_pubSubConfiguration.ProjectId) ||
-                string.IsNullOrEmpty(_pubSubConfiguration.SubscriptionId))
+            if (!_pointRequestReceiver.IsEnabled)
             {
-                _logger.LogWarning(
-                    "Pub/Sub configuration is missing (ProjectId or SubscriptionId). " +
-                    "Point creation consumer will not start.");
+                _logger.LogInformation("No point queue configured; point creation consumer will not start.");
                 return Task.CompletedTask;
             }
 
-            _cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-
-            // Fire-and-forget: SubscriberClient.StartAsync blocks until stopped.
-            _ = Task.Run(() => StartSubscriberAsync(_cts.Token), _cts.Token);
+            _cts = new CancellationTokenSource();
+            _consumeTask = Task.Run(() => ConsumeAsync(_cts.Token), CancellationToken.None);
 
             return Task.CompletedTask;
         }
 
-        private async Task StartSubscriberAsync(CancellationToken cancellationToken)
+        private async Task ConsumeAsync(CancellationToken cancellationToken)
         {
-            var subscriptionName = SubscriptionName.FromProjectSubscription(
-                _pubSubConfiguration.ProjectId,
-                _pubSubConfiguration.SubscriptionId);
-
-            // This pod is designed to process exactly one message and then stop (see class
-            // remarks). The client's defaults allow several messages to be delivered to the
-            // handler concurrently within one process (ClientCount defaults to
-            // Environment.ProcessorCount pull streams), which breaks that invariant — a pod could
-            // grab a second message for a different point while finishing (or shutting down
-            // after) its first, orphaning that connection. Pin flow control to exactly one
-            // outstanding message and one pull stream so this pod never accepts a second message.
-            var subscriberBuilder = new SubscriberClientBuilder
+            try
             {
-                SubscriptionName = subscriptionName,
-                ClientCount = 1,
-                Settings = new SubscriberClient.Settings
-                {
-                    FlowControlSettings = new FlowControlSettings(
-                        maxOutstandingElementCount: 1,
-                        maxOutstandingByteCount: null),
-                },
-            };
+                await _pointRequestReceiver.ReceiveOneAsync(HandleAsync, cancellationToken);
+                _logger.LogInformation("Point completed, exiting daemon");
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                return;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error processing point creation request: {Message}", ex.Message);
+            }
 
-            _subscriber = await subscriberBuilder.BuildAsync(cancellationToken);
+            _applicationLifetime.StopApplication();
+        }
+
+        private async Task HandleAsync(PointCreationRequest request, CancellationToken cancellationToken)
+        {
+            _currentPointRequestAccessor.Current = request;
+
+            if (request.RequestedAt is { } requestedAt)
+            {
+                // Queue-to-start latency: broker → KEDA polling → pod scheduling (→ node provisioning).
+                _logger.LogInformation(
+                    "Point request for job {JobId} picked up {ProvisioningSeconds:F2}s after it was published",
+                    request.JobId, (DateTimeOffset.UtcNow - requestedAt).TotalSeconds);
+            }
 
             _logger.LogInformation(
-                "Starting Pub/Sub subscriber for subscription {SubscriptionId} in project {ProjectId}",
-                _pubSubConfiguration.SubscriptionId, _pubSubConfiguration.ProjectId);
+                "Received point creation request for job {JobId}, connecting to parent {HostUrl}:{Port}",
+                request.JobId, request.HostUrl, request.HostPort);
 
-            // StartAsync runs the message loop until StopAsync is called.
-            // The handler is invoked once per delivered message.
-            await _subscriber.StartAsync(async (message, ct) =>
-            {
-                try
-                {
-                    var messageBody = message.Data.ToStringUtf8();
-                    var request = JsonSerializer.Deserialize<PointCreationRequest>(messageBody);
+            var hostAddresses = Dns.GetHostAddresses(request.HostUrl);
+            var tcpClient = new TcpClient();
+            await tcpClient.ConnectAsync(hostAddresses, request.HostPort, cancellationToken);
 
-                    if (request == null)
-                    {
-                        _logger.LogError("Failed to deserialize point creation request — ACKing to discard.");
-                        return SubscriberClient.Reply.Ack;
-                    }
+            var networkChannel = new NetworkChannel(tcpClient);
 
-                    _logger.LogInformation(
-                        "Received point creation request for job {JobId}, connecting to host {HostUrl}:{Port}",
-                        request.JobId, request.HostUrl, request.HostPort);
+            // The correlationId handshake lets the parent match this TCP connection to the exact
+            // point request it published.
+            await networkChannel.WriteDataAsync(request.CorrelationId);
 
-                    var hostAddresses = Dns.GetHostAddresses(request.HostUrl);
-                    var tcpClient = new TcpClient();
-                    await tcpClient.ConnectAsync(hostAddresses, request.HostPort);
+            _logger.LogInformation("Handshake sent, starting TCP communication for job {JobId}", request.JobId);
 
-                    _logger.LogInformation(
-                        "Connected to host, sending correlationId handshake for job {JobId}", request.JobId);
-
-                    var networkChannel = new NetworkChannel(tcpClient);
-
-                    // The correlationId handshake lets the Host match this TCP connection
-                    // to the exact point-creation request that published the Pub/Sub message.
-                    await networkChannel.WriteDataAsync(request.CorrelationId);
-
-                    _logger.LogInformation(
-                        "Handshake sent, starting TCP communication for job {JobId}", request.JobId);
-
-                    await _channelOrchestrator.OrchestrateAsync(networkChannel, ct);
-
-                    _logger.LogInformation("TCP communication completed, exiting daemon");
-
-                    // ACK before stopping so the message is not redelivered if stop is slow.
-                    _applicationLifetime.StopApplication();
-                    return SubscriberClient.Reply.Ack;
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error processing point creation message: {Message}", ex.Message);
-                    _applicationLifetime.StopApplication();
-
-                    // NACK: Pub/Sub will redeliver after the acknowledgement deadline.
-                    // The KEDA ScaledJob backoffLimit provides a cap on retries at the pod level.
-                    return SubscriberClient.Reply.Nack;
-                }
-            });
+            await _channelOrchestrator.OrchestrateAsync(networkChannel, cancellationToken);
         }
 
         public async Task StopAsync(CancellationToken cancellationToken)
         {
-            _logger.LogInformation("Stopping Pub/Sub subscriber");
-            _cts?.Cancel();
-
-            if (_subscriber is not null)
+            if (_cts is null)
             {
-                await _subscriber.StopAsync(cancellationToken);
+                return;
+            }
+
+            await _cts.CancelAsync();
+
+            if (_consumeTask is not null)
+            {
+                await Task.WhenAny(_consumeTask, Task.Delay(Timeout.Infinite, cancellationToken));
             }
         }
     }

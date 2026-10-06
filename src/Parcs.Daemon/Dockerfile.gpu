@@ -1,0 +1,43 @@
+# GPU variant of the Daemon image — used only by the parcs-daemon-gpu-scaler ScaledJob.
+# The CPU-path image (Dockerfile) stays on the plain .NET runtime base so ordinary jobs
+# don't pay for a ~3x larger CUDA base image or its pull time.
+
+# This stage is used to build the service project
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+ARG BUILD_CONFIGURATION=Release
+WORKDIR /src
+COPY ["src/Parcs.Daemon/Parcs.Daemon.csproj", "src/Parcs.Daemon/"]
+COPY ["src/Parcs.Core/Parcs.Core.csproj", "src/Parcs.Core/"]
+RUN dotnet restore "./src/Parcs.Daemon/Parcs.Daemon.csproj"
+COPY . .
+WORKDIR "/src/src/Parcs.Daemon"
+RUN dotnet build "./Parcs.Daemon.csproj" -c $BUILD_CONFIGURATION -o /app/build
+
+# ── Publish stage ────────────────────────────────────────────────────────────────
+FROM build AS publish
+ARG BUILD_CONFIGURATION=Release
+RUN dotnet publish "./Parcs.Daemon.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+
+# ── Runtime stage ────────────────────────────────────────────────────────────────
+# Base: NVIDIA CUDA 12.3 runtime on Ubuntu 22.04.
+# The "runtime" variant (vs "devel") includes libcuda, libcublas, and the driver
+# shim — everything ILGPU needs to JIT-compile and execute CUDA kernels.
+#
+# The .NET 10 runtime is copied in from the official runtime image rather than
+# apt-installed: Microsoft's apt feed for jammy doesn't have dotnet-runtime-10.0
+# packages yet (confirmed — `apt-get install dotnet-runtime-10.0` 404s), so this
+# sidesteps package availability entirely and is the standard pattern for grafting
+# .NET onto a non-Microsoft base image.
+#
+# If this pod ends up scheduled on a CPU-only node (shouldn't happen — the ScaledJob
+# carries a nodeSelector/toleration for the GPU pool), ILGPU transparently falls back
+# to its CPU accelerator — no code changes needed, just slower.
+FROM mcr.microsoft.com/dotnet/runtime:10.0 AS dotnet-runtime
+
+FROM nvidia/cuda:12.3.2-runtime-ubuntu22.04 AS final
+COPY --from=dotnet-runtime /usr/share/dotnet /usr/share/dotnet
+ENV PATH="${PATH}:/usr/share/dotnet"
+
+WORKDIR /app
+COPY --from=publish /app/publish .
+ENTRYPOINT ["dotnet", "Parcs.Daemon.dll"]

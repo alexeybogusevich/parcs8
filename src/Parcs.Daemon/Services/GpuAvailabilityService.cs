@@ -36,7 +36,7 @@ namespace Parcs.Daemon.Services
                     IsCudaAvailable = true;
                     AcceleratorDescription =
                         $"CUDA GPU: {device.Name} " +
-                        $"(compute {device.CudaArchitecture}, " +
+                        $"(compute {device.Architecture}, " +
                         $"{device.MemorySize / (1024 * 1024)} MiB VRAM)";
 
                     logger.LogInformation(

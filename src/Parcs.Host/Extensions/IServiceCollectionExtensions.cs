@@ -6,6 +6,7 @@ using Parcs.Host.Services;
 using Parcs.Host.Services.Interfaces;
 using Parcs.Host.Validators;
 using Parcs.Core.Configuration;
+using Parcs.Core.Messaging;
 using Parcs.Core.Services;
 using Parcs.Core.Services.Interfaces;
 using System.Reflection;
@@ -40,9 +41,9 @@ namespace Parcs.Host.Extensions
                 .Configure<FileSystemConfiguration>(configuration.GetSection(FileSystemConfiguration.SectionName))
                 .Configure<DaemonsConfiguration>(configuration.GetSection(DaemonsConfiguration.SectionName))
                 .Configure<KubernetesConfiguration>(configuration.GetSection(KubernetesConfiguration.SectionName))
-                // GCP Pub/Sub replaces Azure Service Bus
-                .Configure<PubSubConfiguration>(configuration.GetSection(PubSubConfiguration.SectionName))
-                .Configure<HostTcpConfiguration>(configuration.GetSection(HostTcpConfiguration.SectionName));
+                .Configure<HostTcpConfiguration>(configuration.GetSection(HostTcpConfiguration.SectionName))
+                // Point-request broker: Pub/Sub (GKE), Service Bus (AKS) or SQS (EKS).
+                .AddPointQueue(configuration);
         }
 
         public static IServiceCollection AddApplicationServices(this IServiceCollection services)
@@ -54,7 +55,8 @@ namespace Parcs.Host.Extensions
                 .AddScoped<IDaemonResolutionStrategyFactory, DaemonResolutionStrategyFactory>()
                 .AddScoped<ConfigurationDaemonResolutionStrategy>()
                 .AddScoped<KubernetesDaemonResolutionStrategy>()
-                .AddScoped<IPointCreationService, PointCreationService>()
+                .AddScoped<IJobPlacementResolver, DatabaseJobPlacementResolver>()
+                .AddScoped<IPointCreationService, QueuePointCreationService>()
                 .AddScoped<IModuleInfoFactory, ModuleInfoFactory>()
                 .AddScoped<IInputOutputFactory, InputOutputFactory>()
                 .AddScoped<IJobCompletionNotifier, JobCompletionNotifier>()

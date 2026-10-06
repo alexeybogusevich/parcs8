@@ -197,6 +197,7 @@ spec:
           imagePullPolicy: Always
           ports:
           - containerPort: 1111
+          - containerPort: 2222   # callbacks from nested points
           resources:
             limits:
               cpu: 1000m
@@ -228,6 +229,18 @@ spec:
                 key: projectId
           - name: PubSub__SubscriptionId
             value: "point-requested-sub"
+          - name: PointQueue__Provider
+            value: PubSub
+          # Nested points: this daemon publishes child requests and the child daemons dial
+          # back to this pod's IP.
+          - name: PubSub__TopicId
+            value: "point-requested"
+          - name: PubSub__GpuTopicId
+            value: "gpu-point-requested"
+          - name: HostTcp__AdvertisedAddress
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
         volumes:
         - name: parcs-storage-volume
           persistentVolumeClaim:
@@ -248,6 +261,105 @@ spec:
       # mode: SubscriptionSize — scale based on number of messages in the subscription
       mode: SubscriptionSize
       # value: "1" — one daemon pod per queued message (same semantics as azure-servicebus)
+      value: "1"
+---
+# GPU daemon ScaledJob — fully separate from parcs-daemon-scaler above so ordinary CPU jobs
+# are never affected by GPU node/pod availability. Routed to by QueuePointCreationService based on
+# JobEntity.RequiresGpu (set via the Portal's "Run on GPU" checkbox or the API's RequiresGpu
+# form field): true publishes to the gpu-point-requested topic instead of point-requested.
+# Reuses the parcs-daemon ServiceAccount/Workload Identity and parcs-gcp-auth
+# TriggerAuthentication — same GCP permissions requirement (pubsub.subscriber), just on a
+# second subscription.
+apiVersion: keda.sh/v1alpha1
+kind: ScaledJob
+metadata:
+  name: parcs-daemon-gpu-scaler
+spec:
+  jobTargetRef:
+    parallelism: 1
+    completions: 1
+    backoffLimit: 2
+    ttlSecondsAfterFinished: 300
+    activeDeadlineSeconds: 3600
+    template:
+      spec:
+        restartPolicy: Never
+        dnsPolicy: ClusterFirst
+        serviceAccountName: parcs-daemon
+        # gpu-pool is tainted sku=gpu:NoSchedule so only pods with this toleration land there,
+        # and nodeSelector keeps this pod off the CPU pool even if it would otherwise fit.
+        nodeSelector:
+          accelerator: nvidia
+        tolerations:
+        - key: sku
+          operator: Equal
+          value: gpu
+          effect: NoSchedule
+        containers:
+        - name: parcs-daemon-gpu
+          image: europe-central2-docker.pkg.dev/project-42bf3d0d-188a-4d3d-b56/parcs/parcsdaemon-gpu:latest
+          imagePullPolicy: Always
+          ports:
+          - containerPort: 1111
+          - containerPort: 2222   # callbacks from nested points
+          resources:
+            limits:
+              nvidia.com/gpu: 1
+              cpu: 3000m
+              memory: 12Gi
+            requests:
+              nvidia.com/gpu: 1
+              cpu: 1000m
+              memory: 4Gi
+          volumeMounts:
+          - name: parcs-storage-volume
+            mountPath: /var/lib/storage
+          env:
+          - name: Hosting__Environment
+            value: Kubernetes
+          - name: Kubernetes__NamespaceName
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+          - name: HostApi__Uri
+            value: parcs-hostapi-internal
+          - name: Elasticsearch__BaseUrl
+            value: 'http://elasticsearch:9200'
+          - name: PubSub__ProjectId
+            valueFrom:
+              secretKeyRef:
+                name: parcs-gcp-secret
+                key: projectId
+          - name: PubSub__SubscriptionId
+            value: "gpu-point-requested-sub"
+          - name: PointQueue__Provider
+            value: PubSub
+          # Nested points: this daemon publishes child requests and the child daemons dial
+          # back to this pod's IP.
+          - name: PubSub__TopicId
+            value: "point-requested"
+          - name: PubSub__GpuTopicId
+            value: "gpu-point-requested"
+          - name: HostTcp__AdvertisedAddress
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
+        volumes:
+        - name: parcs-storage-volume
+          persistentVolumeClaim:
+            claimName: parcs-storage-volume-claim
+  minReplicaCount: 0
+  # Hard cap at 1 — current NVIDIA_T4_GPUS quota in europe-central2 is 1, and the gpu-pool
+  # node pool itself is capped at 1 node (0-1, autoscaled). Raise together with quota/node
+  # pool max if more is granted later.
+  maxReplicaCount: 1
+  triggers:
+  - type: gcp-pubsub
+    authenticationRef:
+      name: parcs-gcp-auth
+    metadata:
+      subscriptionName: "gpu-point-requested-sub"
+      mode: SubscriptionSize
       value: "1"
 ---
 # TriggerAuthentication using GKE Workload Identity.
@@ -397,8 +509,16 @@ spec:
               key: projectId
         - name: PubSub__TopicId
           value: "point-requested"
+        - name: PubSub__GpuTopicId
+          value: "gpu-point-requested"
+        - name: PointQueue__Provider
+          value: PubSub
         - name: HostTcp__Port
           value: "2222"
+        - name: HostTcp__AdvertisedAddress
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
         volumeMounts:
         - name: parcs-storage-volume
           mountPath: /var/lib/storage

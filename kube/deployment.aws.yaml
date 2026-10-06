@@ -1,0 +1,755 @@
+# PARCS Kubernetes Deployment for Amazon Web Services (EKS)
+#
+# Architecture overview:
+# - Daemons are short-lived Kubernetes Jobs created by KEDA, one per point request
+# - KEDA watches an SQS queue (aws-sqs-queue scaler) and creates one Job per message
+# - Karpenter launches EC2 capacity for pending daemon pods (kube/aws-karpenter.yaml)
+# - A module running on a daemon may create nested points: the daemon publishes to the same
+#   queue and the child daemon dials back to the parent pod's IP (HostTcp__AdvertisedAddress)
+#
+# Prerequisites:
+# 1. Infrastructure from infra/aws/main.tf (EKS, SQS, IRSA roles, EFS, ECR, KEDA, Karpenter)
+# 2. kubectl apply -f kube/aws-karpenter.yaml
+# 3. Images pushed to ECR (see docs/aws-deployment-guide.md)
+# 4. Secret with the database password:
+#      kubectl create secret generic parcs-database-secret --from-literal=password='<password>'
+#
+# Placeholders are substituted from the Terraform outputs with envsubst:
+#   export ECR_REGISTRY=$(terraform -chdir=infra/aws output -raw ecr_registry)
+#   export AWS_REGION=$(terraform -chdir=infra/aws output -raw region)
+#   export SQS_QUEUE_URL=$(terraform -chdir=infra/aws output -raw sqs_queue_url)
+#   export SQS_GPU_QUEUE_URL=$(terraform -chdir=infra/aws output -raw sqs_gpu_queue_url)
+#   export PARCS_HOST_ROLE_ARN=$(terraform -chdir=infra/aws output -raw parcs_host_role_arn)
+#   export PARCS_DAEMON_ROLE_ARN=$(terraform -chdir=infra/aws output -raw parcs_daemon_role_arn)
+#   export EFS_FILE_SYSTEM_ID=$(terraform -chdir=infra/aws output -raw efs_file_system_id)
+#   envsubst < kube/deployment.aws.yaml | kubectl apply -f -
+#
+# EKS vs AKS/GKE differences in this file:
+#   azurefile-csi / parcs-rwx (NFS)  → efs.csi.aws.com      (ReadWriteMany)
+#   managed-csi / standard-rwo       → ebs.csi.aws.com gp3  (ReadWriteOnce)
+#   azure-servicebus / gcp-pubsub    → aws-sqs-queue trigger
+#   Workload Identity                → IRSA (eks.amazonaws.com/role-arn annotations)
+#   Env: ServiceBus__* / PubSub__*   → Sqs__*
+
+# ─── Storage ─────────────────────────────────────────────────────────────────
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: parcs-rwx
+provisioner: efs.csi.aws.com
+parameters:
+  provisioningMode: efs-ap
+  fileSystemId: ${EFS_FILE_SYSTEM_ID}
+  directoryPerms: "777"
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: parcs-gp3
+provisioner: ebs.csi.aws.com
+volumeBindingMode: WaitForFirstConsumer
+parameters:
+  type: gp3
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: parcs-storage-volume-claim
+spec:
+  accessModes:
+  - ReadWriteMany   # daemon pods on different nodes mount it simultaneously
+  storageClassName: parcs-rwx
+  resources:
+    requests:
+      storage: 5Gi  # EFS is elastic; the size is nominal
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: parcs-database-volume-claim
+spec:
+  accessModes:
+  - ReadWriteOnce
+  storageClassName: parcs-gp3
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: elasticsearch-data
+spec:
+  accessModes:
+  - ReadWriteOnce
+  storageClassName: parcs-gp3
+  resources:
+    requests:
+      storage: 2Gi
+---
+# ─── Identities (IRSA) ───────────────────────────────────────────────────────
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: parcs-host
+  annotations:
+    eks.amazonaws.com/role-arn: ${PARCS_HOST_ROLE_ARN}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: parcs-daemon
+  annotations:
+    eks.amazonaws.com/role-arn: ${PARCS_DAEMON_ROLE_ARN}
+---
+# KEDA authenticates to SQS with its own IRSA role (set on the keda-operator ServiceAccount
+# by the Helm release in infra/aws/main.tf).
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+metadata:
+  name: parcs-aws-auth
+spec:
+  podIdentity:
+    provider: aws
+    identityOwner: keda
+---
+# ─── Elasticsearch / Kibana ──────────────────────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch
+  labels:
+    app: elasticsearch
+spec:
+  ports:
+  - name: http
+    port: 9200
+    targetPort: 9200
+  selector:
+    app: elasticsearch
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: elasticsearch
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: elasticsearch
+  template:
+    metadata:
+      labels:
+        app: elasticsearch
+    spec:
+      nodeSelector:
+        pool: system
+      initContainers:
+      - name: fix-permissions
+        image: busybox:1.36
+        command: ["sh", "-c", "chown -R 1000:1000 /usr/share/elasticsearch/data"]
+        volumeMounts:
+        - name: elasticsearch-data
+          mountPath: /usr/share/elasticsearch/data
+      containers:
+      - name: elasticsearch
+        image: elasticsearch:8.15.0
+        ports:
+        - containerPort: 9200
+        env:
+        - name: discovery.type
+          value: single-node
+        - name: xpack.security.enabled
+          value: "false"
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 3Gi
+          requests:
+            cpu: 500m
+            memory: 2Gi
+        volumeMounts:
+        - name: elasticsearch-data
+          mountPath: /usr/share/elasticsearch/data
+      volumes:
+      - name: elasticsearch-data
+        persistentVolumeClaim:
+          claimName: elasticsearch-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kibana
+  labels:
+    app: kibana
+spec:
+  type: LoadBalancer
+  ports:
+  - name: http
+    port: 5601
+    targetPort: 5601
+  selector:
+    app: kibana
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kibana
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kibana
+  template:
+    metadata:
+      labels:
+        app: kibana
+    spec:
+      nodeSelector:
+        pool: system
+      containers:
+      - name: kibana
+        image: kibana:8.15.0
+        ports:
+        - containerPort: 5601
+        env:
+        - name: ELASTICSEARCH_URL
+          value: http://elasticsearch:9200
+        resources:
+          limits:
+            cpu: 500m
+            memory: 1Gi
+          requests:
+            cpu: 200m
+            memory: 512Mi
+---
+# ─── Daemons ─────────────────────────────────────────────────────────────────
+# One Job pod per SQS message (one pod = one point). nodeSelector pool=daemon keeps daemons on
+# Karpenter-managed capacity, so a new point can translate into a new node.
+apiVersion: keda.sh/v1alpha1
+kind: ScaledJob
+metadata:
+  name: parcs-daemon-scaler
+spec:
+  jobTargetRef:
+    parallelism: 1
+    completions: 1
+    backoffLimit: 2
+    ttlSecondsAfterFinished: 300
+    activeDeadlineSeconds: 3600
+    template:
+      spec:
+        restartPolicy: Never
+        dnsPolicy: ClusterFirst
+        serviceAccountName: parcs-daemon
+        nodeSelector:
+          pool: daemon
+        containers:
+        - name: parcs-daemon
+          image: ${ECR_REGISTRY}/parcs/parcsdaemon:latest
+          imagePullPolicy: Always
+          ports:
+          - containerPort: 1111
+          - containerPort: 2222   # callbacks from nested points
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 2Gi
+            requests:
+              cpu: 250m
+              memory: 512Mi
+          volumeMounts:
+          - name: parcs-storage-volume
+            mountPath: /var/lib/storage
+          env:
+          - name: Hosting__Environment
+            value: Kubernetes
+          - name: Kubernetes__NamespaceName
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+          - name: HostApi__Uri
+            value: parcs-hostapi-internal
+          - name: Elasticsearch__BaseUrl
+            value: 'http://elasticsearch:9200'
+          - name: PointQueue__Provider
+            value: Sqs
+          - name: Sqs__Region
+            value: ${AWS_REGION}
+          - name: Sqs__QueueUrl
+            value: ${SQS_QUEUE_URL}
+          - name: Sqs__GpuQueueUrl
+            value: ${SQS_GPU_QUEUE_URL}
+          - name: HostTcp__AdvertisedAddress
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
+        volumes:
+        - name: parcs-storage-volume
+          persistentVolumeClaim:
+            claimName: parcs-storage-volume-claim
+  minReplicaCount: 0
+  # Raise together with the Karpenter parcs-cpu-daemons CPU limit once scale-out is verified.
+  maxReplicaCount: 18
+  triggers:
+  - type: aws-sqs-queue
+    authenticationRef:
+      name: parcs-aws-auth
+    metadata:
+      queueURL: ${SQS_QUEUE_URL}
+      awsRegion: ${AWS_REGION}
+      queueLength: "1"   # one daemon pod per queued message
+---
+# GPU daemons — separate ScaledJob and queue so CPU jobs never wait on GPU capacity.
+# The Host publishes to the GPU queue for jobs with RequiresGpu = true; nested points of a GPU
+# point inherit the flag.
+apiVersion: keda.sh/v1alpha1
+kind: ScaledJob
+metadata:
+  name: parcs-daemon-gpu-scaler
+spec:
+  jobTargetRef:
+    parallelism: 1
+    completions: 1
+    backoffLimit: 2
+    ttlSecondsAfterFinished: 300
+    activeDeadlineSeconds: 3600
+    template:
+      spec:
+        restartPolicy: Never
+        dnsPolicy: ClusterFirst
+        serviceAccountName: parcs-daemon
+        nodeSelector:
+          accelerator: nvidia
+        tolerations:
+        - key: sku
+          operator: Equal
+          value: gpu
+          effect: NoSchedule
+        containers:
+        - name: parcs-daemon-gpu
+          image: ${ECR_REGISTRY}/parcs/parcsdaemon-gpu:latest
+          imagePullPolicy: Always
+          ports:
+          - containerPort: 1111
+          - containerPort: 2222
+          resources:
+            limits:
+              nvidia.com/gpu: 1
+              cpu: 3000m
+              memory: 12Gi
+            requests:
+              nvidia.com/gpu: 1
+              cpu: 1000m
+              memory: 4Gi
+          volumeMounts:
+          - name: parcs-storage-volume
+            mountPath: /var/lib/storage
+          env:
+          - name: Hosting__Environment
+            value: Kubernetes
+          - name: Kubernetes__NamespaceName
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+          - name: HostApi__Uri
+            value: parcs-hostapi-internal
+          - name: Elasticsearch__BaseUrl
+            value: 'http://elasticsearch:9200'
+          - name: PointQueue__Provider
+            value: Sqs
+          - name: Sqs__Region
+            value: ${AWS_REGION}
+          - name: Sqs__QueueUrl
+            value: ${SQS_GPU_QUEUE_URL}
+          - name: Sqs__GpuQueueUrl
+            value: ${SQS_GPU_QUEUE_URL}
+          - name: HostTcp__AdvertisedAddress
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
+        volumes:
+        - name: parcs-storage-volume
+          persistentVolumeClaim:
+            claimName: parcs-storage-volume-claim
+  minReplicaCount: 0
+  # Matches the Karpenter parcs-gpu-daemons limit and the account's G-instance quota.
+  maxReplicaCount: 4
+  triggers:
+  - type: aws-sqs-queue
+    authenticationRef:
+      name: parcs-aws-auth
+    metadata:
+      queueURL: ${SQS_GPU_QUEUE_URL}
+      awsRegion: ${AWS_REGION}
+      queueLength: "1"
+---
+# ─── Host API ────────────────────────────────────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: parcs-hostapi
+  labels:
+    app: parcs-hostapi
+spec:
+  type: LoadBalancer
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080
+  selector:
+    app: parcs-hostapi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: parcs-hostapi-internal
+  labels:
+    app: parcs-hostapi
+spec:
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080
+  - name: tcp-callback
+    port: 2222
+    targetPort: 2222
+  selector:
+    app: parcs-hostapi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: parcs-hostapi
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: parcs-hostapi
+  template:
+    metadata:
+      labels:
+        app: parcs-hostapi
+    spec:
+      dnsPolicy: ClusterFirst
+      serviceAccountName: parcs-host
+      nodeSelector:
+        pool: system
+      initContainers:
+      - name: wait-for-elasticsearch
+        image: busybox:1.36
+        command: ['sh', '-c', 'until wget -qO- "http://elasticsearch:9200/_cluster/health?wait_for_status=yellow&timeout=30s" 2>/dev/null | grep -q "\"status\":\"yellow\"\|\"status\":\"green\""; do echo "Waiting for Elasticsearch yellow/green..."; sleep 10; done; echo "Elasticsearch ready"']
+      - name: wait-for-database
+        image: busybox:1.36
+        command: ['sh', '-c', 'until nc -z parcs-database 5432; do echo "Waiting for PostgreSQL..."; sleep 5; done']
+      containers:
+      - name: parcs-hostapi
+        image: ${ECR_REGISTRY}/parcs/parcshost:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+          name: http
+        - containerPort: 2222
+          name: tcp-callback
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+          requests:
+            cpu: 200m
+            memory: 512Mi
+        env:
+        - name: Hosting__Environment
+          value: Kubernetes
+        - name: Kubernetes__NamespaceName
+          value: default
+        - name: Kubernetes__DaemonsHeadlessServiceName
+          value: parcs-daemon-headless
+        - name: Database__HostName
+          value: parcs-database
+        - name: Database__DatabaseName
+          value: parcs
+        - name: Database__Username
+          value: parcs_admin
+        - name: Database__Password
+          valueFrom:
+            secretKeyRef:
+              name: parcs-database-secret
+              key: password
+        - name: Database__Port
+          value: '5432'
+        - name: Elasticsearch__BaseUrl
+          value: 'http://elasticsearch:9200'
+        - name: PointQueue__Provider
+          value: Sqs
+        - name: Sqs__Region
+          value: ${AWS_REGION}
+        - name: Sqs__QueueUrl
+          value: ${SQS_QUEUE_URL}
+        - name: Sqs__GpuQueueUrl
+          value: ${SQS_GPU_QUEUE_URL}
+        - name: HostTcp__Port
+          value: "2222"
+        - name: HostTcp__AdvertisedAddress
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        volumeMounts:
+        - name: parcs-storage-volume
+          mountPath: /var/lib/storage
+      volumes:
+      - name: parcs-storage-volume
+        persistentVolumeClaim:
+          claimName: parcs-storage-volume-claim
+---
+# ─── Portal ──────────────────────────────────────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: parcs-portal
+  labels:
+    app: parcs-portal
+spec:
+  type: LoadBalancer
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080
+  selector:
+    app: parcs-portal
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: parcs-portal
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: parcs-portal
+  template:
+    metadata:
+      labels:
+        app: parcs-portal
+    spec:
+      nodeSelector:
+        pool: system
+      initContainers:
+      - name: wait-for-hostapi
+        image: busybox:1.36
+        command: ['sh', '-c', 'until wget -qO- http://parcs-hostapi-internal/health; do echo "Waiting for Host API..."; sleep 5; done']
+      containers:
+      - name: parcs-portal
+        image: ${ECR_REGISTRY}/parcs/parcsportal:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        env:
+        - name: Host__Uri
+          value: parcs-hostapi-internal
+        - name: Portal__Uri
+          value: parcs-portal
+        - name: Portal__SignalrUri
+          value: parcs-portal
+        - name: Elasticsearch__BaseUrl
+          value: 'http://elasticsearch:9200'
+---
+# ─── Database ────────────────────────────────────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: parcs-database
+  labels:
+    app: parcs-database
+spec:
+  selector:
+    app: parcs-database
+  ports:
+  - name: postgres
+    port: 5432
+    targetPort: 5432
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: parcs-database
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: parcs-database
+  template:
+    metadata:
+      labels:
+        app: parcs-database
+    spec:
+      nodeSelector:
+        pool: system
+      containers:
+      - name: parcs-database
+        image: postgres:17
+        env:
+        - name: POSTGRES_USER
+          value: parcs_admin
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: parcs-database-secret
+              key: password
+        - name: POSTGRES_DB
+          value: parcs
+        - name: PGDATA
+          value: /var/lib/postgresql/data/postgres
+        ports:
+        - containerPort: 5432
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 100m
+            memory: 256Mi
+        volumeMounts:
+        - name: parcs-database-volume
+          mountPath: /var/lib/postgresql/data
+      volumes:
+      - name: parcs-database-volume
+        persistentVolumeClaim:
+          claimName: parcs-database-volume-claim
+---
+# ─── PARCS Agent MCP server ──────────────────────────────────────────────────
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: parcs-agent-mcp-sa
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: parcs-agent-mcp-reader
+rules:
+- apiGroups: [""]
+  resources: ["nodes"]
+  verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: parcs-agent-mcp-reader-binding
+subjects:
+- kind: ServiceAccount
+  name: parcs-agent-mcp-sa
+  namespace: default
+roleRef:
+  kind: ClusterRole
+  name: parcs-agent-mcp-reader
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: parcs-agent-mcp
+  labels:
+    app: parcs-agent-mcp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: parcs-agent-mcp
+  template:
+    metadata:
+      labels:
+        app: parcs-agent-mcp
+    spec:
+      serviceAccountName: parcs-agent-mcp-sa
+      nodeSelector:
+        pool: system
+      volumes:
+      - name: parcs-storage-volume
+        persistentVolumeClaim:
+          claimName: parcs-storage-volume-claim
+      containers:
+      - name: parcs-agent-mcp
+        image: ${ECR_REGISTRY}/parcs/parcs-agent-mcp:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+          name: http
+        volumeMounts:
+        - name: parcs-storage-volume
+          mountPath: /var/lib/storage
+        env:
+        - name: ASPNETCORE_URLS
+          value: "http://+:8080"
+        - name: Parcs__HostUrl
+          value: "http://parcs-hostapi-internal"
+        - name: Parcs__AgentRunnerModuleId
+          value: "0"
+        - name: Parcs__FallbackWorkerNodeCount
+          value: "3"
+        - name: Parcs__FallbackMaxParallelism
+          value: "18"
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 250m
+            memory: 256Mi
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: parcs-agent-mcp
+  labels:
+    app: parcs-agent-mcp
+spec:
+  type: ClusterIP
+  selector:
+    app: parcs-agent-mcp
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+    name: http
+---
+# SECURITY NOTE: the MCP endpoint has no authentication and no TLS. Restrict the load
+# balancer with loadBalancerSourceRanges to your IP range before exposing it.
+apiVersion: v1
+kind: Service
+metadata:
+  name: parcs-agent-mcp-external
+  labels:
+    app: parcs-agent-mcp
+spec:
+  type: LoadBalancer
+  selector:
+    app: parcs-agent-mcp
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+    name: http

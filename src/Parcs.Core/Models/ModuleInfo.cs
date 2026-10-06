@@ -43,17 +43,15 @@ namespace Parcs.Core.Models
 
         public async Task<IPoint> CreatePointAsync()
         {
-            // Service Bus / KEDA path: point creation service handles daemon provisioning.
-            // We check this before GetNextDaemon() because in KEDA mode no daemons are
-            // pre-registered — new pods are provisioned on demand via the Service Bus queue.
-            if (_pointCreationService != null)
+            // Queue / KEDA path: point creation service handles daemon provisioning, on the Host
+            // and on daemons alike (nested points). Checked before GetNextDaemon() because in
+            // KEDA mode no daemons are pre-registered — pods are provisioned per point request.
+            if (_pointCreationService is { IsEnabled: true })
             {
                 var point = await _pointCreationService.CreatePointAsync(
                     _jobId,
                     _moduleId,
                     _argumentsProvider.GetArguments(),
-                    daemonHostUrl: null,
-                    daemonPort: 0,
                     _cancellationToken);
 
                 _createdPoints.Add((Point)point);
@@ -79,7 +77,7 @@ namespace Parcs.Core.Models
         /// <inheritdoc/>
         public async Task<IPoint[]> CreatePointsAsync(int count)
         {
-            if (_pointCreationService != null)
+            if (_pointCreationService is { IsEnabled: true })
             {
                 var points = await _pointCreationService.CreatePointsAsync(
                     count,
@@ -96,7 +94,7 @@ namespace Parcs.Core.Models
                 return points;
             }
 
-            // Fallback for legacy paths (no Service Bus configured).
+            // Fallback for legacy paths (no point queue configured).
             var result = new IPoint[count];
             for (int i = 0; i < count; i++)
             {

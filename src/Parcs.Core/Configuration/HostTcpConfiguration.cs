@@ -7,6 +7,13 @@ namespace Parcs.Core.Configuration
         public int Port { get; set; } = 2222;
 
         /// <summary>
+        /// Address child daemons dial back to. Both the Host and daemons (for nested points)
+        /// listen for these callbacks. On Kubernetes, set it to the pod IP via the downward API
+        /// (status.podIP). When empty, the first non-loopback address of this machine is used.
+        /// </summary>
+        public string AdvertisedAddress { get; set; }
+
+        /// <summary>
         /// How long to wait for every requested daemon to connect back before failing point
         /// creation. Without this, a lost Pub/Sub message or a daemon pod that never schedules
         /// leaves the caller waiting forever, since nothing else in the point-creation path

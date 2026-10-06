@@ -11,5 +11,7 @@ namespace Parcs.Portal.Models.Host.Requests
         public string AssemblyName { get; set; }
 
         public string ClassName { get; set; }
+
+        public bool RequiresGpu { get; set; }
     }
 }

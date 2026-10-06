@@ -1,0 +1,5 @@
+region               = "eu-central-1"
+cluster_name         = "parcs-cluster"
+kubernetes_version   = "1.31"
+system_instance_type = "m5.large"
+system_node_count    = 2

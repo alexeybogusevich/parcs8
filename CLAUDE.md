@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-PARCS-NET-K8 — a .NET 10 platform for running recursive parallel computation "modules" across a cluster of daemon workers. Deploys to AKS (Azure), GKE (GCP) or locally via Docker Compose / a single-node Kubernetes manifest. Depends on the external NuGet package `Parcs.Net` (currently 10.0.0) which defines the module-author SDK (`IModule`, `IPoint`, `IChannel`, …).
+PARCS-NET-K8 — a .NET 10 platform for running recursive parallel computation "modules" across a cluster of daemon workers. Deploys to AKS (Azure), GKE (GCP), EKS (AWS) or locally via Docker Compose / a single-node Kubernetes manifest. Depends on the external NuGet package `Parcs.Net` (currently 10.0.0) which defines the module-author SDK (`IModule`, `IPoint`, `IChannel`, …).
 
 ## Build, run, test
 
@@ -33,6 +33,7 @@ kubectl apply -f kube/deployment.local.yaml
 # Cloud deployments
 kubectl apply -f kube/deployment.azure.yaml
 kubectl apply -f kube/deployment.gcp.yaml
+envsubst < kube/deployment.aws.yaml | kubectl apply -f -   # after kube/aws-karpenter.yaml; see docs/aws-deployment-guide.md
 ```
 
 EF Core migrations are created against `Parcs.Data` but **applied automatically at Host startup** via `app.MigrateDatabase()` in [src/Parcs.Host/Program.cs](src/Parcs.Host/Program.cs) — do not run `dotnet ef database update` manually. To add a migration:
@@ -49,8 +50,8 @@ The system is a set of cooperating services built around a **module execution pr
 
 ### Services (`src/`)
 
-- **Parcs.Host** — ASP.NET Core Web API. The control plane. Accepts job/module CRUD + run requests, stores state in Postgres via `Parcs.Data`, orchestrates daemons. Uses **MediatR CQRS** — each endpoint in `Controllers/` delegates to a handler in `Handlers/` (`*CommandHandler`, `*QueryHandler`). Two run models: `SynchronousJobRunsController` (blocks until done — Kestrel timeouts are bumped to 15 min in `Program.cs` for this) and `AsynchronousJobRunsController`. Also runs its own `HostTcpServer` that daemons connect back to. Schedules new daemon "points" via the Kubernetes client or (on GCP) Pub/Sub + KEDA scaling (see `PointCreationService`).
-- **Parcs.Daemon** — headless worker process. Runs three hosted services (see [src/Parcs.Daemon/Program.cs](src/Parcs.Daemon/Program.cs)): `InternalServer` (intra-daemon channels), `TcpServer` (port 1111, receives signals from Host/other daemons), `PointCreationConsumer` (GCP Pub/Sub consumer for the KEDA-driven scale-out path). Dispatches incoming signals to handlers in `Handlers/` via `SignalHandlerFactory` (initialize job, execute class, cancel job, …). Module assemblies are loaded into isolated contexts provided by `Parcs.Core`.
+- **Parcs.Host** — ASP.NET Core Web API. The control plane. Accepts job/module CRUD + run requests, stores state in Postgres via `Parcs.Data`, orchestrates daemons. Uses **MediatR CQRS** — each endpoint in `Controllers/` delegates to a handler in `Handlers/` (`*CommandHandler`, `*QueryHandler`). Two run models: `SynchronousJobRunsController` (blocks until done — Kestrel timeouts are bumped to 15 min in `Program.cs` for this) and `AsynchronousJobRunsController`. Also runs a `CallbackTcpServer` (from `Parcs.Core`) that daemons connect back to. New points are requested by publishing to the point queue — Pub/Sub (GKE), Service Bus (AKS) or SQS (EKS), selected by `PointQueue__Provider` — which KEDA scales daemon Jobs on (see `QueuePointCreationService` and `Parcs.Core/Messaging/`).
+- **Parcs.Daemon** — headless worker process. Runs three hosted services (see [src/Parcs.Daemon/Program.cs](src/Parcs.Daemon/Program.cs)): `InternalServer` (intra-daemon channels), `TcpServer` (port 1111, receives signals from Host/other daemons), `PointCreationConsumer` (takes exactly one point request from the point queue for the KEDA-driven scale-out path). Daemons also run a `CallbackTcpServer` and `QueuePointCreationService`, so modules running on a daemon can create nested points through the same queue (children dial back to the daemon pod IP, `HostTcp__AdvertisedAddress`). Dispatches incoming signals to handlers in `Handlers/` via `SignalHandlerFactory` (initialize job, execute class, cancel job, …). Module assemblies are loaded into isolated contexts provided by `Parcs.Core`.
 - **Parcs.Portal** — Blazor Server UI for managing modules/jobs. Pages in `Pages/` (`Modules.razor`, `Jobs.razor`, `NewJob.razor`, `RunJob.razor`, …). Talks to the Host API over HTTP and uses a SignalR hub for live job updates.
 - **Parcs.Agent.Mcp** — Model Context Protocol server that exposes PARCS as tools to AI agents. Sessions compile a user-supplied `IAgentComputation` C# class via Roslyn; each `run_layer` call fans out that code across N daemons, threading `previousLayerResultJson` from one layer to the next. See [src/Parcs.Agent.Mcp/Tools/ParcsAgentTools.cs](src/Parcs.Agent.Mcp/Tools/ParcsAgentTools.cs) for the contract. The `Parcs.Modules.AgentRunner` module is the daemon-side counterpart that actually executes the compiled code.
 
@@ -67,9 +68,9 @@ Sample / benchmark implementations of `IModule`: `Sample`, `Integral`, `Matrixes
 
 ### Infra / deployment
 
-- `kube/deployment.{local,azure,gcp}.yaml` — one flat manifest per target; deploys daemon, hostapi, portal, postgres, elasticsearch, kibana.
-- `infra/` — `main.bicep` / `resources.bicep` for Azure; `infra/gcp/main.tf` for GCP (Terraform).
-- Docker images built from per-project `Dockerfile`s (`src/Parcs.Daemon/Dockerfile`, etc.) with the **build context set to the repo `src/` root** (see `DockerfileContext` in each `.csproj`) so they can reach sibling projects.
+- `kube/deployment.{local,azure,gcp,aws}.yaml` (+ `kube/aws-karpenter.yaml`) — one flat manifest per target; deploys daemon, hostapi, portal, postgres, elasticsearch, kibana.
+- `infra/` — `main.bicep` / `resources.bicep` for Azure; `infra/gcp/main.tf` for GCP and `infra/aws/main.tf` for AWS (Terraform).
+- Docker images built from per-project `Dockerfile`s (`src/Parcs.Daemon/Dockerfile`, etc.) with the **build context set to the repo root** (the Dockerfiles `COPY src/<Project>/...`; `DockerfileContext` in each `.csproj` points there) so they can reach sibling projects.
 
 ## Conventions worth knowing
 

@@ -16,5 +16,7 @@ namespace Parcs.Portal.Models
         public string ClassName { get; set; }
 
         public IEnumerable<IBrowserFile> InputFiles { get; set; } = [];
+
+        public bool RequiresGpu { get; set; }
     }
 }

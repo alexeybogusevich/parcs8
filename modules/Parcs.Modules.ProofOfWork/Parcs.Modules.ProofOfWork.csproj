@@ -5,6 +5,14 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
+  <!-- ProofOfWork's GPU variant is out of scope for this pass and doesn't currently compile
+       (it references ModuleOptions/ModuleOutput/IChannel members that don't exist on this
+       branch) — excluded rather than left to break the solution build. ILGPU package refs stay
+       so the exclusion is easy to reverse later without touching project references. -->
+  <ItemGroup>
+    <Compile Remove="Gpu\**\*.cs" />
+  </ItemGroup>
+
   <ItemGroup>
 	  <PackageReference Include="Parcs.Net" Version="10.0.0">
 		  <ExcludeAssets>runtime</ExcludeAssets>

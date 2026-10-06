@@ -192,10 +192,7 @@ resource "google_container_cluster" "parcs" {
     gcs_fuse_csi_driver_config {
       enabled = false
     }
-  }
-
-  # Filestore CSI driver (needed for ReadWriteMany PVCs)
-  addons_config {
+    # Filestore CSI driver (needed for ReadWriteMany PVCs)
     gcp_filestore_csi_driver_config {
       enabled = true
     }
@@ -352,6 +349,13 @@ resource "google_pubsub_topic_iam_member" "host_publisher" {
   member = "serviceAccount:${google_service_account.parcs_host.email}"
 }
 
+# Daemon can publish — modules running on a daemon create nested points through the same topic
+resource "google_pubsub_topic_iam_member" "daemon_publisher" {
+  topic  = google_pubsub_topic.point_requested.id
+  role   = "roles/pubsub.publisher"
+  member = "serviceAccount:${google_service_account.parcs_daemon.email}"
+}
+
 # Daemon can subscribe (consume messages)
 resource "google_pubsub_subscription_iam_member" "daemon_subscriber" {
   subscription = google_pubsub_subscription.point_requested_sub.id
@@ -430,4 +434,5 @@ output "pubsub_topic" {
 }
 
 output "pubsub_subscription" {
-  value = google_pubsub_subscr
+  value = google_pubsub_subscription.point_requested_sub.id
+}

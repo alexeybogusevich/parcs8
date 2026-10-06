@@ -1,5 +1,6 @@
 using ILGPU;
 using ILGPU.Runtime;
+using ILGPU.Runtime.CPU;
 using ILGPU.Runtime.Cuda;
 using Parcs.Modules.MatrixesMultiplication.Models;
 using Parcs.Net;

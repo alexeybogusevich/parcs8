@@ -7,6 +7,7 @@ using Parcs.Core.Services;
 using Microsoft.Extensions.Configuration;
 using Parcs.Daemon.Configuration;
 using Parcs.Core.Configuration;
+using Parcs.Core.Messaging;
 using System.Threading.Channels;
 using Parcs.Core.Models;
 using Microsoft.Extensions.Logging;
@@ -21,6 +22,12 @@ namespace Parcs.Daemon.Extensions
                 // GPU availability is probed once at startup and cached for the pod lifetime.
                 // Modules read IsCudaAvailable to decide between GPU and CPU code paths.
                 .AddSingleton<IGpuAvailabilityService, GpuAvailabilityService>()
+                // Nested points: modules running here create child points through the same
+                // point queue as the Host; child daemons dial back to this pod's callback server.
+                .AddSingleton<ICurrentPointRequestAccessor, CurrentPointRequestAccessor>()
+                .AddSingleton<IJobPlacementResolver, InheritedJobPlacementResolver>()
+                .AddSingleton<CallbackTcpServer>()
+                .AddSingleton<IPointCreationService, QueuePointCreationService>()
                 .AddSingleton(typeof(ITypeLoader<>), typeof(TypeLoader<>))
                 .AddSingleton<CancelJobSignalHandler>()
                 .AddSingleton<ConfigurationDaemonResolutionStrategy>()
@@ -39,7 +46,6 @@ namespace Parcs.Daemon.Extensions
                 .AddSingleton<IJobDirectoryPathBuilder, JobDirectoryPathBuilder>()
                 .AddSingleton<IModuleInfoFactory, ModuleInfoFactory>()
                 .AddSingleton<IModuleDirectoryPathBuilder, ModuleDirectoryPathBuilder>()
-                .AddSingleton<IModuleInfoFactory, ModuleInfoFactory>()
                 .AddSingleton<IModuleLoader, ModuleLoader>()
                 .AddSingleton<InitializeJobSignalHandler>()
                 .AddSingleton<ISignalHandlerFactory, SignalHandlerFactory>()
@@ -72,8 +78,9 @@ namespace Parcs.Daemon.Extensions
                 .Configure<KubernetesConfiguration>(configuration.GetSection(KubernetesConfiguration.SectionName))
                 .Configure<DaemonConfiguration>(configuration.GetSection(DaemonConfiguration.SectionName))
                 .Configure<HostConfiguration>(configuration.GetSection(HostConfiguration.SectionName))
-                // GCP Pub/Sub replaces Azure Service Bus
-                .Configure<PubSubConfiguration>(configuration.GetSection(PubSubConfiguration.SectionName));
+                .Configure<HostTcpConfiguration>(configuration.GetSection(HostTcpConfiguration.SectionName))
+                // Point-request broker: Pub/Sub (GKE), Service Bus (AKS) or SQS (EKS).
+                .AddPointQueue(configuration);
         }
 
         public static IServiceCollection AddApplicationLogging(this IServiceCollection services, IConfiguration configuration)
