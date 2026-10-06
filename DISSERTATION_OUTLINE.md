@@ -302,7 +302,7 @@ AKS, ALC (AssemblyLoadContext), API, CA (Cluster Autoscaler), CRD, CSP, CUDA, CV
 **Граматики й constrained decoding (6):** Parr 2011 (LL(*), PLDI); Parr 2013 (The Definitive ANTLR 4 Reference); JitGen 2026 (препринт preprints.org 202604.0147 + GitHub); Geng 2023 (grammar-constrained decoding, EMNLP); Willard 2023 (Outlines); QuickJS (Bellard).
 **Задачі-приклади (12):** Matai 2010; Varadarajan 2021 (GECCO); Lawler 1985; Goldberg 1989 (ГА); Glasserman 2003; Jorion 2006 (VaR); Rockafellar 2000 (CVaR); Floyd 1962; Warshall 1962; Barnes 1986 (Nature); Nakamoto 2008; Metropolis 1949.
 **Надійність (3):** Kuo 2003 (Optimal Reliability Modeling); Rausand 2004 (System Reliability Theory); лекційний курс із теорії надійності (за [РЕЗ]).
-**Разом ≈ 135–140.** Перед внесенням перевірити DOI (відомі помилки: у [П1] DOI для Anisimov 2018 належить статті 2023 р.; у [П2] посилання на репозиторій parcs8 замість parcs7).
+**Разом ≈ 135–140.** Перед внесенням перевірити DOI (відомі помилки: у [П1] DOI для Anisimov 2018 належить статті 2023 р.; репозиторій цитувати як github.com/alexeybogusevich/parcs8 — канонічна назва).
 
 ## 11. ДОДАТКИ — с. 138–155
 
