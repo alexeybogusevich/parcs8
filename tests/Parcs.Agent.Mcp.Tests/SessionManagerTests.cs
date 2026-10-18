@@ -15,8 +15,10 @@ public class SessionManagerTests
     {
         var harness = new Harness();
 
-        var (first, firstReused) = harness.Sessions.CreateSession(Harness.MapReduceSource);
-        var (second, secondReused) = harness.Sessions.CreateSession(Harness.MapReduceSource.Replace("\n", "\r\n") + "\n\n");
+        // Normalise first: the literal's line endings follow the checkout (core.autocrlf).
+        var source = Harness.MapReduceSource.Replace("\r\n", "\n");
+        var (first, firstReused) = harness.Sessions.CreateSession(source);
+        var (second, secondReused) = harness.Sessions.CreateSession(source.Replace("\n", "\r\n") + "\n\n");
 
         Assert.Multiple(() =>
         {
