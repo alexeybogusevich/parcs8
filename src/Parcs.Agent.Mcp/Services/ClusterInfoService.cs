@@ -7,13 +7,13 @@ namespace Parcs.Agent.Mcp.Services;
 
 /// <summary>
 /// Queries the Kubernetes API to report live cluster capacity.
-/// Computes max parallelism as: floor(allocatable_cpu_per_node / daemon_cpu_request) × worker_nodes
+/// Current capacity is the sum over daemon-eligible nodes of floor(allocatable_cpu / daemon_cpu_request);
+/// nodes with a NoSchedule/NoExecute taint (control plane, GPU pools) or labelled pool=system are excluded.
+/// Max parallelism is the ScaledJob maxReplicaCount when configured (nodes are added on demand up to it),
+/// otherwise the current capacity.
 /// </summary>
 public sealed class ClusterInfoService
 {
-    // Resource request per daemon pod (from deployment.azure.yaml)
-    private const double DaemonCpuRequestMillicores = 250.0;
-
     private readonly ILogger<ClusterInfoService> _logger;
     private readonly IConfiguration _config;
     private Kubernetes? _k8s;
@@ -23,6 +23,12 @@ public sealed class ClusterInfoService
         _logger = logger;
         _config = configuration;
     }
+
+    // Resource request per daemon pod; must match the daemon ScaledJob in kube/deployment.*.yaml
+    private double DaemonCpuRequestMillicores => _config.GetValue("Parcs:DaemonCpuRequestMillicores", 250.0);
+
+    // maxReplicaCount of the daemon ScaledJob; 0 means not configured
+    private int MaxReplicaCount => _config.GetValue("Parcs:MaxReplicaCount", 0);
 
     private Kubernetes GetClient()
     {
@@ -50,10 +56,8 @@ public sealed class ClusterInfoService
             var client = GetClient();
             var nodes  = await client.ListNodeAsync(cancellationToken: ct);
 
-            // Worker nodes: schedulable nodes with the agent workload label
-            // (excludes control-plane nodes which are tainted NoSchedule)
             var workerNodes = nodes.Items
-                .Where(n => !HasControlPlaneTaint(n) && n.Spec?.Unschedulable != true)
+                .Where(n => !HasBlockingTaint(n) && !IsSystemNode(n) && n.Spec?.Unschedulable != true)
                 .ToList();
 
             double totalMaxDaemons = 0;
@@ -66,10 +70,12 @@ public sealed class ClusterInfoService
                 }
             }
 
+            var currentCapacity = (int)totalMaxDaemons;
             return new ClusterInfoResult
             {
                 WorkerNodeCount = workerNodes.Count,
-                MaxParallelism  = (int)totalMaxDaemons,
+                CurrentCapacity = currentCapacity,
+                MaxParallelism  = MaxReplicaCount > 0 ? MaxReplicaCount : currentCapacity,
                 DaemonCpuRequestMillicores = (int)DaemonCpuRequestMillicores,
             };
         }
@@ -79,16 +85,20 @@ public sealed class ClusterInfoService
             return new ClusterInfoResult
             {
                 WorkerNodeCount = _config.GetValue<int>("Parcs:FallbackWorkerNodeCount", 19),
+                CurrentCapacity = _config.GetValue<int>("Parcs:FallbackMaxParallelism", 133),
                 MaxParallelism  = _config.GetValue<int>("Parcs:FallbackMaxParallelism", 133),
                 DaemonCpuRequestMillicores = (int)DaemonCpuRequestMillicores,
             };
         }
     }
 
-    private static bool HasControlPlaneTaint(V1Node node) =>
-        node.Spec?.Taints?.Any(t =>
-            t.Key is "node-role.kubernetes.io/control-plane"
-                  or "node-role.kubernetes.io/master") == true;
+    // Daemons carry no tolerations, so any NoSchedule/NoExecute taint (control plane, GPU pool) excludes the node
+    private static bool HasBlockingTaint(V1Node node) =>
+        node.Spec?.Taints?.Any(t => t.Effect is "NoSchedule" or "NoExecute") == true;
+
+    // The EKS system node group (pool=system) hosts the control services, not daemons
+    private static bool IsSystemNode(V1Node node) =>
+        node.Metadata?.Labels?.TryGetValue("pool", out var pool) == true && pool == "system";
 
     private static double ParseCpuToMillicores(string value)
     {
@@ -102,6 +112,7 @@ public sealed class ClusterInfoService
 public sealed class ClusterInfoResult
 {
     public int WorkerNodeCount { get; init; }
+    public int CurrentCapacity { get; init; }
     public int MaxParallelism { get; init; }
     public int DaemonCpuRequestMillicores { get; init; }
 }

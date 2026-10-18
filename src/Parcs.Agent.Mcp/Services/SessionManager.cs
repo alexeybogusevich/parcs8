@@ -73,6 +73,10 @@ public sealed class SessionManager
     public IReadOnlyList<SessionRecord> ListSessions() =>
         [.. _sessions.Values.OrderByDescending(s => s.CreatedAt)];
 
+    /// <summary>Returns the layers of a session ordered by submission time ascending.</summary>
+    public IReadOnlyList<LayerRecord> ListLayers(string sessionId) =>
+        [.. _layers.Values.Where(l => l.SessionId == sessionId).OrderBy(l => l.SubmittedAt)];
+
     public byte[]? GetCompiledAssembly(string sessionId) =>
         SessionCompiledAssemblies.TryGetValue(sessionId, out var b) ? b : null;
 

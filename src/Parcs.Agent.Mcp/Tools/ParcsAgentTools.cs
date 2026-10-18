@@ -60,18 +60,20 @@ public sealed class ParcsAgentTools
 
     [McpServerTool(Name = "get_cluster_info")]
     [Description(
-        "Returns PARCS cluster capacity: worker node count, maximum simultaneous daemon " +
-        "workers (maxParallelism), and per-daemon CPU allocation in millicores. " +
-        "Call once at the start to decide how many workers to use per layer. " +
-        "maxParallelism reflects current cluster capacity, not a hard ceiling — KEDA " +
-        "autoscales nodes on demand, so requesting up to maxParallelism workers is safe, " +
-        "and the value itself will rise as the cluster scales up.")]
+        "Returns PARCS cluster capacity: daemon-eligible worker node count, the number of daemon " +
+        "workers that fit on those nodes now (currentCapacity), the ceiling on simultaneous " +
+        "workers (maxParallelism, the autoscaler's replica limit shared by all running jobs) and " +
+        "the per-daemon CPU request in millicores. Call once at the start to decide how many " +
+        "workers to use per layer. Up to currentCapacity workers start without new nodes; " +
+        "between currentCapacity and maxParallelism, nodes are added on demand, which adds " +
+        "minutes of start-up latency. Never request more than maxParallelism.")]
     public async Task<string> GetClusterInfoAsync(CancellationToken ct)
     {
         var info = await _clusterInfo.GetClusterInfoAsync(ct);
         return JsonSerializer.Serialize(new
         {
             workerNodeCount            = info.WorkerNodeCount,
+            currentCapacity            = info.CurrentCapacity,
             maxParallelism             = info.MaxParallelism,
             daemonCpuRequestMillicores = info.DaemonCpuRequestMillicores,
         }, _jsonOptions);
@@ -294,7 +296,8 @@ public sealed class ParcsAgentTools
 
     [McpServerTool(Name = "list_sessions")]
     [Description(
-        "Lists all active compute sessions in this MCP server instance, ordered newest first. " +
+        "Lists all active compute sessions in this MCP server instance, ordered newest first, " +
+        "each with its layers (layerId, status, submittedAt) in submission order. " +
         "Useful for resuming a multi-layer pipeline after a connection interruption.")]
     public string ListSessions()
     {
@@ -306,6 +309,12 @@ public sealed class ParcsAgentTools
             {
                 sessionId = s.SessionId,
                 createdAt = s.CreatedAt,
+                layers    = _sessions.ListLayers(s.SessionId).Select(l => new
+                {
+                    layerId     = l.LayerId,
+                    status      = l.Status.ToString(),
+                    submittedAt = l.SubmittedAt,
+                }),
             }),
         }, _jsonOptions);
     }
