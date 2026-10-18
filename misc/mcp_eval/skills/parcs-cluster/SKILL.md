@@ -13,31 +13,58 @@ description: >
 
 # PARCS Cluster — Distributed Parallel Compute via MCP
 
-The PARCS cluster exposes a set of MCP tools that let you write and execute parallel C# code across
-multiple worker pods in a GKE cluster. You submit C# source, PARCS compiles it with Roslyn, fans it
-out to N daemon workers via Pub/Sub + KEDA, and returns aggregated results.
+The PARCS cluster runs C# code in parallel across many daemon workers. You submit C# source, PARCS
+compiles it with Roslyn, runs it on N workers, and returns the results. You write only the
+sequential code of one worker; distribution, scheduling and result collection are the platform's job.
 
 ## Execution Model
 
-A computation is a sequence of **layers**. Each layer fans out to N workers in parallel, waits for
-all to complete, and returns the aggregated results. Workers in layer 2 can read layer 1's output
-via `PreviousLayerResultJson`, enabling multi-stage pipelines.
+A computation is a sequence of **layers**. A layer runs one `IAgentComputation` class of a session on
+N workers in parallel. A later layer reads earlier layers' results through `previousLayerIds`: the
+server passes them to every worker, so you never copy result JSON yourself.
 
 ```
-create_session(sourceCode)
-    └─► run_layer(sessionId, parallelism=N)          ← layer 1
-            └─► run_layer(sessionId, parallelism=N,   ← layer 2, reads layer 1 results
-                          previousLayerResultJson=...) 
+create_session(sourceCode)                         → sessionId, entryPoints
+run_layer(sessionId, parallelism=N, entryPoint="Map", layerKey="map")              → layerId A
+run_layer(sessionId, parallelism=1, entryPoint="Reduce", previousLayerIds=[A], layerKey="reduce")
 ```
 
-If a layer fails, call `create_session` again with fixed code and re-run from the last successful
-layer's `resultJson` — no earlier work is lost.
+**No call blocks for long.** `run_layer` waits at most `waitSeconds` (default 60, max 200). If the
+layer is still running, it returns `status: "Running"` with the `layerId` — call `wait_layer(layerId)`
+until it is done. Starting workers can take minutes when the cluster has to add nodes.
+
+**Every call is safe to repeat.** Give each layer a `layerKey` (e.g. `"map-3"`). Repeating `run_layer`
+with the same key and arguments returns the same layer (`reused: true`) instead of running it again,
+so after a timeout or a dropped connection just repeat the call. The same source code passed to
+`create_session` returns the same session. `list_layers(sessionId)` lists everything already run.
+
+## Result shape
+
+Every tool returns one envelope:
+
+```json
+{ "ok": true, "status": "Completed", "sessionId": "…", "layerId": "…", "layerKey": "reduce",
+  "layer": { "parallelism": 1, "successCount": 1, "failureCount": 0, "queuedSeconds": 0.0, "elapsedSeconds": 3.2 },
+  "output": { "var99": 0.0213 } }
+```
+
+- `ok` is false exactly when `error` is set: `{ code, message, retryable, failedWorkers?, diagnostics? }`.
+- Layer `status`: `Queued` / `Running` (ok — wait), `Completed`, `CompletedWithFailures` (some workers
+  failed; `error.failedWorkers` lists them), `Failed`, `Cancelled`.
+- With `parallelism: 1`, `output` is that worker's output, already parsed when it is JSON.
+- `view: "outputs"` adds `outputs[]` (one per worker, `null` for failed ones); `view: "full"` adds
+  `workers[]` with errors and timings. The default summary keeps results small — make a final
+  `parallelism: 1` layer produce the answer instead of reading every worker's output.
+- Error codes: `invalid_argument`, `session_not_found`, `layer_not_found`, `layer_key_conflict`,
+  `previous_layer_not_ready`, `previous_layer_failed`, `compile_error`, `capacity_exceeded`,
+  `not_ready`, `worker_error`, `out_of_memory`, `daemon_timeout`, `no_daemons`, `host_unavailable`,
+  `job_failed`, `cancelled`. Repeat a call unchanged only when `retryable` is true.
 
 ---
 
 ## The IAgentComputation Interface
 
-Every session requires a C# class implementing this interface from `Parcs.Agent.Runtime`:
+A session holds one or more classes implementing this interface from `Parcs.Agent.Runtime`:
 
 ```csharp
 public interface IAgentComputation
@@ -46,21 +73,30 @@ public interface IAgentComputation
 }
 ```
 
+Put the map and the reduce class in **one** session and select one per layer with `entryPoint`
+(full or simple class name; `create_session` returns the list as `output.entryPoints`).
+
 ### AgentLayerInput fields available to each worker
 
 | Field | Type | Description |
 |---|---|---|
-| `WorkerIndex` | `int` | 0-based index within this layer's worker pool |
-| `TotalWorkers` | `int` | Total workers in this layer |
-| `PreviousLayerResultJson` | `string?` | JSON output from the previous `run_layer` call (null for first layer) |
-| `CustomData` | `string?` | Shared string payload broadcast to all workers |
-| `Parameters` | `Dictionary<string,string>` | Named key/value pairs passed at submission time |
+| `WorkerIndex` | `int` | 0-based index within this layer's workers |
+| `TotalWorkers` | `int` | Number of workers in this layer |
+| `PreviousLayerResults` | `IReadOnlyList<string>` | Result document of each layer in `previousLayerIds`, in that order |
+| `PreviousLayerResultJson` | `string?` | The first of them (null for a first layer) |
+| `GetPreviousOutputs(parentIndex = 0)` | `IReadOnlyList<string?>` | The parent's per-worker outputs in worker order, `null` for failed workers |
+| `CustomData` | `string?` | Payload sent unchanged to every worker |
+| `WorkerInput` | `string?` | This worker's own entry of `workerInputs` |
+| `Parameters` | `Dictionary<string,string>` | Named values sent unchanged to every worker |
+
+Workers have no network or file-system access: generate data from seeds or pass small inputs in
+`customData`, `parameters` or `workerInputs`.
 
 ### Returning results
 
 ```csharp
 return AgentLayerResult.Ok(outputJson);    // success — outputJson is any JSON string
-return AgentLayerResult.Error("message");  // failure — layer status becomes Failed
+return AgentLayerResult.Error("message");  // failure — this worker counts as failed
 ```
 
 ### Required usings (always included automatically in body-only mode)
@@ -78,72 +114,134 @@ using Parcs.Agent.Runtime;
 
 If you submit a **full class** (containing `class` + `IAgentComputation`), include your own usings.
 If you submit just a **method body**, the wrapper class and usings are added automatically.
+Compile errors come back as `error.diagnostics` with line numbers of the code you sent.
 
 ---
+
+## Calling the tools from code (when you have the `eval` tool)
+
+If an `eval` JavaScript tool is available, drive the whole pipeline from one script instead of one
+tool call per step. Each PARCS tool is `tools.<camelCaseName>(args)` and resolves to the envelope as a
+plain object — check `r.ok` and `r.status`; errors do not throw.
+
+```javascript
+const WAIT = 25;
+async function layer(args) {
+  let r = await tools.runLayer({ waitSeconds: WAIT, ...args });
+  while (r.ok && (r.status === "Running" || r.status === "Queued"))
+    r = await tools.waitLayer({ layerId: r.layerId, waitSeconds: WAIT });
+  if (!r.ok) throw new Error(`${r.error.code}: ${r.error.message}`);
+  return r;
+}
+const info = (await tools.getClusterInfo({})).output;
+const s = await tools.createSession({ sourceCode: SOURCE });
+if (!s.ok) throw new Error(JSON.stringify(s.error.diagnostics));
+const p = Math.min(16, info.maxParallelism);
+const map = await layer({ sessionId: s.sessionId, entryPoint: "Map", parallelism: p, layerKey: "map" });
+const red = await layer({ sessionId: s.sessionId, entryPoint: "Reduce", parallelism: 1,
+                          previousLayerIds: [map.layerId], layerKey: "reduce" });
+red.output;   // the last expression is all you see
+```
+
+Keep layer keys stable: if a script stops part-way, run it again and the finished layers are
+returned instead of re-run.
+
+---
+
+<!-- BEGIN GENERATED TOOL REFERENCE -->
+<!-- Generated by generate_skill.py from the server's tools/list. Do not edit by hand. -->
 
 ## MCP Tools
 
-### `get_cluster_info`
-Returns current cluster capacity. Call this first to decide parallelism.
+### `get_cluster_info()`
 
-```json
-{
-  "workerNodeCount": 3,
-  "maxParallelism": 21,
-  "daemonCpuRequestMillicores": 500
-}
-```
+Every PARCS tool returns { ok, status, sessionId?, layerId?, layerKey?, layer?, output?, outputs?, workers?, error? }; ok is false exactly when error = { code, message, retryable, layerId?, failedWorkers?, diagnostics? } is set. Returns cluster capacity in output = { scalingMode: 'elastic'|'static', workerNodeCount, currentCapacity, maxParallelism, daemonCpuRequestMillicores, capacitySource: 'kubernetes'|'dns'|'configuration'|'fallback', freeWorkers, runningLayers, queuedLayers }. Call once at the start to size parallelism. Never request more than maxParallelism. In elastic mode, workers above currentCapacity need new nodes (minutes of start-up); in static mode a fixed pool serves all layers and nothing is provisioned. Layers that do not fit in freeWorkers wait in a server-side queue. capacitySource 'fallback' means the numbers are a configured guess.
 
-Never request more workers than `maxParallelism`. KEDA autoscales nodes on demand, so using the
-full `maxParallelism` is safe and encouraged for large jobs.
+### `create_session(sourceCode)`
 
----
+Every PARCS tool returns { ok, status, sessionId?, layerId?, layerKey?, layer?, output?, outputs?, workers?, error? }; ok is false exactly when error = { code, message, retryable, layerId?, failedWorkers?, diagnostics? } is set. Compiles C# source with one or more classes implementing IAgentComputation from Parcs.Agent.Runtime:
+  public interface IAgentComputation { Task<AgentLayerResult> ExecuteAsync(AgentLayerInput input, CancellationToken ct); }
+AgentLayerInput: WorkerIndex, TotalWorkers, SessionId, LayerId, CustomData (same for every worker), WorkerInput (workerInputs[WorkerIndex] of run_layer), Parameters (Dictionary<string,string>), PreviousLayerResults (one JSON document per parent layer), PreviousLayerResultJson (= the first of them) and GetPreviousOutputs(parentIndex = 0), which returns the parent's per-worker outputs in worker order (null for failed workers). Return AgentLayerResult.Ok(outputJson) or AgentLayerResult.Error(message). Workers have no network or file access.
+Returns status 'Created' or 'Reused' (the same source returns the same session), sessionId and output = { entryPoints: [full class names] }; pass one as run_layer's entryPoint when there are several. On compile failure: error.code 'compile_error' with diagnostics [{ id, line, column, message }].
 
-### `create_session`
+| Argument | Type | Required | Description |
+|---|---|---|---|
+| `sourceCode` | `string` | yes | Complete C# source with one or more IAgentComputation classes, or just the body of ExecuteAsync (usings and a class wrapper are then added). |
 
-```
-create_session(sourceCode: string) → { sessionId, createdAt, message } | { error }
-```
+### `run_layer(sessionId, parallelism, waitSeconds?, layerKey?, entryPoint?, previousLayerIds?, customData?, parameters?, workerInputs?, failFast?, view?)`
 
-- Compiles the C# source with Roslyn
-- Returns `sessionId` on success; returns `{ error }` with compiler diagnostics on failure
-- On compile error: fix the code and call `create_session` again — no state is lost
+Every PARCS tool returns { ok, status, sessionId?, layerId?, layerKey?, layer?, output?, outputs?, workers?, error? }; ok is false exactly when error = { code, message, retryable, layerId?, failedWorkers?, diagnostics? } is set. Runs a session's computation on 'parallelism' workers and waits up to waitSeconds (default 60, max 200) for it to finish. If it is still running, returns status 'Running' with layerId: call wait_layer(layerId). Pass a layerKey to make the call idempotent: repeating it with the same key and arguments returns the same layer instead of starting another job, with reused: true (a key whose layer Failed or was Cancelled starts a new attempt). Chain layers with previousLayerIds; workers read the parents' results through input.PreviousLayerResults. Layer result: status is Queued | Running (ok, call wait_layer) | Completed | CompletedWithFailures | Failed | Cancelled. layer = { entryPoint, parallelism, previousLayerIds, successCount, failureCount, queuedSeconds, elapsedSeconds, submittedAt, startedAt, completedAt, jobId }. When parallelism is 1, output is that worker's output (parsed when it is JSON). view 'outputs' adds outputs[] (one per worker, null for failed ones); view 'full' also adds workers[] = { workerIndex, success, output, error, elapsedSeconds }. Error codes: invalid_argument, session_not_found, layer_not_found, layer_key_conflict, previous_layer_not_ready, previous_layer_failed, capacity_exceeded, not_ready, worker_error, out_of_memory, daemon_timeout, no_daemons, host_unavailable, job_failed, cancelled.
 
----
+| Argument | Type | Required | Description |
+|---|---|---|---|
+| `sessionId` | `string` | yes | Session ID from create_session. |
+| `parallelism` | `integer` | yes | Number of workers; at most maxParallelism from get_cluster_info. |
+| `waitSeconds` | `integer \| null` | no | Seconds to wait for completion before returning status 'Running' (0–200, default 60). |
+| `layerKey` | `string \| null` | no | Caller-chosen idempotency key, unique per logical layer within the session, e.g. 'map-3'. |
+| `entryPoint` | `string \| null` | no | Full or simple name of the IAgentComputation class to run; required when the session has several. |
+| `previousLayerIds` | `array \| null` | no | layerIds of completed parent layers, in the order workers see them in input.PreviousLayerResults. |
+| `customData` | `string \| null` | no | Small string sent unchanged to every worker as input.CustomData. |
+| `parameters` | `object \| null` | no | Named parameters sent unchanged to every worker as input.Parameters. |
+| `workerInputs` | `array \| null` | no | One string per worker (exactly 'parallelism' entries); worker i reads workerInputs[i] as input.WorkerInput. |
+| `failFast` | `boolean` | no | If true, the first failed worker fails the whole layer (status Failed) instead of CompletedWithFailures. Default: `False`. |
+| `view` | `string \| null` | no | 'summary' (default), 'outputs' or 'full'. |
 
-### `run_layer` *(preferred — blocks until done)*
+### `submit_layer(sessionId, parallelism, layerKey?, entryPoint?, previousLayerIds?, customData?, parameters?, workerInputs?, failFast?)`
 
-```
-run_layer(
-  sessionId:               string,
-  parallelism:             int,
-  previousLayerResultJson: string? = null,
-  customData:              string? = null,
-  parametersJson:          string? = null   // JSON object e.g. '{"start":"0","end":"1000"}'
-) → { layerId, sessionId, status, submittedAt, completedAt, resultJson?, errorMessage? }
-```
+Every PARCS tool returns { ok, status, sessionId?, layerId?, layerKey?, layer?, output?, outputs?, workers?, error? }; ok is false exactly when error = { code, message, retryable, layerId?, failedWorkers?, diagnostics? } is set. Same as run_layer with waitSeconds 0: starts the layer and returns at once with status 'Queued' or 'Running' and layerId (or the finished layer when layerKey names one). Use wait_layer to wait for it. Layer result: status is Queued | Running (ok, call wait_layer) | Completed | CompletedWithFailures | Failed | Cancelled. layer = { entryPoint, parallelism, previousLayerIds, successCount, failureCount, queuedSeconds, elapsedSeconds, submittedAt, startedAt, completedAt, jobId }. When parallelism is 1, output is that worker's output (parsed when it is JSON). view 'outputs' adds outputs[] (one per worker, null for failed ones); view 'full' also adds workers[] = { workerIndex, success, output, error, elapsedSeconds }. Error codes: invalid_argument, session_not_found, layer_not_found, layer_key_conflict, previous_layer_not_ready, previous_layer_failed, capacity_exceeded, not_ready, worker_error, out_of_memory, daemon_timeout, no_daemons, host_unavailable, job_failed, cancelled.
 
-`status` is `"Completed"` or `"Failed"`.
+| Argument | Type | Required | Description |
+|---|---|---|---|
+| `sessionId` | `string` | yes | Session ID from create_session. |
+| `parallelism` | `integer` | yes | Number of workers; at most maxParallelism from get_cluster_info. |
+| `layerKey` | `string \| null` | no | Caller-chosen idempotency key, see run_layer. |
+| `entryPoint` | `string \| null` | no | IAgentComputation class to run, see run_layer. |
+| `previousLayerIds` | `array \| null` | no | layerIds of completed parent layers. |
+| `customData` | `string \| null` | no | Small string sent to every worker as input.CustomData. |
+| `parameters` | `object \| null` | no | Named parameters sent to every worker as input.Parameters. |
+| `workerInputs` | `array \| null` | no | One string per worker, read as input.WorkerInput. |
+| `failFast` | `boolean` | no | Fail the whole layer on the first failed worker. Default: `False`. |
 
-`resultJson` is a `LayerOutputDto`:
-```json
-{
-  "sessionId": "...",
-  "layerId": "...",
-  "totalElapsedSeconds": 4.2,
-  "results": [
-    { "workerIndex": 0, "success": true,  "outputData": "...", "elapsedSeconds": 4.1 },
-    { "workerIndex": 1, "success": false, "errorMessage": "...", "elapsedSeconds": 0.3 }
-  ]
-}
-```
+### `wait_layer(layerId, waitSeconds?, view?)`
 
----
+Every PARCS tool returns { ok, status, sessionId?, layerId?, layerKey?, layer?, output?, outputs?, workers?, error? }; ok is false exactly when error = { code, message, retryable, layerId?, failedWorkers?, diagnostics? } is set. Waits up to waitSeconds (default 60, max 200) for a layer to finish and returns it; returns at once if it already has. Status 'Running' or 'Queued' means call wait_layer again. Layer result: status is Queued | Running (ok, call wait_layer) | Completed | CompletedWithFailures | Failed | Cancelled. layer = { entryPoint, parallelism, previousLayerIds, successCount, failureCount, queuedSeconds, elapsedSeconds, submittedAt, startedAt, completedAt, jobId }. When parallelism is 1, output is that worker's output (parsed when it is JSON). view 'outputs' adds outputs[] (one per worker, null for failed ones); view 'full' also adds workers[] = { workerIndex, success, output, error, elapsedSeconds }. Error codes: invalid_argument, session_not_found, layer_not_found, layer_key_conflict, previous_layer_not_ready, previous_layer_failed, capacity_exceeded, not_ready, worker_error, out_of_memory, daemon_timeout, no_daemons, host_unavailable, job_failed, cancelled.
 
-### `list_sessions`
+| Argument | Type | Required | Description |
+|---|---|---|---|
+| `layerId` | `string` | yes | layerId from run_layer, submit_layer or list_layers. |
+| `waitSeconds` | `integer \| null` | no | Seconds to wait (0–200, default 60). |
+| `view` | `string \| null` | no | 'summary' (default), 'outputs' or 'full'. |
 
-Lists all active sessions in this MCP server instance. Useful for resuming a pipeline after a
-connection drop.
+### `get_layer_result(layerId, view?)`
+
+Every PARCS tool returns { ok, status, sessionId?, layerId?, layerKey?, layer?, output?, outputs?, workers?, error? }; ok is false exactly when error = { code, message, retryable, layerId?, failedWorkers?, diagnostics? } is set. Returns a layer's current state without waiting. Layer result: status is Queued | Running (ok, call wait_layer) | Completed | CompletedWithFailures | Failed | Cancelled. layer = { entryPoint, parallelism, previousLayerIds, successCount, failureCount, queuedSeconds, elapsedSeconds, submittedAt, startedAt, completedAt, jobId }. When parallelism is 1, output is that worker's output (parsed when it is JSON). view 'outputs' adds outputs[] (one per worker, null for failed ones); view 'full' also adds workers[] = { workerIndex, success, output, error, elapsedSeconds }. Error codes: invalid_argument, session_not_found, layer_not_found, layer_key_conflict, previous_layer_not_ready, previous_layer_failed, capacity_exceeded, not_ready, worker_error, out_of_memory, daemon_timeout, no_daemons, host_unavailable, job_failed, cancelled.
+
+| Argument | Type | Required | Description |
+|---|---|---|---|
+| `layerId` | `string` | yes | layerId from run_layer, submit_layer or list_layers. |
+| `view` | `string \| null` | no | 'summary' (default), 'outputs' or 'full'. |
+
+### `list_layers(sessionId)`
+
+Every PARCS tool returns { ok, status, sessionId?, layerId?, layerKey?, layer?, output?, outputs?, workers?, error? }; ok is false exactly when error = { code, message, retryable, layerId?, failedWorkers?, diagnostics? } is set. Lists a session's layers in submission order in output = { layers: [{ layerId, layerKey, status, entryPoint, parallelism, previousLayerIds, submittedAt, completedAt }] }. Recovers layerIds lost to a timeout or a dropped connection.
+
+| Argument | Type | Required | Description |
+|---|---|---|---|
+| `sessionId` | `string` | yes | Session ID from create_session. |
+
+### `list_sessions()`
+
+Every PARCS tool returns { ok, status, sessionId?, layerId?, layerKey?, layer?, output?, outputs?, workers?, error? }; ok is false exactly when error = { code, message, retryable, layerId?, failedWorkers?, diagnostics? } is set. Lists sessions newest first in output = { sessions: [{ sessionId, createdAt, entryPoints, layers: [{ layerId, layerKey, status, submittedAt }] }] }. Useful for resuming after a connection interruption.
+
+### `cancel_layer(layerId)`
+
+Every PARCS tool returns { ok, status, sessionId?, layerId?, layerKey?, layer?, output?, outputs?, workers?, error? }; ok is false exactly when error = { code, message, retryable, layerId?, failedWorkers?, diagnostics? } is set. Cancels a Queued or Running layer and frees its workers; returns the layer (status Cancelled once the cancellation lands). A finished layer is returned unchanged. Layer result: status is Queued | Running (ok, call wait_layer) | Completed | CompletedWithFailures | Failed | Cancelled. layer = { entryPoint, parallelism, previousLayerIds, successCount, failureCount, queuedSeconds, elapsedSeconds, submittedAt, startedAt, completedAt, jobId }. When parallelism is 1, output is that worker's output (parsed when it is JSON). view 'outputs' adds outputs[] (one per worker, null for failed ones); view 'full' also adds workers[] = { workerIndex, success, output, error, elapsedSeconds }. Error codes: invalid_argument, session_not_found, layer_not_found, layer_key_conflict, previous_layer_not_ready, previous_layer_failed, capacity_exceeded, not_ready, worker_error, out_of_memory, daemon_timeout, no_daemons, host_unavailable, job_failed, cancelled.
+
+| Argument | Type | Required | Description |
+|---|---|---|---|
+| `layerId` | `string` | yes | layerId to cancel. |
+
+<!-- END GENERATED TOOL REFERENCE -->
 
 ---
 
@@ -151,30 +249,22 @@ connection drop.
 
 ### Work partitioning by index
 
-The standard approach: each worker handles its slice of the total work.
-
 ```csharp
 // Divide range [0, total) evenly across workers
 int total = int.Parse(input.Parameters["total"]);
 int chunkSize = (total + input.TotalWorkers - 1) / input.TotalWorkers;
 int start = input.WorkerIndex * chunkSize;
 int end   = Math.Min(start + chunkSize, total);
-
-for (int i = start; i < end; i++)
-{
-    // process item i
-}
 ```
 
-### Reading previous layer results
+### Aggregating the previous layer
 
 ```csharp
-var previousResults = JsonSerializer.Deserialize<List<MyResultType>>(
-    input.PreviousLayerResultJson!);
+var partials = input.GetPreviousOutputs()
+    .Select(o => o is null ? throw new InvalidOperationException("a map worker failed")
+                           : JsonSerializer.Deserialize<Partial>(o)!)
+    .ToList();
 ```
-
-Each worker in the previous layer wrote its own JSON. The `results` array in `LayerOutputDto`
-contains each worker's `outputData` — deserialize appropriately in the coordinator layer.
 
 ### Seeded randomness (reproducible across workers)
 
@@ -182,43 +272,32 @@ contains each worker's `outputData` — deserialize appropriately in the coordin
 var rng = new Random(input.WorkerIndex * 1337 + 42);
 ```
 
-Using a seed derived from `WorkerIndex` ensures deterministic and non-overlapping random streams.
-
----
-
-## Multi-layer pipeline example
-
-```
-Layer 1 (N workers): Each worker scans its partition → returns partial results JSON
-Layer 2 (1 worker):  Aggregator reads previousLayerResultJson → merges → returns final answer
-```
-
-Pass `parallelism=1` on the aggregator layer and use `previousLayerResultJson` to feed it all
-of layer 1's output.
-
 ---
 
 ## Error handling
 
 | Situation | What to do |
 |---|---|
-| `create_session` returns `{ error }` | Read the `[CSXXXX]` diagnostic, fix the code, re-call `create_session` |
-| `run_layer` returns `status: "Failed"` | Check `errorMessage`; fix code with `create_session`; re-run passing last successful `resultJson` as `previousLayerResultJson` |
-| Individual worker `success: false` | Decide whether to retry the whole layer or handle partial results |
-| Session not found | Call `list_sessions` to find active sessions; create a new one if needed |
+| `compile_error` | Read `error.diagnostics`, fix the code, call `create_session` again |
+| `status: "Running"` / `"Queued"` | Call `wait_layer(layerId)`; nothing is lost |
+| A call timed out or the connection dropped | Repeat it with the same `layerKey`, or find the layer with `list_layers` |
+| `CompletedWithFailures` | `error.failedWorkers` lists them; the next layer still sees the others' results. Pass `failFast: true` to fail the whole layer instead |
+| `Failed` with `retryable: true` (e.g. `daemon_timeout`) | Repeat the call; the same `layerKey` starts a new attempt |
+| `worker_error` / `Failed` in your code | Fix the class, `create_session`, re-run from the last good `layerId` |
+| `capacity_exceeded` | Lower `parallelism` to at most `maxParallelism` |
+| A layer you no longer need is running | `cancel_layer(layerId)` frees its workers |
 
 ---
 
 ## Tips
 
-- Always call `get_cluster_info` first and cap `parallelism` at `maxParallelism`.
-- Prefer `run_layer` over `submit_layer` + polling unless the layer will run for many minutes.
-- Serialize worker outputs as compact JSON — `outputData` is a string field on the result.
-- Avoid `dynamic` keyword if possible; if you need it, it's supported (Microsoft.CSharp is referenced).
-- For CPU-bound work, each daemon gets 250m CPU (a quarter core) — prefer work units of at least a few seconds per worker to amortise scheduling overhead.
-- The cluster autoscales via KEDA; spinning up new nodes has measured 160–287s on first use with 16–21 workers, not just 60–90s — size client-side timeouts accordingly. Subsequent layers reuse warm pods.
-- `maxParallelism` reflects current cluster capacity, not a fixed ceiling — it rises as KEDA scales nodes up, and can vary across calls on the same day.
-- Prefer `submit_layer` over `run_layer` for anything that might run long: it returns a `layerId` immediately instead of blocking, so a dropped connection never loses your only way to retrieve the result. Poll with `get_layer_result`.
+- Call `get_cluster_info` first and keep `parallelism` ≤ `maxParallelism`. In `elastic` mode, workers
+  beyond `currentCapacity` need new nodes (minutes); in `static` mode a fixed pool serves all layers
+  and layers that do not fit wait in a queue.
+- Give every layer a `layerKey`, and make work units at least a few seconds per worker so start-up
+  overhead does not dominate.
+- Serialize worker outputs as compact JSON with named fields.
+- Avoid `dynamic` if possible; it is supported (Microsoft.CSharp is referenced).
 
 ---
 

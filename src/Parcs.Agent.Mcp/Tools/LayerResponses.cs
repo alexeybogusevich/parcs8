@@ -7,7 +7,7 @@ namespace Parcs.Agent.Mcp.Tools;
 /// <summary>Builds the envelope for a layer in one of the views: summary, outputs, full.</summary>
 public static class LayerResponses
 {
-    public static ToolEnvelope Build(LayerRecord layer, string? view)
+    public static ToolEnvelope Build(LayerRecord layer, string? view, bool? reused = null)
     {
         lock (layer.Sync)
         {
@@ -23,6 +23,7 @@ public static class LayerResponses
                 SessionId = layer.SessionId,
                 LayerId   = layer.LayerId,
                 LayerKey  = layer.LayerKey,
+                Reused    = reused,
                 Layer     = new LayerSummary
                 {
                     EntryPoint       = layer.EntryPoint,

@@ -26,6 +26,10 @@ public sealed class ToolEnvelope
     [JsonPropertyName("layerKey")]
     public string? LayerKey { get; init; }
 
+    /// <summary>True when run_layer / submit_layer returned an existing layer for a repeated layerKey.</summary>
+    [JsonPropertyName("reused")]
+    public bool? Reused { get; init; }
+
     /// <summary>Execution details of a layer; absent for other tools.</summary>
     [JsonPropertyName("layer")]
     public LayerSummary? Layer { get; init; }

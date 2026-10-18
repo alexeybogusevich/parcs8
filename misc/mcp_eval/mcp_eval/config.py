@@ -25,12 +25,32 @@ class LLMSettings(BaseModel):
 
 
 class MCPSettings(BaseModel):
+    # Base URL of the PARCS MCP server (Streamable HTTP), e.g. http://34.116.216.29:8080
     cluster_url: str
+
+
+class PTCSettings(BaseModel):
+    """Orchestration arm and interpreter limits. Keep these fixed across arms within a study."""
+
+    # "direct": the model calls the PARCS tools turn by turn (arm C).
+    # "ptc": the model writes JavaScript that calls them as tools.* in QuickJS (arm D).
+    orchestration: str = "direct"
+    # QuickJS VM time per eval. Time spent awaiting tools.* calls is not counted, so bounded
+    # waits (waitSeconds) do not need to fit in it.
+    eval_timeout_seconds: float = 30.0
+    max_ptc_calls: int = 256
+    # Cap on what one eval result, or one direct tool result, returns to the model.
+    max_result_chars: int = 4000
+    # REPL state persistence: thread | turn | call
+    mode: str = "thread"
+    # Also offer the PARCS tools as direct tools in the ptc arm (off: a clean arm D).
+    expose_direct_tools: bool = False
 
 
 class PathSettings(BaseModel):
     skills_dir: Path = _PACKAGE_ROOT / "skills"
     memory_dir: Path = _PACKAGE_ROOT / "memory"
+    results_dir: Path = _PACKAGE_ROOT / "results"
 
 
 class LangSmithSettings(BaseModel):
@@ -82,6 +102,7 @@ class Config(BaseSettings):
 
     llm: LLMSettings = Field(default_factory=LLMSettings)
     mcp: MCPSettings
+    ptc: PTCSettings = Field(default_factory=PTCSettings)
     paths: PathSettings = Field(default_factory=PathSettings)
     langsmith: LangSmithSettings = Field(default_factory=LangSmithSettings)
     eval: EvalSettings = Field(default_factory=EvalSettings)

@@ -113,6 +113,60 @@ Everything else can stay as the example defaults.
 
 ---
 
+## 4a. Orchestration arms: direct calls vs programmatic tool calling (PTC)
+
+`main.py` runs one task through one of two arms that differ only in who calls the PARCS tools:
+
+| Arm | `--orchestration` | Who calls the tools |
+|---|---|---|
+| C — direct | `direct` (default) | The model, one tool call per step |
+| D — PTC | `ptc` | JavaScript the model writes in the QuickJS `eval` tool (`langchain-quickjs`), as `tools.runLayer({...})` etc. |
+
+Both arms get the same tool names, descriptions, argument schemas and result envelope
+(`{ok, status, layerId, layer, output, error, …}`). Under PTC each call resolves to the envelope as a
+plain JS object, and errors do not throw. Direct tool results and eval results are capped at the
+same `PTC__MAX_RESULT_CHARS` (default 4000).
+
+```bash
+uv run python main.py --orchestration ptc --no-reflection --task "..."
+```
+
+Interpreter limits are set in `.env` (`PTC__EVAL_TIMEOUT_SECONDS`, `PTC__MAX_PTC_CALLS`, `PTC__MODE`,
+`PTC__EXPOSE_DIRECT_TOOLS`). The eval timeout counts QuickJS VM time only: time spent awaiting
+`tools.*` calls is excluded, so bounded `waitSeconds` waits do not need to fit inside it. Keep these
+settings fixed across arms within one study, and use `--no-reflection` for measured runs, because the
+reflection pass edits `SKILL.md`, which must be identical in every arm.
+
+Every run appends one line to `results/runs.jsonl`: model turns, tokens, evals, tool calls (from the
+model vs. from code), tool errors, layers started, duplicate layer requests (repeated `layerKey`s
+answered with the existing layer), compile errors, plus every PARCS call with its timing.
+
+The server speaks Streamable HTTP at `MCP__CLUSTER_URL` (the old `/sse` endpoint is gone).
+
+### Keeping SKILL.md in sync with the server
+
+The tool reference in `skills/parcs-cluster/SKILL.md` is generated from the server's `tools/list`:
+
+```bash
+uv run python generate_skill.py            # rewrite the generated block
+uv run python generate_skill.py --check    # exit 1 if it is out of date
+```
+
+Only the block between the `GENERATED TOOL REFERENCE` markers is rewritten. The guide and the
+"Lessons" section stay as they are.
+
+### Smoke test without an LLM
+
+```bash
+MCP__CLUSTER_URL=http://127.0.0.1:8080 uv run python -m tests.smoke_ptc
+```
+
+A scripted model drives both arms against a running server and checks the envelope, error handling
+and call log. It needs no PARCS host: layer calls are expected to fail with `host_unavailable` when
+none is reachable.
+
+---
+
 ## 5. Dry run — verify the setup
 
 ```bash

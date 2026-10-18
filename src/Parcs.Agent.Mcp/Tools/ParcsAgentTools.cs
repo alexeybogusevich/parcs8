@@ -132,7 +132,7 @@ public sealed class ParcsAgentTools
         "Runs a session's computation on 'parallelism' workers and waits up to waitSeconds (default 60, max 200) for it " +
         "to finish. If it is still running, returns status 'Running' with layerId: call wait_layer(layerId). Pass a " +
         "layerKey to make the call idempotent: repeating it with the same key and arguments returns the same layer " +
-        "instead of starting another job (a key whose layer Failed or was Cancelled starts a new attempt). Chain layers " +
+        "instead of starting another job, with reused: true (a key whose layer Failed or was Cancelled starts a new attempt). Chain layers " +
         "with previousLayerIds; workers read the parents' results through input.PreviousLayerResults. " + LayerResultDoc)]
     public async Task<CallToolResult> RunLayerAsync(
         [Description("Session ID from create_session.")] string sessionId,
@@ -305,7 +305,7 @@ public sealed class ParcsAgentTools
             return Respond(ToolEnvelope.Fail(started.Error));
 
         await _sessions.WaitAsync(started.Layer!, wait, ct);
-        return Respond(LayerResponses.Build(started.Layer!, view));
+        return Respond(LayerResponses.Build(started.Layer!, view, reused: started.Reused));
     }
 
     private static TimeSpan ClampWait(int seconds) => TimeSpan.FromSeconds(Math.Clamp(seconds, 0, MaxWaitSeconds));
