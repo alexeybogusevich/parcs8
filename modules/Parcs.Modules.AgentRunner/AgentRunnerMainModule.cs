@@ -24,16 +24,17 @@ namespace Parcs.Modules.AgentRunner;
 ///      KEDA sees full queue depth immediately).
 ///   3. Launch worker modules on every point (ExecuteClassAsync BEFORE any data writes).
 ///   4. Send assembly bytes + worker-specific AgentLayerInput to each worker.
-///   5. Collect WorkerResult from every worker (partial failure is tolerated).
+///   5. Collect WorkerResult from every worker concurrently. Partial failure is tolerated
+///      unless FailFast is set, in which case the first failed worker fails the job.
 ///   6. Write agent_results.json (LayerOutputDto) to job output.
 /// </summary>
 public sealed class AgentRunnerMainModule : IModule
 {
     // camelCase so agent_results.json matches every other payload the MCP server returns
-    // (the tool responses, and this same JSON fed back as PreviousLayerResultJson).
+    // (the tool responses, and this same JSON fed back as PreviousLayerResultJson). Compact,
+    // because the document is re-sent to every worker of the next layer.
     private static readonly JsonSerializerOptions JsonOpts = new()
     {
-        WriteIndented = true,
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
     };
 
@@ -79,29 +80,28 @@ public sealed class AgentRunnerMainModule : IModule
             await channels[i].WriteObjectAsync(new WorkerHandshake { WorkerIndex = i });
         }
 
-        // --- Step 5: collect results (tolerate partial failures) ---
+        // --- Step 5: collect results concurrently, so a failure is seen as soon as it happens ---
+        var pending = Enumerable.Range(0, pointsCount)
+            .Select(i => ReadWorkerResultAsync(moduleInfo, channels[i], i))
+            .ToList();
         var results = new List<WorkerResult>(pointsCount);
-        for (int i = 0; i < pointsCount; i++)
+
+        while (pending.Count > 0)
         {
-            try
+            var finished = await Task.WhenAny(pending);
+            pending.Remove(finished);
+            var result = await finished;
+            results.Add(result);
+
+            if (!result.Success && layerInput.FailFast)
             {
-                var result = await channels[i].ReadObjectAsync<WorkerResult>();
-                results.Add(result);
-                moduleInfo.Logger.LogInformation(
-                    "Worker {Index} finished — success={Success}", i, result.Success);
-            }
-            catch (Exception ex)
-            {
-                moduleInfo.Logger.LogWarning(ex, "Worker {Index} failed to return a result: {Msg}", i, ex.Message);
-                results.Add(new WorkerResult
-                {
-                    WorkerIndex  = i,
-                    Success      = false,
-                    ErrorMessage = $"Communication error: {ex.Message}",
-                });
+                // Throwing fails the job; the host cancels it, which releases the other points.
+                throw new InvalidOperationException(
+                    $"Worker {result.WorkerIndex} failed (failFast): {result.ErrorMessage}");
             }
         }
 
+        results.Sort((a, b) => a.WorkerIndex.CompareTo(b.WorkerIndex));
         stopwatch.Stop();
 
         // --- Step 6: write output ---
@@ -129,6 +129,27 @@ public sealed class AgentRunnerMainModule : IModule
         foreach (var channel in channels)
         {
             try { channel.Dispose(); } catch { /* best-effort */ }
+        }
+    }
+
+    private static async Task<WorkerResult> ReadWorkerResultAsync(IModuleInfo moduleInfo, IChannel channel, int index)
+    {
+        try
+        {
+            var result = await channel.ReadObjectAsync<WorkerResult>();
+            moduleInfo.Logger.LogInformation(
+                "Worker {Index} finished — success={Success}", index, result.Success);
+            return result;
+        }
+        catch (Exception ex)
+        {
+            moduleInfo.Logger.LogWarning(ex, "Worker {Index} failed to return a result: {Msg}", index, ex.Message);
+            return new WorkerResult
+            {
+                WorkerIndex  = index,
+                Success      = false,
+                ErrorMessage = $"Communication error: {ex.Message}",
+            };
         }
     }
 

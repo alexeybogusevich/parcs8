@@ -11,7 +11,7 @@ namespace Parcs.Agent.Mcp.Services;
 /// The module binary files are expected to be published alongside this assembly under
 /// <c>agent-runner-module/</c>.
 /// </summary>
-public sealed class AgentRunnerModuleRegistrar : IHostedService
+public sealed class AgentRunnerModuleRegistrar : IHostedService, IAgentRunnerModule
 {
     private const string ModuleSubdir = "agent-runner-module";
 

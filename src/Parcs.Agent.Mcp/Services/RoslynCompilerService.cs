@@ -2,6 +2,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Parcs.Agent.Mcp.Models;
 
 namespace Parcs.Agent.Mcp.Services;
 
@@ -38,10 +39,13 @@ public sealed class RoslynCompilerService
                 "Ensure the MCP server is published with Parcs.Agent.Runtime.");
     }
 
-    /// <summary>Compiles <paramref name="userCode"/> and returns the raw DLL bytes.</summary>
-    public byte[] Compile(string userCode)
+    /// <summary>
+    /// Compiles <paramref name="userCode"/> and returns the DLL bytes with the full names of its
+    /// IAgentComputation classes. Throws <see cref="CompilationFailedException"/> on errors.
+    /// </summary>
+    public CompiledComputation Compile(string userCode)
     {
-        var wrappedSource = WrapUserCode(userCode);
+        var (wrappedSource, lineOffset) = WrapUserCode(userCode);
 
         var syntaxTree = CSharpSyntaxTree.ParseText(wrappedSource);
 
@@ -62,30 +66,74 @@ public sealed class RoslynCompilerService
 
         if (!result.Success)
         {
-            var errors = string.Join("\n", result.Diagnostics
+            var diagnostics = result.Diagnostics
                 .Where(d => d.Severity == DiagnosticSeverity.Error)
-                .Select(d => $"  [{d.Id}] {d.GetMessage()} (line {d.Location.GetLineSpan().StartLinePosition.Line + 1})"));
+                .Select(d =>
+                {
+                    var position = d.Location.GetLineSpan().StartLinePosition;
+                    // Report lines of the code the agent sent, not of the generated wrapper.
+                    var line = Math.Max(1, position.Line + 1 - lineOffset);
+                    return new CompileDiagnostic(d.Id, line, position.Character + 1, d.GetMessage());
+                })
+                .ToList();
 
-            _logger.LogWarning("Compilation failed:\n{Errors}", errors);
-            throw new InvalidOperationException($"Compilation failed:\n{errors}");
+            _logger.LogWarning("Compilation failed with {Count} errors", diagnostics.Count);
+            throw new CompilationFailedException(diagnostics);
         }
 
-        _logger.LogInformation("Compilation succeeded, assembly size={Size} bytes", ms.Length);
-        return ms.ToArray();
+        var entryPoints = FindEntryPoints(compilation);
+        if (entryPoints.Count == 0)
+        {
+            throw new CompilationFailedException(
+                [new CompileDiagnostic("PARCS001", 1, 1, "No non-abstract class implements Parcs.Agent.Runtime.IAgentComputation.")]);
+        }
+
+        _logger.LogInformation(
+            "Compilation succeeded, assembly size={Size} bytes, entry points: {EntryPoints}",
+            ms.Length, string.Join(", ", entryPoints));
+        return new CompiledComputation(ms.ToArray(), entryPoints);
+    }
+
+    /// <summary>Full (metadata) names of the concrete classes implementing IAgentComputation.</summary>
+    private static List<string> FindEntryPoints(CSharpCompilation compilation)
+    {
+        var contract = compilation.GetTypeByMetadataName("Parcs.Agent.Runtime.IAgentComputation");
+        if (contract is null)
+            return [];
+
+        return compilation.GetSymbolsWithName(_ => true, SymbolFilter.Type)
+            .OfType<INamedTypeSymbol>()
+            .Where(t => t.TypeKind == TypeKind.Class && !t.IsAbstract
+                     && t.AllInterfaces.Contains(contract, SymbolEqualityComparer.Default))
+            .Select(MetadataName)
+            .OrderBy(n => n, StringComparer.Ordinal)
+            .ToList();
+
+        // Matches Type.FullName: namespace-qualified, nested types joined with '+'.
+        static string MetadataName(INamedTypeSymbol type)
+        {
+            var name = type.MetadataName;
+            for (var outer = type.ContainingType; outer is not null; outer = outer.ContainingType)
+                name = $"{outer.MetadataName}+{name}";
+            var ns = type.ContainingNamespace;
+            return ns is null || ns.IsGlobalNamespace ? name : $"{ns.ToDisplayString()}.{name}";
+        }
     }
 
     /// <summary>
     /// Wraps the user body in a full class if the user only provided a method body.
-    /// If the code already contains a class declaration, it is used as-is.
+    /// If the code already contains a class declaration, it is used as-is. Returns the number of
+    /// wrapper lines that precede the user code.
     /// </summary>
-    private static string WrapUserCode(string userCode)
+    private static (string Source, int LineOffset) WrapUserCode(string userCode)
     {
         // Heuristic: if the code has a class declaration, use as-is
         if (userCode.Contains("class ") && userCode.Contains("IAgentComputation"))
-            return userCode;
+            return (userCode, 0);
 
         // Otherwise wrap the supplied method body
-        return $$"""
+        const int wrapperLinesBeforeBody = 13;
+        return ($$"""
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -102,7 +150,7 @@ public sealed class UserAgentComputation : IAgentComputation
         {{userCode}}
     }
 }
-""";
+""", wrapperLinesBeforeBody);
     }
 
     private List<MetadataReference> BuildSafeReferences()
@@ -136,4 +184,12 @@ public sealed class UserAgentComputation : IAgentComputation
 
         return refs;
     }
+}
+
+public sealed record CompiledComputation(byte[] Assembly, IReadOnlyList<string> EntryPoints);
+
+public sealed class CompilationFailedException(IReadOnlyList<CompileDiagnostic> diagnostics)
+    : Exception($"Compilation failed with {diagnostics.Count} error(s).")
+{
+    public IReadOnlyList<CompileDiagnostic> Diagnostics { get; } = diagnostics;
 }

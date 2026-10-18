@@ -18,23 +18,36 @@ public sealed class AgentLayerInput
     public string LayerId { get; init; } = string.Empty;
 
     /// <summary>
-    /// JSON-encoded output from the previous layer, if any.
-    /// Agents can deserialize this to access upstream computation results.
+    /// JSON-encoded output of the first (or only) parent layer, if any — the same document as
+    /// <c>PreviousLayerResults[0]</c>. Use <see cref="GetPreviousOutputs"/> to read the parent's
+    /// per-worker outputs without parsing this envelope yourself.
     /// </summary>
     public string? PreviousLayerResultJson { get; init; }
 
-    /// <summary>Arbitrary string payload provided by the agent when submitting the layer.</summary>
+    /// <summary>
+    /// JSON-encoded outputs of every parent layer, in the order the parents were listed in
+    /// <c>previousLayerIds</c>. Empty for a first layer.
+    /// </summary>
+    public IReadOnlyList<string> PreviousLayerResults { get; init; } = [];
+
+    /// <summary>Arbitrary string payload provided by the agent, identical for every worker.</summary>
     public string? CustomData { get; init; }
 
-    /// <summary>Named parameters provided by the agent at submission time.</summary>
+    /// <summary>
+    /// The payload provided for this worker only (<c>workerInputs[WorkerIndex]</c>), or null
+    /// when the layer was started without per-worker inputs.
+    /// </summary>
+    public string? WorkerInput { get; init; }
+
+    /// <summary>Named parameters provided by the agent, identical for every worker.</summary>
     public Dictionary<string, string> Parameters { get; init; } = new();
 
     /// <summary>
-    /// Absolute path to the dataset file on the shared NFS volume
-    /// (/var/lib/storage/Datasets/…/dataset.bin), or null if no dataset was provided.
-    /// The MCP server downloads the dataset once and writes it to this path;
-    /// all daemon workers read from the same shared filesystem — no file transfer needed.
-    /// Usage: var data = File.ReadAllBytes(input.DatasetPath!);
+    /// Returns the per-worker outputs of a parent layer in worker order, with null for workers
+    /// that failed. <paramref name="parentIndex"/> selects the parent when the layer has several.
     /// </summary>
-    public string? DatasetPath { get; init; }
+    public IReadOnlyList<string?> GetPreviousOutputs(int parentIndex = 0) =>
+        parentIndex < PreviousLayerResults.Count
+            ? LayerResultDocument.ReadOutputs(PreviousLayerResults[parentIndex])
+            : [];
 }

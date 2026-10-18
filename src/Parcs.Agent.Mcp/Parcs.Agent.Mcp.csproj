@@ -10,7 +10,7 @@
 
   <ItemGroup>
     <!-- MCP server SDK -->
-    <PackageReference Include="ModelContextProtocol.AspNetCore" Version="0.1.0-preview.10" />
+    <PackageReference Include="ModelContextProtocol.AspNetCore" Version="2.2.0" />
 
     <!-- Roslyn compiler -->
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.11.0" />

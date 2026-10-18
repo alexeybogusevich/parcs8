@@ -19,7 +19,7 @@ namespace Parcs.Modules.AgentRunner;
 ///   3. Load the assembly into an isolated AssemblyLoadContext that shares
 ///      Parcs.Agent.Runtime with the worker's own context (to preserve type identity
 ///      for the IAgentComputation cast).
-///   4. Find the single type implementing IAgentComputation.
+///   4. Find the IAgentComputation class named by EntryPoint (or the only one).
 ///   5. Execute IAgentComputation.ExecuteAsync.
 ///   6. Write WorkerResult back to the parent channel.
 /// </summary>
@@ -38,16 +38,19 @@ public sealed class AgentRunnerWorkerModule : IModule
         var layerInput = JsonSerializer.Deserialize<LayerInputDto>(layerInputJson)
             ?? throw new InvalidOperationException("Failed to deserialise layer_input.json");
 
+        var workerInputs = layerInput.WorkerInputs;
         var input = new AgentLayerInput
         {
             WorkerIndex             = handshake.WorkerIndex,
             TotalWorkers            = layerInput.TotalWorkers,
             SessionId               = layerInput.SessionId,
             LayerId                 = layerInput.LayerId,
-            PreviousLayerResultJson = layerInput.PreviousLayerResultJson,
+            PreviousLayerResultJson = layerInput.PreviousLayerResults.FirstOrDefault(),
+            PreviousLayerResults    = layerInput.PreviousLayerResults,
             CustomData              = layerInput.CustomData,
+            WorkerInput             = workerInputs is not null && handshake.WorkerIndex < workerInputs.Count
+                                          ? workerInputs[handshake.WorkerIndex] : null,
             Parameters              = layerInput.Parameters,
-            DatasetPath             = layerInput.DatasetPath,
         };
 
         moduleInfo.Logger.LogInformation(
@@ -58,7 +61,7 @@ public sealed class AgentRunnerWorkerModule : IModule
         try
         {
             // --- Steps 3–5: load assembly and execute ---
-            var outputData = await ExecuteUserCodeAsync(assemblyBytes, input, cancellationToken);
+            var outputData = await ExecuteUserCodeAsync(assemblyBytes, layerInput.EntryPoint, input, cancellationToken);
 
             stopwatch.Stop();
             result = new WorkerResult
@@ -93,6 +96,7 @@ public sealed class AgentRunnerWorkerModule : IModule
 
     private static async Task<string?> ExecuteUserCodeAsync(
         byte[] assemblyBytes,
+        string? entryPoint,
         AgentLayerInput input,
         CancellationToken cancellationToken)
     {
@@ -102,12 +106,7 @@ public sealed class AgentRunnerWorkerModule : IModule
         var context = new AgentAssemblyLoadContext(Assembly.GetExecutingAssembly().Location);
         var userAssembly = context.LoadFromStream(new MemoryStream(assemblyBytes));
 
-        // Find the IAgentComputation implementation
-        var computationType = userAssembly.GetTypes()
-            .FirstOrDefault(t => !t.IsAbstract && !t.IsInterface
-                              && t.GetInterfaces().Any(i => i.FullName == typeof(IAgentComputation).FullName))
-            ?? throw new InvalidOperationException(
-                "No concrete type implementing IAgentComputation was found in the submitted assembly.");
+        var computationType = FindEntryPoint(userAssembly, entryPoint);
 
         var instance = Activator.CreateInstance(computationType)
             ?? throw new InvalidOperationException($"Failed to create an instance of {computationType.FullName}.");
@@ -148,6 +147,35 @@ public sealed class AgentRunnerWorkerModule : IModule
         }
 
         return (string?)outputProp?.GetValue(result);
+    }
+
+    /// <summary>
+    /// Picks the IAgentComputation class named by <paramref name="entryPoint"/> (full or simple
+    /// name), or the only one in the assembly when no name is given.
+    /// </summary>
+    private static Type FindEntryPoint(Assembly userAssembly, string? entryPoint)
+    {
+        var candidates = userAssembly.GetTypes()
+            .Where(t => !t.IsAbstract && !t.IsInterface
+                     && t.GetInterfaces().Any(i => i.FullName == typeof(IAgentComputation).FullName))
+            .ToList();
+
+        if (!string.IsNullOrEmpty(entryPoint))
+        {
+            return candidates.FirstOrDefault(t => t.FullName == entryPoint)
+                ?? candidates.SingleOrDefault(t => t.Name == entryPoint)
+                ?? throw new InvalidOperationException(
+                    $"Entry point '{entryPoint}' was not found among: {string.Join(", ", candidates.Select(t => t.FullName))}.");
+        }
+
+        return candidates.Count switch
+        {
+            1 => candidates[0],
+            0 => throw new InvalidOperationException(
+                "No concrete type implementing IAgentComputation was found in the submitted assembly."),
+            _ => throw new InvalidOperationException(
+                $"The assembly has several IAgentComputation classes; pass entryPoint: {string.Join(", ", candidates.Select(t => t.FullName))}."),
+        };
     }
 
     private static byte[] ReadInputFile(IModuleInfo moduleInfo, string filename)
