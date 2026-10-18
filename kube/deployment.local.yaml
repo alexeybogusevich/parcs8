@@ -421,3 +421,75 @@ spec:
       - name: parcs-database-volume
         persistentVolumeClaim:
           claimName: parcs-database-volume-claim
+---
+# ═══════════════════════════════════════════════════════════════════════════════
+# PARCS Agent MCP server — static mode: layers run on the parcs-daemon pool above, nothing is
+# provisioned, so agent experiments need no cloud resources. Scale the pool for more workers:
+#   kubectl scale deployment parcs-daemon --replicas=4
+# Build the image locally first (from the repo root):
+#   docker build -f src/Parcs.Agent.Mcp/Dockerfile -t parcs-agent-mcp:local .
+# MCP endpoint (Streamable HTTP): http://<node-ip>:30808/
+# ═══════════════════════════════════════════════════════════════════════════════
+apiVersion: v1
+kind: Service
+metadata:
+  name: parcs-agent-mcp
+  labels:
+    app: parcs-agent-mcp
+spec:
+  type: NodePort
+  selector:
+    app: parcs-agent-mcp
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+    nodePort: 30808
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: parcs-agent-mcp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: parcs-agent-mcp
+  template:
+    metadata:
+      labels:
+        app: parcs-agent-mcp
+    spec:
+      containers:
+      - name: parcs-agent-mcp
+        image: parcs-agent-mcp:local
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+        env:
+        - name: ASPNETCORE_URLS
+          value: "http://+:8080"
+        - name: Parcs__HostUrl
+          value: "http://parcs-hostapi-internal"
+        - name: Parcs__CallbackUrl
+          value: "http://parcs-agent-mcp:8080/noop"
+        - name: Scaling__Mode
+          value: Static
+        - name: Kubernetes__DaemonsHeadlessServiceName
+          value: parcs-daemon-headless
+        - name: Kubernetes__NamespaceName
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 100m
+            memory: 256Mi
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          periodSeconds: 10

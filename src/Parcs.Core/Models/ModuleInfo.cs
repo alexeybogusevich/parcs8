@@ -1,4 +1,5 @@
-﻿using Parcs.Net;
+using Parcs.Net;
+using Parcs.Core.Services;
 using Parcs.Core.Services.Interfaces;
 using System.Net.Sockets;
 using System.Net;
@@ -16,13 +17,14 @@ namespace Parcs.Core.Models
         IAddressResolver addressResolver,
         ILogger logger,
         CancellationToken cancellationToken,
-        IPointCreationService pointCreationService = null) : IModuleInfo
+        IPointCreationService pointCreationService = null,
+        IDaemonAllocator daemonAllocator = null) : IModuleInfo
     {
         private readonly long _jobId = jobMetadata.JobId;
         private readonly long _moduleId = jobMetadata.ModuleId;
 
         private readonly List<Point> _createdPoints = [];
-        private readonly Dictionary<string, int> _pointsOnDaemons = [];
+        private readonly List<DaemonLease> _daemonLeases = [];
         private readonly CancellationToken _cancellationToken = cancellationToken;
 
         private readonly IDaemonResolver _daemonResolver = daemonResolver;
@@ -30,6 +32,8 @@ namespace Parcs.Core.Models
         private readonly IAddressResolver _addressResolver = addressResolver;
         private readonly IArgumentsProvider _argumentsProvider = argumentsProvider;
         private readonly IPointCreationService _pointCreationService = pointCreationService;
+        // Without a shared allocator, points are balanced over the pool within this job only.
+        private readonly IDaemonAllocator _daemonAllocator = daemonAllocator ?? new DaemonAllocator();
 
         public bool IsHost => Parent is null;
 
@@ -132,33 +136,27 @@ namespace Parcs.Core.Models
 
         private Daemon GetNextDaemon()
         {
-            var availableDaemons = _daemonResolver.GetAvailableDaemons();
+            var availableDaemons = _daemonResolver.GetAvailableDaemons()?.ToList();
 
             Logger.LogInformation(
                 "Available daemons: {Daemons}",
-                string.Join(", ", availableDaemons.Select(d => d.HostUrl).ToArray()));
+                string.Join(", ", (availableDaemons ?? []).Select(d => d.HostUrl)));
 
-            Logger.LogInformation(
-                "Current points on daemons: {PointsOnDaemons}",
-                string.Join(", ", _pointsOnDaemons.Select(p => $"{p.Key}:{p.Value}").ToArray()));
-
-            if (availableDaemons is null || !availableDaemons.Any())
+            if (availableDaemons is null || availableDaemons.Count == 0)
             {
                 throw new InvalidOperationException("No daemons available.");
             }
 
-            foreach (var daemon in availableDaemons.Where(daemon => !_pointsOnDaemons.ContainsKey(daemon.HostUrl)))
-            {
-                Logger.LogInformation("Adding new daemon {HostUrl} to the dictionary", daemon.HostUrl);
-                _pointsOnDaemons.TryAdd(daemon.HostUrl, 0);
-            }
+            // The lease is held until this module's points are disposed (end of the job).
+            var lease = _daemonAllocator.Acquire(availableDaemons);
+            _daemonLeases.Add(lease);
 
-            var leastPointsDaemon = _pointsOnDaemons.FirstOrDefault(d => d.Value == _pointsOnDaemons.Min(d => d.Value));
+            Logger.LogInformation(
+                "Placed point on {HostUrl}; active points per daemon: {ActivePoints}",
+                lease.Daemon.HostUrl,
+                string.Join(", ", _daemonAllocator.ActivePoints.Select(p => $"{p.Key}={p.Value}")));
 
-            Logger.LogInformation("Least points daemon is {HostUrl} to the dictionary", leastPointsDaemon.Key);
-            _pointsOnDaemons[leastPointsDaemon.Key]++;
-
-            return availableDaemons.FirstOrDefault(d => d.HostUrl == leastPointsDaemon.Key);
+            return lease.Daemon;
         }
 
         public T BindModuleOptions<T>() where T : class, IModuleOptions, new() => _argumentsProvider.Bind<T>();
@@ -167,6 +165,7 @@ namespace Parcs.Core.Models
         {
             if (_createdPoints.Count == 0)
             {
+                ReleaseDaemonLeases();
                 return;
             }
 
@@ -175,8 +174,18 @@ namespace Parcs.Core.Models
                 await point.DisposeAsync();
             }
 
-            _pointsOnDaemons.Clear();
+            ReleaseDaemonLeases();
             _createdPoints.Clear();
+        }
+
+        private void ReleaseDaemonLeases()
+        {
+            foreach (var lease in _daemonLeases)
+            {
+                lease.Dispose();
+            }
+
+            _daemonLeases.Clear();
         }
     }
 }

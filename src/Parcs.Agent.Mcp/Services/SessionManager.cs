@@ -444,8 +444,17 @@ public sealed partial class SessionManager
     {
         var message = ex.Message;
 
-        if (ex is FlurlHttpException { StatusCode: null or >= 500 } or HttpRequestException)
-            return new ToolError { Code = ErrorCodes.HostUnavailable, Message = message, Retryable = true };
+        // The API client wraps HTTP failures, so look through the inner exceptions as well.
+        for (var inner = ex; inner is not null; inner = inner.InnerException)
+        {
+            if (inner is FlurlHttpException { StatusCode: null or >= 500 } or HttpRequestException)
+            {
+                return new ToolError
+                {
+                    Code = ErrorCodes.HostUnavailable, Message = $"PARCS host unreachable: {inner.Message}", Retryable = true,
+                };
+            }
+        }
 
         if (FailFastPattern().Match(message) is { Success: true } failFast)
         {

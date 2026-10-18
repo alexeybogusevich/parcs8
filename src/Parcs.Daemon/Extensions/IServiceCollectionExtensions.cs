@@ -31,6 +31,7 @@ namespace Parcs.Daemon.Extensions
                 .AddSingleton(typeof(ITypeLoader<>), typeof(TypeLoader<>))
                 .AddSingleton<CancelJobSignalHandler>()
                 .AddSingleton<ConfigurationDaemonResolutionStrategy>()
+                .AddSingleton<IDaemonAllocator, DaemonAllocator>()
                 .AddSingleton<DefaultSignalHandler>()
                 .AddSingleton<ExecuteClassSignalHandler>()
                 .AddSingleton<IAddressResolver, AddressResolver>()

@@ -27,6 +27,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="Parcs.Agent.Mcp.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Parcs.Agent.Runtime\Parcs.Agent.Runtime.csproj" />
   </ItemGroup>
 

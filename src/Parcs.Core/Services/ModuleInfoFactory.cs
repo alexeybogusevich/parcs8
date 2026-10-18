@@ -1,4 +1,4 @@
-﻿using Parcs.Net;
+using Parcs.Net;
 using Parcs.Core.Models;
 using Parcs.Core.Services.Interfaces;
 using Microsoft.Extensions.Logging;
@@ -12,7 +12,8 @@ namespace Parcs.Core.Services
         IInternalChannelManager internalChannelManager,
         IAddressResolver addressResolver,
         ILogger<ModuleInfoFactory> logger,
-        IPointCreationService pointCreationService = null) : IModuleInfoFactory
+        IPointCreationService pointCreationService = null,
+        IDaemonAllocator daemonAllocator = null) : IModuleInfoFactory
     {
         private readonly IDaemonResolver _daemonResolver = daemonResolver;
         private readonly IInputOutputFactory _inputOutputFactory = inputOutputFactory;
@@ -21,6 +22,7 @@ namespace Parcs.Core.Services
         private readonly IAddressResolver _addressResolver = addressResolver;
         private readonly ILogger<ModuleInfoFactory> _logger = logger;
         private readonly IPointCreationService _pointCreationService = pointCreationService;
+        private readonly IDaemonAllocator _daemonAllocator = daemonAllocator;
 
         public IModuleInfo Create(
             JobMetadata jobMetadata,
@@ -40,7 +42,8 @@ namespace Parcs.Core.Services
                 _addressResolver,
                 _logger,
                 cancellationToken,
-                _pointCreationService);
+                _pointCreationService,
+                _daemonAllocator);
         }
 
         public IModuleInfo Create(
