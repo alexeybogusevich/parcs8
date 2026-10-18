@@ -169,6 +169,10 @@ spec:
     activeDeadlineSeconds: 3600
     template:
       metadata:
+        annotations:
+          # A point cannot be moved: forbid eviction by node consolidation / scale-down.
+          karpenter.sh/do-not-disrupt: "true"
+          cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
         labels:
           app: parcs-daemon
       spec:
@@ -519,6 +523,12 @@ spec:
           value: "3"
         - name: Parcs__FallbackMaxParallelism
           value: "18"
+        # Smaller of the ScaledJob maxReplicaCount (1000) and the agent pool at its maximum size
+        # (20 x Standard_DS2_v2 at 250m per daemon, less system pods)
+        - name: Parcs__MaxReplicaCount
+          value: "120"
+        - name: Parcs__DaemonCpuRequestMillicores
+          value: "250"
         resources:
           limits:
             cpu: 500m

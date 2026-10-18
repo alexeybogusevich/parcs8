@@ -105,14 +105,15 @@ namespace Parcs.Modules.MonteCarloPi.Gpu
 
             for (long s = 0; s < count; s++)
             {
-                // Generate two independent floats in [0, 1).
+                // Generate two independent floats in [0, 1). A 23-bit value fits the float mantissa
+                // exactly, and FP32 avoids the 1/32-rate FP64 units of consumer and T4-class GPUs.
                 state = LcgNext(state);
-                double x = (state & 0x7FFFFF) / (double)0x800000; // 23-bit mantissa
+                float x = ((state >> 9) & 0x7FFFFF) / (float)0x800000; // high 23 bits: low LCG bits have short periods
 
                 state = LcgNext(state);
-                double y = (state & 0x7FFFFF) / (double)0x800000;
+                float y = ((state >> 9) & 0x7FFFFF) / (float)0x800000;
 
-                if (x * x + y * y <= 1.0)
+                if (x * x + y * y <= 1.0f)
                 {
                     localHits++;
                 }

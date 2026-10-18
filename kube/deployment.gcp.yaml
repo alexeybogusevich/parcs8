@@ -187,6 +187,11 @@ spec:
     ttlSecondsAfterFinished: 300
     activeDeadlineSeconds: 3600
     template:
+      metadata:
+        annotations:
+          # A point cannot be moved: forbid eviction by node consolidation / scale-down.
+          karpenter.sh/do-not-disrupt: "true"
+          cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
       spec:
         restartPolicy: Never
         dnsPolicy: ClusterFirst
@@ -282,6 +287,11 @@ spec:
     ttlSecondsAfterFinished: 300
     activeDeadlineSeconds: 3600
     template:
+      metadata:
+        annotations:
+          # A point cannot be moved: forbid eviction by node consolidation / scale-down.
+          karpenter.sh/do-not-disrupt: "true"
+          cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
       spec:
         restartPolicy: Never
         dnsPolicy: ClusterFirst
@@ -696,6 +706,10 @@ spec:
           value: "3"
         - name: Parcs__FallbackMaxParallelism
           value: "18"
+        - name: Parcs__MaxReplicaCount
+          value: "18"
+        - name: Parcs__DaemonCpuRequestMillicores
+          value: "250"
         resources:
           limits:
             cpu: 500m

@@ -381,3 +381,8 @@ FodyWeavers.xsd
 
 .build/
 .env
+# Local agent config (contains credentials)
+.codex/
+
+# Office lock files
+~$*
