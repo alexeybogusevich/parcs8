@@ -41,6 +41,10 @@ builder.Services
 
 var app = builder.Build();
 
+// Restore stored sessions now rather than on the first tool call, which would otherwise wait
+// for the whole store to load. The first call that needs the sessions waits for this instead.
+_ = Task.Run(() => app.Services.GetRequiredService<SessionManager>());
+
 app.MapMcp();
 
 // Health probe (used by Kubernetes liveness/readiness probes)

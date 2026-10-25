@@ -21,6 +21,10 @@ public sealed class RoslynCompilerService
     private readonly string _runtimeAssemblyDir;
     private readonly string _agentRuntimePath;
 
+    // Built once: a reference keeps its parsed metadata, so every compilation reuses it instead of
+    // reading and parsing the same assemblies again (references are immutable and thread-safe).
+    private readonly Lazy<IReadOnlyList<MetadataReference>> _references;
+
     public RoslynCompilerService(ILogger<RoslynCompilerService> logger, IConfiguration configuration)
     {
         _logger = logger;
@@ -37,6 +41,8 @@ public sealed class RoslynCompilerService
             throw new FileNotFoundException(
                 $"Parcs.Agent.Runtime.dll not found at expected path: {_agentRuntimePath}. " +
                 "Ensure the MCP server is published with Parcs.Agent.Runtime.");
+
+        _references = new(BuildSafeReferences);
     }
 
     /// <summary>
@@ -49,7 +55,7 @@ public sealed class RoslynCompilerService
 
         var syntaxTree = CSharpSyntaxTree.ParseText(wrappedSource);
 
-        var references = BuildSafeReferences();
+        var references = _references.Value;
 
         var compilation = CSharpCompilation.Create(
             assemblyName: "agent_computation",
@@ -153,7 +159,7 @@ public sealed class UserAgentComputation : IAgentComputation
 """, wrapperLinesBeforeBody);
     }
 
-    private List<MetadataReference> BuildSafeReferences()
+    private IReadOnlyList<MetadataReference> BuildSafeReferences()
     {
         var refs = new List<MetadataReference>();
 

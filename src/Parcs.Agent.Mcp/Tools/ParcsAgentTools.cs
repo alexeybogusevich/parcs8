@@ -1,7 +1,9 @@
 using System.ComponentModel;
+using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
@@ -54,19 +56,26 @@ public sealed class ParcsAgentTools
         SessionManager           sessions,
         IClusterInfoService      clusterInfo,
         CapacityGate             gate,
+        IConfiguration           configuration,
         ILogger<ParcsAgentTools> logger)
     {
         _sessions    = sessions;
         _clusterInfo = clusterInfo;
         _gate        = gate;
         _logger      = logger;
+        // The deployed image tag (Parcs:ServerVersion), so experiments can record which server served them.
+        _serverVersion = configuration["Parcs:ServerVersion"] is { Length: > 0 } tag
+            ? tag
+            : typeof(ParcsAgentTools).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "unknown";
     }
+
+    private readonly string _serverVersion;
 
     [McpServerTool(Name = "get_cluster_info", ReadOnly = true, UseStructuredContent = true, OutputSchemaType = typeof(ToolEnvelope))]
     [Description(EnvelopeDoc +
         "Returns cluster capacity in output = { scalingMode: 'elastic'|'static', workerNodeCount, currentCapacity, " +
         "maxParallelism, daemonCpuRequestMillicores, capacitySource: 'kubernetes'|'dns'|'configuration'|'fallback', " +
-        "freeWorkers, runningLayers, queuedLayers }. Call once at the start to size parallelism. Never request more than " +
+        "freeWorkers, runningLayers, queuedLayers, serverVersion }. Call once at the start to size parallelism. Never request more than " +
         "maxParallelism. In elastic mode, workers above currentCapacity need new nodes (minutes of start-up); in static " +
         "mode a fixed pool serves all layers and nothing is provisioned. Layers that do not fit in freeWorkers wait in a " +
         "server-side queue. capacitySource 'fallback' means the numbers are a configured guess.")]
@@ -88,6 +97,7 @@ public sealed class ParcsAgentTools
                 freeWorkers                = Math.Max(0, info.MaxParallelism - _gate.InUse),
                 runningLayers              = _sessions.CountLayers(LayerStatus.Running),
                 queuedLayers               = _sessions.CountLayers(LayerStatus.Queued),
+                serverVersion              = _serverVersion,
             }, JsonOptions),
         });
     }

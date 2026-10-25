@@ -6,6 +6,10 @@
     <Nullable>enable</Nullable>
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     <DockerfileContext>..\..\..</DockerfileContext>
+    <!-- Workstation GC: Server GC reserves large per-core heaps and reclaims lazily, which pushed the
+         container past its memory limit under bursts of Roslyn compilations. -->
+    <ServerGarbageCollection>false</ServerGarbageCollection>
+    <ConcurrentGarbageCollection>true</ConcurrentGarbageCollection>
   </PropertyGroup>
 
   <ItemGroup>
