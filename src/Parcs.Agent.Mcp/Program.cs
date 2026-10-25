@@ -12,6 +12,10 @@ builder.Services.AddSingleton<ParcsApiClient>();
 builder.Services.AddSingleton<IParcsApiClient>(sp => sp.GetRequiredService<ParcsApiClient>());
 builder.Services.AddSingleton<RoslynCompilerService>();
 builder.Services.AddSingleton<CapacityGate>();
+// Sessions and finished layers survive restarts when Parcs:SessionStorePath is set (shared storage on Kubernetes).
+builder.Services.AddSingleton<ISessionStore>(sp => builder.Configuration["Parcs:SessionStorePath"] is { Length: > 0 } path
+    ? new FileSessionStore(path, sp.GetRequiredService<ILogger<FileSessionStore>>())
+    : NullSessionStore.Instance);
 builder.Services.AddSingleton<SessionManager>();
 builder.Services.AddSingleton<ClusterInfoService>();
 builder.Services.AddSingleton<IClusterInfoService>(sp => sp.GetRequiredService<ClusterInfoService>());

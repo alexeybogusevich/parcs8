@@ -44,6 +44,18 @@ public sealed class ParcsApiClient : IParcsApiClient
         _logger            = logger;
     }
 
+    /// <summary>Returns the id of the newest module named <paramref name="moduleName"/>, or null when there is none.</summary>
+    public async Task<long?> FindModuleAsync(string moduleName, CancellationToken ct = default)
+    {
+        var json = await _baseUrl.AppendPathSegment("api/Modules").GetStringAsync(cancellationToken: ct);
+        using var doc = JsonDocument.Parse(json);
+
+        return doc.RootElement.EnumerateArray()
+            .Where(m => m.TryGetProperty("name", out var n) && n.GetString() == moduleName)
+            .Select(m => (long?)m.GetProperty("id").GetInt64())
+            .Max();
+    }
+
     /// <summary>
     /// Uploads a set of DLL files as a PARCS module.
     /// Returns the numeric module ID assigned by the host.

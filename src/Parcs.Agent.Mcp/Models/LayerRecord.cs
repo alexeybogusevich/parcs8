@@ -27,6 +27,17 @@ public sealed class LayerRecord
 
     public bool FailFast { get; init; }
 
+    /// <summary>Canonical topology of the peer channels (ring, tree:2, grid:4x8, ...), or null for none.</summary>
+    public string? Topology { get; init; }
+
+    /// <summary>[i, j] pairs of a custom topology.</summary>
+    public IReadOnlyList<int[]>? TopologyEdges { get; init; }
+
+    public int ChannelTimeoutSeconds { get; init; } = 60;
+
+    /// <summary>"all" or "byIndex".</summary>
+    public string Inherit { get; init; } = "all";
+
     public DateTimeOffset SubmittedAt { get; init; } = DateTimeOffset.UtcNow;
 
     public LayerStatus Status { get; set; } = LayerStatus.Queued;

@@ -29,6 +29,8 @@ public static class LayerResponses
                     EntryPoint       = layer.EntryPoint,
                     Parallelism      = layer.Parallelism,
                     PreviousLayerIds = layer.PreviousLayerIds,
+                    Topology         = layer.Topology,
+                    Inherit          = layer.Inherit == Services.InheritModes.ByIndex ? layer.Inherit : null,
                     SuccessCount     = workers?.Count(w => w.Success),
                     FailureCount     = workers?.Count(w => !w.Success),
                     QueuedSeconds    = ((layer.StartedAt ?? layer.CompletedAt ?? DateTimeOffset.UtcNow) - layer.SubmittedAt).TotalSeconds,

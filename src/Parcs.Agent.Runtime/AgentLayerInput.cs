@@ -43,8 +43,22 @@ public sealed class AgentLayerInput
     public Dictionary<string, string> Parameters { get; init; } = new();
 
     /// <summary>
+    /// For each parent layer, in <c>previousLayerIds</c> order, the output of the parent's worker
+    /// with this worker's index (null when it failed or the parent had fewer workers). With
+    /// <c>inherit: "byIndex"</c> this is all a worker receives of its parents.
+    /// </summary>
+    public IReadOnlyList<string?> InheritedOutputs { get; init; } = [];
+
+    /// <summary>
+    /// This worker's neighbours and channels to them when the layer runs with a topology;
+    /// otherwise a topology of kind <c>none</c> with no neighbours.
+    /// </summary>
+    public AgentTopology Topology { get; init; } = AgentTopology.Unconnected(0, 1);
+
+    /// <summary>
     /// Returns the per-worker outputs of a parent layer in worker order, with null for workers
     /// that failed. <paramref name="parentIndex"/> selects the parent when the layer has several.
+    /// Empty with <c>inherit: "byIndex"</c>; use <see cref="InheritedOutputs"/> then.
     /// </summary>
     public IReadOnlyList<string?> GetPreviousOutputs(int parentIndex = 0) =>
         parentIndex < PreviousLayerResults.Count

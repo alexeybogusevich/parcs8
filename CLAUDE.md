@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-PARCS-NET-K8 — a .NET 10 platform for running recursive parallel computation "modules" across a cluster of daemon workers. Deploys to AKS (Azure), GKE (GCP), EKS (AWS) or locally via Docker Compose / a single-node Kubernetes manifest. Depends on the external NuGet package `Parcs.Net` (currently 10.0.0) which defines the module-author SDK (`IModule`, `IPoint`, `IChannel`, …).
+PARCS-NET-K8 — a .NET 10 platform for running recursive parallel computation "modules" across a cluster of daemon workers. Deploys to AKS (Azure), GKE (GCP), EKS (AWS) or locally via Docker Compose / a single-node Kubernetes manifest. Depends on the external NuGet package `Parcs.Net` (currently 10.1.0) which defines the module-author SDK (`IModule`, `IPoint`, `IChannel`, …).
 
 ## Build, run, test
 

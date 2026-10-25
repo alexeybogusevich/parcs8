@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using Parcs.Agent.Runtime;
 using Parcs.Modules.AgentRunner.Models;
 using Parcs.Net;
 
@@ -80,6 +81,16 @@ public sealed class AgentRunnerMainModule : IModule
             await channels[i].WriteObjectAsync(new WorkerHandshake { WorkerIndex = i });
         }
 
+        // --- Step 4b: with a topology, relay the endpoint addresses; data then flows peer to peer ---
+        var topology = AgentTopologySpec.Parse(layerInput.Topology, layerInput.TopologyEdges).Validate(pointsCount);
+        if (!topology.IsNone)
+        {
+            await SendDialPlansAsync(channels, topology);
+            moduleInfo.Logger.LogInformation(
+                "Peer channels of topology {Topology}: {Edges} edges between {Count} workers",
+                topology, topology.Edges(pointsCount).Count, pointsCount);
+        }
+
         // --- Step 5: collect results concurrently, so a failure is seen as soon as it happens ---
         var pending = Enumerable.Range(0, pointsCount)
             .Select(i => ReadWorkerResultAsync(moduleInfo, channels[i], i))
@@ -98,6 +109,15 @@ public sealed class AgentRunnerMainModule : IModule
                 // Throwing fails the job; the host cancels it, which releases the other points.
                 throw new InvalidOperationException(
                     $"Worker {result.WorkerIndex} failed (failFast): {result.ErrorMessage}");
+            }
+        }
+
+        if (!topology.IsNone)
+        {
+            // Every worker has returned, so no neighbour still reads: peer channels may close.
+            foreach (var channel in channels)
+            {
+                try { await channel.WriteObjectAsync(new WorkerRelease()); } catch { /* the worker is gone */ }
             }
         }
 
@@ -129,6 +149,32 @@ public sealed class AgentRunnerMainModule : IModule
         foreach (var channel in channels)
         {
             try { channel.Dispose(); } catch { /* best-effort */ }
+        }
+    }
+
+    /// <summary>
+    /// Reads every worker's endpoints and tells each worker which neighbours to dial: for an edge
+    /// (i, j) with i &lt; j, worker i listens and worker j dials. Fails the layer when a worker
+    /// could not open its endpoints, since its neighbours could never connect.
+    /// </summary>
+    private static async Task SendDialPlansAsync(IChannel[] channels, AgentTopologySpec topology)
+    {
+        var endpoints = await Task.WhenAll(channels.Select(c => c.ReadObjectAsync<WorkerEndpoints>()));
+
+        if (endpoints.FirstOrDefault(e => e.Error is not null) is { } failed)
+        {
+            throw new InvalidOperationException(
+                $"Worker {failed.WorkerIndex} failed (failFast): could not open peer endpoints: {failed.Error}");
+        }
+
+        for (int i = 0; i < channels.Length; i++)
+        {
+            var plan = new WorkerDialPlan();
+            foreach (var peer in topology.NeighborsOf(i, channels.Length).Where(p => p < i))
+            {
+                plan.Dial[peer] = endpoints[peer].Endpoints[i];
+            }
+            await channels[i].WriteObjectAsync(plan);
         }
     }
 

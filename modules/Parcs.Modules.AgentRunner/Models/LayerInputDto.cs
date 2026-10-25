@@ -29,4 +29,22 @@ public sealed class LayerInputDto
     public List<string?>? WorkerInputs { get; set; }
 
     public Dictionary<string, string> Parameters { get; set; } = new();
+
+    /// <summary>Topology of peer channels (AgentTopologySpec text form); null or "none" for none.</summary>
+    public string? Topology { get; set; }
+
+    /// <summary>Edges of a custom topology.</summary>
+    public List<int[]>? TopologyEdges { get; set; }
+
+    /// <summary>Default receive timeout of the peer channels, and the timeout for wiring them.</summary>
+    public int ChannelTimeoutSeconds { get; set; } = 60;
+
+    /// <summary>
+    /// When true, WorkerInputs and the parents' per-index outputs are in worker_{index}.json
+    /// instead of this file, so a worker reads only its own share.
+    /// </summary>
+    public bool PerWorkerFiles { get; set; }
+
+    /// <summary>"all" (default): every worker gets every parent's whole result. "byIndex": worker i gets output i of each parent.</summary>
+    public string Inherit { get; set; } = "all";
 }

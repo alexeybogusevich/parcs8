@@ -23,7 +23,7 @@ END = "<!-- END GENERATED TOOL REFERENCE -->"
 
 # Reading order of the reference; tools the server adds later are appended by name.
 ORDER = ["get_cluster_info", "create_session", "run_layer", "submit_layer", "wait_layer",
-         "get_layer_result", "list_layers", "list_sessions", "cancel_layer"]
+         "get_layer_result", "list_layers", "list_sessions", "cancel_layer", "delete_session"]
 
 
 def _type_of(schema: dict) -> str:

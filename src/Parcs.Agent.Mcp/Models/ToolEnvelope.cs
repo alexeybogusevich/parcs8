@@ -66,6 +66,14 @@ public sealed class LayerSummary
     [JsonPropertyName("previousLayerIds")]
     public IReadOnlyList<string> PreviousLayerIds { get; init; } = [];
 
+    /// <summary>Peer-channel topology (ring, tree:2, grid:4x8, ...); absent when the layer has none.</summary>
+    [JsonPropertyName("topology")]
+    public string? Topology { get; init; }
+
+    /// <summary>"byIndex" when each worker received only its own output of each parent; absent for "all".</summary>
+    [JsonPropertyName("inherit")]
+    public string? Inherit { get; init; }
+
     [JsonPropertyName("successCount")]
     public int? SuccessCount { get; init; }
 

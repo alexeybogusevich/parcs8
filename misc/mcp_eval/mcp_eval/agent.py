@@ -16,14 +16,15 @@ def get_model(model_name: str | None = None) -> BaseChatModel:
     clean = name.removeprefix("google/").removeprefix("publishers/google/models/")
 
     if config.llm.provider == "vertexai":
-        from langchain_google_vertexai import ChatGoogleGenerativeAI  # type: ignore
+        # langchain-google-vertexai 3.x only ships ChatVertexAI; the genai client reaches Vertex AI too.
+        from langchain_google_genai import ChatGoogleGenerativeAI  # type: ignore
 
         return ChatGoogleGenerativeAI(
-            model_name=clean,
+            model=clean,
+            vertexai=True,
             project=config.llm.project or None,
             location=config.llm.location,
             temperature=config.llm.temperature,
-            streaming=True,
         )
 
     if config.llm.provider == "google":

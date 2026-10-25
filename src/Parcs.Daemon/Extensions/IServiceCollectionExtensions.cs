@@ -27,6 +27,7 @@ namespace Parcs.Daemon.Extensions
                 .AddSingleton<ICurrentPointRequestAccessor, CurrentPointRequestAccessor>()
                 .AddSingleton<IJobPlacementResolver, InheritedJobPlacementResolver>()
                 .AddSingleton<CallbackTcpServer>()
+                .AddSingleton<IPeerChannelService, PeerChannelService>()
                 .AddSingleton<IPointCreationService, QueuePointCreationService>()
                 .AddSingleton(typeof(ITypeLoader<>), typeof(TypeLoader<>))
                 .AddSingleton<CancelJobSignalHandler>()

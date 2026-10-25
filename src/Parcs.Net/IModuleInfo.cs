@@ -24,5 +24,15 @@ namespace Parcs.Net
         /// <see cref="CreatePointAsync"/> in a loop when using the KEDA scaling path.
         /// </summary>
         Task<IPoint[]> CreatePointsAsync(int count);
+
+        /// <summary>
+        /// Opens an endpoint another point can connect to with <see cref="ConnectAsync"/>, which
+        /// gives the two points a channel of their own. This is how points form topologies other
+        /// than the star of parent channels: rings, trees, hypercubes, grids.
+        /// </summary>
+        Task<IPeerEndpoint> OpenEndpointAsync();
+
+        /// <summary>Opens a channel to the point that opened the endpoint at <paramref name="endpointAddress"/>.</summary>
+        Task<IChannel> ConnectAsync(string endpointAddress);
     }
 }
