@@ -61,16 +61,35 @@ internal sealed class PeerChannel : IAgentChannel, IAsyncDisposable
                 (_connection.IsCompleted ? ". " : " (the channel never connected). ") +
                 "Check that every receive has a matching send on the other worker.");
         }
-        catch (ChannelClosedException ex) when (_connection.IsFaulted)
-        {
-            throw new IOException(ex.InnerException?.Message ?? $"No channel to worker {Peer}.", ex.InnerException ?? ex);
-        }
         catch (ChannelClosedException ex)
         {
-            throw new IOException(
-                $"Worker {Peer} closed the channel (it finished or failed) before sending the expected message.", ex.InnerException ?? ex);
+            throw Closed(ex.InnerException ?? ex);
         }
     }
+
+    public bool HasMessage => _inbox.Reader.TryPeek(out _);
+
+    public bool TryReceive(out string message) => _inbox.Reader.TryRead(out message!);
+
+    /// <summary>Waits until a message can be received; throws <see cref="IOException"/> once none ever will.</summary>
+    internal async Task WaitForMessageAsync(CancellationToken cancellationToken)
+    {
+        bool open;
+        try
+        {
+            open = await _inbox.Reader.WaitToReadAsync(cancellationToken);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            throw Closed(ex is ChannelClosedException { InnerException: { } inner } ? inner : ex);
+        }
+        if (!open)
+            throw Closed(null);
+    }
+
+    private IOException Closed(Exception? cause) => _connection.IsFaulted
+        ? new IOException(cause?.Message ?? $"No channel to worker {Peer}.", cause)
+        : new IOException($"Worker {Peer} closed the channel (it finished or failed) before sending the expected message.", cause);
 
     /// <summary>
     /// Waits, at most the default timeout, until everything sent so far has been written to the

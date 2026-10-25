@@ -31,7 +31,7 @@ public sealed class ParcsAgentTools
 
     private const string LayerResultDoc =
         "Layer result: status is Queued | Running (ok, call wait_layer) | Completed | CompletedWithFailures | Failed | Cancelled. " +
-        "layer = { entryPoint, parallelism, previousLayerIds, inherit?, peerChannels?, successCount, failureCount, queuedSeconds, " +
+        "layer = { entryPoint, parallelism, previousLayerIds, inherit?, peerChannels?, maxPoints?, spawnedPoints?, successCount, failureCount, queuedSeconds, " +
         "elapsedSeconds, submittedAt, startedAt, completedAt, jobId }. When parallelism is 1, output is that worker's output (parsed when it " +
         "is JSON); with more workers the default summary view has no outputs (hint says so): view 'outputs' adds outputs[] " +
         "(one per worker, null for failed ones); view 'full' also adds workers[] = " +
@@ -104,7 +104,7 @@ public sealed class ParcsAgentTools
         "j opened the first time either side asks: { SendAsync(string), ReceiveAsync() } plus the extensions " +
         "SendJsonAsync<T>, ReceiveJsonAsync<T>, ExchangeJsonAsync<T>. " + PeersDoc + " Return " +
         "AgentLayerResult.Ok(outputJson) or AgentLayerResult.Error(message). Workers have no network or file access " +
-        "besides their peer channels.\n" +
+        "besides their peer channels. " + SpawnDoc + "\n" +
         "Returns status 'Created' or 'Reused' (the same source returns the same session), sessionId and output = " +
         "{ entryPoints: [full class names] }; pass one as run_layer's entryPoint when there are several. On compile " +
         "failure: error.code 'compile_error' with diagnostics [{ id, line, column, message }].")]
@@ -155,6 +155,8 @@ public sealed class ParcsAgentTools
         [Description("If true, the first failed worker fails the whole layer (status Failed) instead of CompletedWithFailures.")] bool failFast = false,
         [Description("Seconds a peer channel receive waits before throwing TimeoutException (1–900, default 60); also bounds opening a channel.")] int? channelTimeoutSeconds = null,
         [Description("'all' (default): every worker gets every parent's whole result. 'byIndex': worker i gets only output i of each parent, in input.InheritedOutputs (parents must have the same parallelism).")] string? inherit = null,
+        [Description(MaxPointsDoc)] int? maxPoints = null,
+        [Description("How many levels spawned points may nest below the workers (0–8; default 3 when maxPoints exceeds parallelism).")] int? maxDepth = null,
         [Description("'summary' (default), 'outputs' or 'full'.")] string? view = null,
         CancellationToken ct = default)
     {
@@ -171,14 +173,32 @@ public sealed class ParcsAgentTools
             FailFast              = failFast,
             ChannelTimeoutSeconds = channelTimeoutSeconds,
             Inherit               = inherit,
+            MaxPoints             = maxPoints,
+            MaxDepth              = maxDepth,
         };
         return await StartAndWaitAsync(request, ClampWait(waitSeconds ?? DefaultWaitSeconds), view, ct);
     }
 
+    private const string MaxPointsDoc =
+        "Points the layer may use in all: its workers plus every point they spawn with input.SpawnAsync (default " +
+        "parallelism, which turns spawning off). The budget is split among the workers and handed down the spawn " +
+        "tree; a spawn over budget or below maxDepth fails with a message naming the limit. Elastic clusters need " +
+        "maxPoints <= maxParallelism; static clusters allow up to 4x, the extra points sharing the daemons.";
+
+    private const string SpawnDoc =
+        "Recursion: input.SpawnAsync(count, entryPoint?, inputs?) starts count new points running this session's " +
+        "code one level deeper (entryPoint: another class of the session; inputs: one string per child, read as its " +
+        "input.WorkerInput) and returns a spawn with Child(i) -> IAgentChannel and ResultsAsync() -> the children's " +
+        "outputs (it throws when a child failed). A spawned worker sees input.Depth, input.Spawner (its channel to the " +
+        "spawning worker) and its siblings as input.Peer(j); it may spawn further. input.SpawnBudget is how many more " +
+        "points this worker may spawn below itself; the run_layer arguments maxPoints and maxDepth set the limits.";
+
     private const string PeersDoc =
         "No topology is declared: it is whatever channels the code opens. Either end may open a channel first; " +
         "Peers.AcceptAsync() returns the next channel another worker opened to this one unasked, and Peers.Connected " +
-        "lists the workers connected so far. Sends never block (no deadlock when both sides send first); a receive " +
+        "lists the workers connected so far. channel.HasMessage and channel.TryReceive(out m) check without waiting; " +
+        "Peers.ReceiveAnyAsync(new[] { j, k }) waits for whichever of those workers sends first and returns (Peer, Message). " +
+        "Sends never block (no deadlock when both sides send first); a receive " +
         "throws TimeoutException after channelTimeoutSeconds and IOException when the other worker failed. Pass " +
         "failFast: true when workers wait on each other.";
 
@@ -198,6 +218,8 @@ public sealed class ParcsAgentTools
         [Description("Fail the whole layer on the first failed worker.")] bool failFast = false,
         [Description("Receive timeout of peer channels, see run_layer.")] int? channelTimeoutSeconds = null,
         [Description("'all' (default) or 'byIndex', see run_layer.")] string? inherit = null,
+        [Description("Points budget for spawning, see run_layer.")] int? maxPoints = null,
+        [Description("Spawn depth limit, see run_layer.")] int? maxDepth = null,
         CancellationToken ct = default)
     {
         var request = new LayerRequest
@@ -213,6 +235,8 @@ public sealed class ParcsAgentTools
             FailFast              = failFast,
             ChannelTimeoutSeconds = channelTimeoutSeconds,
             Inherit               = inherit,
+            MaxPoints             = maxPoints,
+            MaxDepth              = maxDepth,
         };
         return await StartAndWaitAsync(request, TimeSpan.Zero, null, ct);
     }

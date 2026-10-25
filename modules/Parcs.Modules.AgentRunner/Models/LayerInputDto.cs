@@ -41,4 +41,10 @@ public sealed class LayerInputDto
 
     /// <summary>"all" (default): every worker gets every parent's whole result. "byIndex": worker i gets output i of each parent.</summary>
     public string Inherit { get; set; } = "all";
+
+    /// <summary>Points the layer may use in all, spawned ones included; 0 or TotalWorkers turns spawning off.</summary>
+    public int MaxPoints { get; set; }
+
+    /// <summary>How deep spawned points may nest below the workers.</summary>
+    public int MaxDepth { get; set; }
 }

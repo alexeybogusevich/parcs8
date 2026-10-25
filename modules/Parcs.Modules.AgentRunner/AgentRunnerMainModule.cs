@@ -76,9 +76,17 @@ public sealed class AgentRunnerMainModule : IModule
         // --- Step 4: send per-worker index only ---
         // Assembly bytes and layer_input.json are on the shared NFS mount at
         // /var/lib/storage/Jobs/{jobId}/Input/ — workers read them directly via InputReader.
+        // The points beyond the workers are the spawn budget, split evenly; each worker hands its
+        // share down to the points it spawns.
+        var spare = Math.Max(0, layerInput.MaxPoints - pointsCount);
         for (int i = 0; i < pointsCount; i++)
         {
-            await channels[i].WriteObjectAsync(new WorkerHandshake { WorkerIndex = i });
+            await channels[i].WriteObjectAsync(new WorkerHandshake
+            {
+                WorkerIndex = i,
+                MaxDepth    = spare > 0 ? layerInput.MaxDepth : 0,
+                SpawnBudget = spare / pointsCount + (i < spare % pointsCount ? 1 : 0),
+            });
         }
 
         // --- Step 4b: relay every worker's endpoint; workers open peer channels themselves, on demand ---

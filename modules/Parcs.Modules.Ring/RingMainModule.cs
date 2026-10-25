@@ -8,9 +8,10 @@ using Parcs.Net;
 namespace Parcs.Modules.Ring
 {
     /// <summary>
-    /// Models a ring of N points. The main module only starts the points and tells them each
-    /// other's endpoint addresses; each point connects to its right neighbour itself, so the ring's
-    /// N links are direct point-to-point channels. Over the ring the nodes all-reduce a vector
+    /// Models a ring of N points, built the way a PARCS configuring module builds a control space:
+    /// create the points, link each to the next (LinkPointsAsync, the book's createChannel(p[i],
+    /// p[i+1])), then execute them. The ring's N links are direct point-to-point channels that
+    /// never pass through the main module. Over the ring the nodes all-reduce a vector
     /// (reduce-scatter, then all-gather) and pass a token around to measure per-hop latency, then
     /// report back for verification.
     ///
@@ -40,6 +41,16 @@ namespace Parcs.Modules.Ring
             {
                 channels[i] = await points[i].CreateChannelAsync();
             }
+
+            // Wire the ring before any node starts: node i's "right" is node i+1's "left".
+            if (nodes > 1)
+            {
+                for (var i = 0; i < nodes; i++)
+                {
+                    await moduleInfo.LinkPointsAsync(points[i], "right", points[RingAlgorithms.Right(i, nodes)], "left");
+                }
+            }
+
             foreach (var point in points)
             {
                 await point.ExecuteClassAsync<RingWorkerModule>();
@@ -57,12 +68,6 @@ namespace Parcs.Modules.Ring
                         TokenLaps    = options.TokenLaps,
                         Seed         = options.Seed,
                     });
-                }
-
-                var addresses = (await Task.WhenAll(channels.Select(c => c.ReadStringAsync()))).ToList();
-                foreach (var channel in channels)
-                {
-                    await channel.WriteObjectAsync(addresses);
                 }
 
                 var reports = (await Task.WhenAll(channels.Select(c => c.ReadObjectAsync<NodeReport>())))

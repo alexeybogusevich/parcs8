@@ -166,6 +166,9 @@ public sealed class FileSessionStore(string root, ILogger<FileSessionStore> logg
         public bool FailFast { get; set; }
         public int ChannelTimeoutSeconds { get; set; }
         public string Inherit { get; set; } = InheritModes.All;
+        public int MaxPoints { get; set; }
+        public int MaxDepth { get; set; }
+        public int Slots { get; set; }
         public DateTimeOffset SubmittedAt { get; set; }
         public LayerStatus Status { get; set; }
         public long? JobId { get; set; }
@@ -179,6 +182,7 @@ public sealed class FileSessionStore(string root, ILogger<FileSessionStore> logg
             LayerId = l.LayerId, SessionId = l.SessionId, LayerKey = l.LayerKey, Fingerprint = l.Fingerprint,
             EntryPoint = l.EntryPoint, Parallelism = l.Parallelism, PreviousLayerIds = l.PreviousLayerIds,
             FailFast = l.FailFast, ChannelTimeoutSeconds = l.ChannelTimeoutSeconds, Inherit = l.Inherit, SubmittedAt = l.SubmittedAt,
+            MaxPoints = l.MaxPoints, MaxDepth = l.MaxDepth, Slots = l.Slots,
             Status = l.Status, JobId = l.JobId, ResultJson = l.ResultJson, Error = l.Error,
             StartedAt = l.StartedAt, CompletedAt = l.CompletedAt,
         };
@@ -188,6 +192,8 @@ public sealed class FileSessionStore(string root, ILogger<FileSessionStore> logg
             LayerId = LayerId, SessionId = SessionId, LayerKey = LayerKey, Fingerprint = Fingerprint,
             EntryPoint = EntryPoint, Parallelism = Parallelism, PreviousLayerIds = PreviousLayerIds,
             FailFast = FailFast, ChannelTimeoutSeconds = ChannelTimeoutSeconds, Inherit = Inherit, SubmittedAt = SubmittedAt,
+            // Layers stored before spawning existed had no budget: their workers were all their points.
+            MaxPoints = MaxPoints > 0 ? MaxPoints : Parallelism, MaxDepth = MaxDepth, Slots = Slots > 0 ? Slots : Parallelism,
             Status = Status, JobId = JobId, ResultJson = ResultJson, Error = Error,
             StartedAt = StartedAt, CompletedAt = CompletedAt,
         };
