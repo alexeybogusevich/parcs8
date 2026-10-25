@@ -11,7 +11,7 @@ namespace Parcs.Agent.Mcp.Services;
 /// The module binary files are expected to be published alongside this assembly under
 /// <c>agent-runner-module/</c>.
 /// </summary>
-public sealed class AgentRunnerModuleRegistrar : IHostedService
+public sealed class AgentRunnerModuleRegistrar : IHostedService, IAgentRunnerModule
 {
     private const string ModuleSubdir = "agent-runner-module";
 
@@ -91,17 +91,40 @@ public sealed class AgentRunnerModuleRegistrar : IHostedService
         return Task.CompletedTask;
     }
 
+    /// <summary>First 12 hex digits of a SHA-256 over the files' names and bytes, in name order.</summary>
+    internal static string ContentHash(IEnumerable<(string Filename, byte[] Bytes)> files)
+    {
+        using var hash = System.Security.Cryptography.IncrementalHash.CreateHash(System.Security.Cryptography.HashAlgorithmName.SHA256);
+        foreach (var (filename, bytes) in files.OrderBy(f => f.Filename, StringComparer.Ordinal))
+        {
+            hash.AppendData(System.Text.Encoding.UTF8.GetBytes(filename));
+            hash.AppendData(bytes);
+        }
+        return Convert.ToHexString(hash.GetHashAndReset())[..12].ToLowerInvariant();
+    }
+
     private async Task RegisterWithRetryAsync(
         List<(string Filename, byte[] Bytes)> files,
         CancellationToken ct)
     {
+        // The name carries a hash of the binaries, so a restart with the same build reuses the
+        // module it registered before instead of uploading another copy.
+        var moduleName = $"{AssemblyName}-{ContentHash(files)}";
+
         var delays = new[] { 5, 10, 20, 40, 60, 120 };
         for (int attempt = 0; !ct.IsCancellationRequested; attempt++)
         {
             try
             {
-                ModuleId = await _api.UploadModuleAsync(files, "Parcs.Modules.AgentRunner", ct);
-                _logger.LogInformation("AgentRunner module registered — id={Id}", ModuleId);
+                if (await _api.FindModuleAsync(moduleName, ct) is { } existingId)
+                {
+                    ModuleId = existingId;
+                    _logger.LogInformation("AgentRunner module {Name} already registered — id={Id}", moduleName, ModuleId);
+                    return;
+                }
+
+                ModuleId = await _api.UploadModuleAsync(files, moduleName, ct);
+                _logger.LogInformation("AgentRunner module {Name} registered — id={Id}", moduleName, ModuleId);
                 return;
             }
             catch (OperationCanceledException) { return; }

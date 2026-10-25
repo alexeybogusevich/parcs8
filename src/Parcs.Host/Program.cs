@@ -1,5 +1,6 @@
 using Parcs.Host.Extensions;
 using Parcs.Core.Services;
+using Parcs.Core.Services.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,6 +24,7 @@ builder.Services.AddApplicationOptions(builder.Configuration);
 builder.Services.AddAsynchronousJobProcessing();
 // Daemons provisioned through the point queue dial back here.
 builder.Services.AddSingleton<CallbackTcpServer>();
+builder.Services.AddSingleton<IPeerChannelService, PeerChannelService>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<CallbackTcpServer>());
 builder.Services.AddHttpClient();
 builder.Services.AddDatabase(builder.Configuration);

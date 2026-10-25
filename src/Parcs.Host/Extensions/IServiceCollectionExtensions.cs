@@ -56,6 +56,8 @@ namespace Parcs.Host.Extensions
                 .AddScoped<ConfigurationDaemonResolutionStrategy>()
                 .AddScoped<KubernetesDaemonResolutionStrategy>()
                 .AddScoped<IJobPlacementResolver, DatabaseJobPlacementResolver>()
+                // Static mode: one allocator for all jobs, so concurrent jobs spread over the pool.
+                .AddSingleton<IDaemonAllocator, DaemonAllocator>()
                 .AddScoped<IPointCreationService, QueuePointCreationService>()
                 .AddScoped<IModuleInfoFactory, ModuleInfoFactory>()
                 .AddScoped<IInputOutputFactory, InputOutputFactory>()

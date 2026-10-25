@@ -16,9 +16,15 @@ namespace Parcs.Core.Messaging
                 .Configure<PointQueueConfiguration>(configuration.GetSection(PointQueueConfiguration.SectionName))
                 .Configure<PubSubConfiguration>(configuration.GetSection(PubSubConfiguration.SectionName))
                 .Configure<ServiceBusConfiguration>(configuration.GetSection(ServiceBusConfiguration.SectionName))
-                .Configure<SqsConfiguration>(configuration.GetSection(SqsConfiguration.SectionName));
+                .Configure<SqsConfiguration>(configuration.GetSection(SqsConfiguration.SectionName))
+                .Configure<ScalingConfiguration>(configuration.GetSection(ScalingConfiguration.SectionName));
 
-            switch (ResolveProvider(configuration))
+            // Static mode gates the queue off: points go to the pre-started daemon pool.
+            var provider = ResolveScalingMode(configuration) == ScalingModes.Static
+                ? PointQueueProviders.None
+                : ResolveProvider(configuration);
+
+            switch (provider)
             {
                 case PointQueueProviders.PubSub:
                     services.AddSingleton<IPointRequestPublisher, PubSubPointRequestPublisher>();
@@ -40,6 +46,26 @@ namespace Parcs.Core.Messaging
             }
 
             return services;
+        }
+
+        /// <summary>
+        /// Resolves <see cref="ScalingConfiguration.Mode"/>; when unset, Elastic if a point queue
+        /// provider is configured and Static otherwise.
+        /// </summary>
+        public static string ResolveScalingMode(IConfiguration configuration)
+        {
+            var mode = configuration
+                .GetSection(ScalingConfiguration.SectionName)
+                .Get<ScalingConfiguration>()?.Mode;
+
+            if (string.IsNullOrWhiteSpace(mode))
+            {
+                return ResolveProvider(configuration) == PointQueueProviders.None ? ScalingModes.Static : ScalingModes.Elastic;
+            }
+
+            return new[] { ScalingModes.Elastic, ScalingModes.Static }
+                .FirstOrDefault(m => string.Equals(m, mode.Trim(), StringComparison.OrdinalIgnoreCase))
+                ?? throw new InvalidOperationException($"Unknown scaling mode '{mode}'. Use Elastic or Static.");
         }
 
         public static string ResolveProvider(IConfiguration configuration)

@@ -25,12 +25,32 @@ class LLMSettings(BaseModel):
 
 
 class MCPSettings(BaseModel):
+    # Base URL of the PARCS MCP server (Streamable HTTP), e.g. http://34.116.216.29:8080
     cluster_url: str
+
+
+class PTCSettings(BaseModel):
+    """Orchestration arm and interpreter limits. Keep these fixed across arms within a study."""
+
+    # "direct": the model calls the PARCS tools turn by turn (arm C).
+    # "ptc": the model writes JavaScript that calls them as tools.* in QuickJS (arm D).
+    orchestration: str = "direct"
+    # QuickJS VM time per eval. Time spent awaiting tools.* calls is not counted, so bounded
+    # waits (waitSeconds) do not need to fit in it.
+    eval_timeout_seconds: float = 30.0
+    max_ptc_calls: int = 256
+    # Cap on what one eval result, or one direct tool result, returns to the model.
+    max_result_chars: int = 4000
+    # REPL state persistence: thread | turn | call
+    mode: str = "thread"
+    # Also offer the PARCS tools as direct tools in the ptc arm (off: a clean arm D).
+    expose_direct_tools: bool = False
 
 
 class PathSettings(BaseModel):
     skills_dir: Path = _PACKAGE_ROOT / "skills"
     memory_dir: Path = _PACKAGE_ROOT / "memory"
+    results_dir: Path = _PACKAGE_ROOT / "results"
 
 
 class LangSmithSettings(BaseModel):
@@ -72,6 +92,13 @@ class EvalSettings(BaseModel):
     task_ids: str = ""
 
 
+class AgentSettings(BaseModel):
+    # Load skills/parcs-cluster/SKILL.md into the context of every run, like memory/AGENTS.md.
+    # When false, the agent only sees the skill's description and reads the file if it chooses
+    # to, which models often skip (AGENT__PRELOAD_SKILL=false reproduces the earlier runs).
+    preload_skill: bool = True
+
+
 class Config(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=_ENV_FILE,
@@ -82,9 +109,11 @@ class Config(BaseSettings):
 
     llm: LLMSettings = Field(default_factory=LLMSettings)
     mcp: MCPSettings
+    ptc: PTCSettings = Field(default_factory=PTCSettings)
     paths: PathSettings = Field(default_factory=PathSettings)
     langsmith: LangSmithSettings = Field(default_factory=LangSmithSettings)
     eval: EvalSettings = Field(default_factory=EvalSettings)
+    agent: AgentSettings = Field(default_factory=AgentSettings)
 
 
 config = Config() # type: ignore

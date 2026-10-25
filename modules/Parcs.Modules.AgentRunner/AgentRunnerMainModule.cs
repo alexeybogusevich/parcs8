@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using Parcs.Agent.Runtime;
 using Parcs.Modules.AgentRunner.Models;
 using Parcs.Net;
 
@@ -24,16 +25,17 @@ namespace Parcs.Modules.AgentRunner;
 ///      KEDA sees full queue depth immediately).
 ///   3. Launch worker modules on every point (ExecuteClassAsync BEFORE any data writes).
 ///   4. Send assembly bytes + worker-specific AgentLayerInput to each worker.
-///   5. Collect WorkerResult from every worker (partial failure is tolerated).
+///   5. Collect WorkerResult from every worker concurrently. Partial failure is tolerated
+///      unless FailFast is set, in which case the first failed worker fails the job.
 ///   6. Write agent_results.json (LayerOutputDto) to job output.
 /// </summary>
 public sealed class AgentRunnerMainModule : IModule
 {
     // camelCase so agent_results.json matches every other payload the MCP server returns
-    // (the tool responses, and this same JSON fed back as PreviousLayerResultJson).
+    // (the tool responses, and this same JSON fed back as PreviousLayerResultJson). Compact,
+    // because the document is re-sent to every worker of the next layer.
     private static readonly JsonSerializerOptions JsonOpts = new()
     {
-        WriteIndented = true,
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
     };
 
@@ -79,29 +81,38 @@ public sealed class AgentRunnerMainModule : IModule
             await channels[i].WriteObjectAsync(new WorkerHandshake { WorkerIndex = i });
         }
 
-        // --- Step 5: collect results (tolerate partial failures) ---
+        // --- Step 4b: relay every worker's endpoint; workers open peer channels themselves, on demand ---
+        await SendDirectoryAsync(moduleInfo, channels);
+
+        // --- Step 5: collect results concurrently, so a failure is seen as soon as it happens ---
+        var pending = Enumerable.Range(0, pointsCount)
+            .Select(i => ReadWorkerResultAsync(moduleInfo, channels[i], i))
+            .ToList();
         var results = new List<WorkerResult>(pointsCount);
-        for (int i = 0; i < pointsCount; i++)
+
+        while (pending.Count > 0)
         {
-            try
+            var finished = await Task.WhenAny(pending);
+            pending.Remove(finished);
+            var result = await finished;
+            results.Add(result);
+
+            if (!result.Success && layerInput.FailFast)
             {
-                var result = await channels[i].ReadObjectAsync<WorkerResult>();
-                results.Add(result);
-                moduleInfo.Logger.LogInformation(
-                    "Worker {Index} finished — success={Success}", i, result.Success);
-            }
-            catch (Exception ex)
-            {
-                moduleInfo.Logger.LogWarning(ex, "Worker {Index} failed to return a result: {Msg}", i, ex.Message);
-                results.Add(new WorkerResult
-                {
-                    WorkerIndex  = i,
-                    Success      = false,
-                    ErrorMessage = $"Communication error: {ex.Message}",
-                });
+                // Throwing fails the job; the host cancels it, which releases the other points.
+                throw new InvalidOperationException(
+                    $"Worker {result.WorkerIndex} failed (failFast): {result.ErrorMessage}");
             }
         }
 
+        // Every worker has returned, so none still reads: peer channels may close.
+        foreach (var channel in channels)
+        {
+            try { await channel.WriteObjectAsync(new WorkerRelease()); } catch { /* the worker is gone */ }
+        }
+
+        results.Sort((a, b) => a.WorkerIndex.CompareTo(b.WorkerIndex));
+        var peerChannels = results.Sum(r => r.Peers.Count(p => p > r.WorkerIndex));
         stopwatch.Stop();
 
         // --- Step 6: write output ---
@@ -118,8 +129,8 @@ public sealed class AgentRunnerMainModule : IModule
             Encoding.UTF8.GetBytes(outputJson), "agent_results.json");
 
         moduleInfo.Logger.LogInformation(
-            "AgentRunner completed in {Elapsed:F2}s — {Success}/{Total} workers succeeded",
-            stopwatch.Elapsed.TotalSeconds, results.Count(r => r.Success), pointsCount);
+            "AgentRunner completed in {Elapsed:F2}s — {Success}/{Total} workers succeeded, {PeerChannels} peer channels",
+            stopwatch.Elapsed.TotalSeconds, results.Count(r => r.Success), pointsCount, peerChannels);
 
         // Cleanup
         foreach (var point in points)
@@ -129,6 +140,57 @@ public sealed class AgentRunnerMainModule : IModule
         foreach (var channel in channels)
         {
             try { channel.Dispose(); } catch { /* best-effort */ }
+        }
+    }
+
+    /// <summary>
+    /// Reads every worker's endpoint and sends all of them to every worker. A worker that could
+    /// not open one (or did not answer) gets a null entry: only channels to it fail.
+    /// </summary>
+    private static async Task SendDirectoryAsync(IModuleInfo moduleInfo, IChannel[] channels)
+    {
+        var endpoints = await Task.WhenAll(channels.Select(async (c, i) =>
+        {
+            try
+            {
+                return await c.ReadObjectAsync<WorkerEndpoint>();
+            }
+            catch (Exception ex)
+            {
+                return new WorkerEndpoint { WorkerIndex = i, Error = ex.Message };
+            }
+        }));
+
+        foreach (var failed in endpoints.Where(e => e.Address is null))
+        {
+            moduleInfo.Logger.LogWarning("Worker {Index} has no peer endpoint: {Error}", failed.WorkerIndex, failed.Error);
+        }
+
+        var directory = new WorkerDirectory { Addresses = [.. endpoints.Select(e => e.Address)] };
+        foreach (var channel in channels)
+        {
+            try { await channel.WriteObjectAsync(directory); } catch { /* reported when its result is read */ }
+        }
+    }
+
+    private static async Task<WorkerResult> ReadWorkerResultAsync(IModuleInfo moduleInfo, IChannel channel, int index)
+    {
+        try
+        {
+            var result = await channel.ReadObjectAsync<WorkerResult>();
+            moduleInfo.Logger.LogInformation(
+                "Worker {Index} finished — success={Success}", index, result.Success);
+            return result;
+        }
+        catch (Exception ex)
+        {
+            moduleInfo.Logger.LogWarning(ex, "Worker {Index} failed to return a result: {Msg}", index, ex.Message);
+            return new WorkerResult
+            {
+                WorkerIndex  = index,
+                Success      = false,
+                ErrorMessage = $"Communication error: {ex.Message}",
+            };
         }
     }
 

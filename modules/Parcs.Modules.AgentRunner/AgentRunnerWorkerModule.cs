@@ -19,9 +19,16 @@ namespace Parcs.Modules.AgentRunner;
 ///   3. Load the assembly into an isolated AssemblyLoadContext that shares
 ///      Parcs.Agent.Runtime with the worker's own context (to preserve type identity
 ///      for the IAgentComputation cast).
-///   4. Find the single type implementing IAgentComputation.
+///   4. Find the IAgentComputation class named by EntryPoint (or the only one).
 ///   5. Execute IAgentComputation.ExecuteAsync.
 ///   6. Write WorkerResult back to the parent channel.
+///
+/// Peer channels (between steps 2 and 3, and after step 6):
+///   a. Open one endpoint and send its address as WorkerEndpoint.
+///   b. Read the WorkerDirectory of every worker's endpoint. Nothing is connected yet: the user
+///      code opens channels on demand through input.Peer(j), so it builds the topology as it runs.
+///   c. After step 6, wait for WorkerRelease before closing the peer channels, so no channel
+///      is reset while another worker still reads from it.
 /// </summary>
 public sealed class AgentRunnerWorkerModule : IModule
 {
@@ -31,6 +38,7 @@ public sealed class AgentRunnerWorkerModule : IModule
 
         // --- Step 1: receive worker index from main module ---
         var handshake = await moduleInfo.Parent.ReadObjectAsync<WorkerHandshake>();
+        var index = handshake.WorkerIndex;
 
         // --- Step 2: read assembly + layer input from shared NFS storage ---
         var assemblyBytes = ReadInputFile(moduleInfo, "agent_computation.dll");
@@ -38,27 +46,46 @@ public sealed class AgentRunnerWorkerModule : IModule
         var layerInput = JsonSerializer.Deserialize<LayerInputDto>(layerInputJson)
             ?? throw new InvalidOperationException("Failed to deserialise layer_input.json");
 
-        var input = new AgentLayerInput
-        {
-            WorkerIndex             = handshake.WorkerIndex,
-            TotalWorkers            = layerInput.TotalWorkers,
-            SessionId               = layerInput.SessionId,
-            LayerId                 = layerInput.LayerId,
-            PreviousLayerResultJson = layerInput.PreviousLayerResultJson,
-            CustomData              = layerInput.CustomData,
-            Parameters              = layerInput.Parameters,
-            DatasetPath             = layerInput.DatasetPath,
-        };
+        var ownFile = layerInput.PerWorkerFiles
+            ? JsonSerializer.Deserialize<WorkerInputFileDto>(ReadInputFile(moduleInfo, $"worker_{index}.json"))
+            : null;
+        var workerInputs = layerInput.WorkerInputs;
+        var workerInput = ownFile is not null
+            ? ownFile.WorkerInput
+            : workerInputs is not null && index < workerInputs.Count ? workerInputs[index] : null;
+        IReadOnlyList<string?> inheritedOutputs = ownFile?.InheritedOutputs
+            ?? [.. layerInput.PreviousLayerResults.Select(r => LayerResultDocument.ReadOutputs(r) is var o && index < o.Count ? o[index] : null)];
+
+        var channelTimeout = TimeSpan.FromSeconds(Math.Max(1, layerInput.ChannelTimeoutSeconds));
 
         moduleInfo.Logger.LogInformation(
             "Worker {Index}/{Total} starting — session={Session} layer={Layer}",
-            input.WorkerIndex, input.TotalWorkers, input.SessionId, input.LayerId);
+            index, layerInput.TotalWorkers, layerInput.SessionId, layerInput.LayerId);
+
+        var (peers, peerError) = await OpenPeersAsync(moduleInfo, index, channelTimeout);
+
+        var input = new AgentLayerInput
+        {
+            WorkerIndex             = index,
+            TotalWorkers            = layerInput.TotalWorkers,
+            SessionId               = layerInput.SessionId,
+            LayerId                 = layerInput.LayerId,
+            PreviousLayerResultJson = layerInput.PreviousLayerResults.FirstOrDefault(),
+            PreviousLayerResults    = layerInput.PreviousLayerResults,
+            CustomData              = layerInput.CustomData,
+            WorkerInput             = workerInput,
+            Parameters              = layerInput.Parameters,
+            InheritedOutputs        = inheritedOutputs,
+            Peers                   = (IAgentPeers?)peers ?? new UnavailableAgentPeers($"Worker {index} has no peer channels: {peerError}"),
+        };
 
         WorkerResult result;
         try
         {
             // --- Steps 3–5: load assembly and execute ---
-            var outputData = await ExecuteUserCodeAsync(assemblyBytes, input, cancellationToken);
+            var outputData = await ExecuteUserCodeAsync(assemblyBytes, layerInput.EntryPoint, input, cancellationToken);
+            if (peers is not null)
+                await peers.FlushAsync();
 
             stopwatch.Stop();
             result = new WorkerResult
@@ -67,6 +94,7 @@ public sealed class AgentRunnerWorkerModule : IModule
                 Success        = true,
                 OutputData     = outputData,
                 ElapsedSeconds = stopwatch.Elapsed.TotalSeconds,
+                Peers          = [.. input.Peers.Connected],
             };
 
             moduleInfo.Logger.LogInformation(
@@ -84,15 +112,54 @@ public sealed class AgentRunnerWorkerModule : IModule
                 Success        = false,
                 ErrorMessage   = ex.Message,
                 ElapsedSeconds = stopwatch.Elapsed.TotalSeconds,
+                Peers          = [.. input.Peers.Connected],
             };
+
+            // Close at once, so workers waiting on this one fail now instead of timing out.
+            if (peers is not null)
+            {
+                await peers.DisposeAsync();
+                peers = null;
+            }
         }
 
         // --- Step 6: return result ---
         await moduleInfo.Parent.WriteObjectAsync(result);
+
+        await moduleInfo.Parent.ReadObjectAsync<WorkerRelease>();
+        if (peers is not null)
+            await peers.DisposeAsync();
+    }
+
+    /// <summary>
+    /// Opens this worker's endpoint, announces it and reads everyone's. Always answers the main
+    /// module, so a worker without an endpoint still runs; only its peer channels are unavailable.
+    /// </summary>
+    private static async Task<(PeerMesh? Peers, string? Error)> OpenPeersAsync(IModuleInfo moduleInfo, int index, TimeSpan timeout)
+    {
+        IPeerEndpoint? endpoint = null;
+        var announcement = new WorkerEndpoint { WorkerIndex = index };
+        try
+        {
+            endpoint = await moduleInfo.OpenEndpointAsync();
+            announcement.Address = endpoint.Address;
+        }
+        catch (Exception ex)
+        {
+            announcement.Error = ex.Message;
+        }
+
+        await moduleInfo.Parent.WriteObjectAsync(announcement);
+        var directory = await moduleInfo.Parent.ReadObjectAsync<WorkerDirectory>();
+
+        return endpoint is null
+            ? (null, announcement.Error)
+            : (new PeerMesh(index, directory.Addresses, endpoint, moduleInfo.ConnectAsync, timeout), null);
     }
 
     private static async Task<string?> ExecuteUserCodeAsync(
         byte[] assemblyBytes,
+        string? entryPoint,
         AgentLayerInput input,
         CancellationToken cancellationToken)
     {
@@ -102,12 +169,7 @@ public sealed class AgentRunnerWorkerModule : IModule
         var context = new AgentAssemblyLoadContext(Assembly.GetExecutingAssembly().Location);
         var userAssembly = context.LoadFromStream(new MemoryStream(assemblyBytes));
 
-        // Find the IAgentComputation implementation
-        var computationType = userAssembly.GetTypes()
-            .FirstOrDefault(t => !t.IsAbstract && !t.IsInterface
-                              && t.GetInterfaces().Any(i => i.FullName == typeof(IAgentComputation).FullName))
-            ?? throw new InvalidOperationException(
-                "No concrete type implementing IAgentComputation was found in the submitted assembly.");
+        var computationType = FindEntryPoint(userAssembly, entryPoint);
 
         var instance = Activator.CreateInstance(computationType)
             ?? throw new InvalidOperationException($"Failed to create an instance of {computationType.FullName}.");
@@ -148,6 +210,35 @@ public sealed class AgentRunnerWorkerModule : IModule
         }
 
         return (string?)outputProp?.GetValue(result);
+    }
+
+    /// <summary>
+    /// Picks the IAgentComputation class named by <paramref name="entryPoint"/> (full or simple
+    /// name), or the only one in the assembly when no name is given.
+    /// </summary>
+    private static Type FindEntryPoint(Assembly userAssembly, string? entryPoint)
+    {
+        var candidates = userAssembly.GetTypes()
+            .Where(t => !t.IsAbstract && !t.IsInterface
+                     && t.GetInterfaces().Any(i => i.FullName == typeof(IAgentComputation).FullName))
+            .ToList();
+
+        if (!string.IsNullOrEmpty(entryPoint))
+        {
+            return candidates.FirstOrDefault(t => t.FullName == entryPoint)
+                ?? candidates.SingleOrDefault(t => t.Name == entryPoint)
+                ?? throw new InvalidOperationException(
+                    $"Entry point '{entryPoint}' was not found among: {string.Join(", ", candidates.Select(t => t.FullName))}.");
+        }
+
+        return candidates.Count switch
+        {
+            1 => candidates[0],
+            0 => throw new InvalidOperationException(
+                "No concrete type implementing IAgentComputation was found in the submitted assembly."),
+            _ => throw new InvalidOperationException(
+                $"The assembly has several IAgentComputation classes; pass entryPoint: {string.Join(", ", candidates.Select(t => t.FullName))}."),
+        };
     }
 
     private static byte[] ReadInputFile(IModuleInfo moduleInfo, string filename)

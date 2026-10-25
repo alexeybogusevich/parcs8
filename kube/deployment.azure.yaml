@@ -244,6 +244,93 @@ spec:
     key: connectionString
 ---
 ---
+# ═══════════════════════════════════════════════════════════════════════════════
+# Static daemon pool — the switch for running without autoscaling (docs/scaling-modes.md).
+# Inert by default (replicas: 0). For controlled experiments: scale it to N, wait until all
+# pods are Ready, then set Scaling__Mode=Static on parcs-hostapi and parcs-agent-mcp. Points
+# then go to these pods only; no queue message is published, so KEDA starts no Jobs and no
+# node is added during a run. request = limit gives each daemon a guaranteed, uncontended CPU.
+# The headless Service lists only Ready pods; the Host and the MCP server resolve the pool
+# through it.
+# ═══════════════════════════════════════════════════════════════════════════════
+apiVersion: v1
+kind: Service
+metadata:
+  name: parcs-daemon-headless
+spec:
+  clusterIP: None
+  selector:
+    app: parcs-daemon-static
+  ports:
+  - name: daemon
+    port: 1111
+    targetPort: 1111
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: parcs-daemon-static
+spec:
+  replicas: 0
+  selector:
+    matchLabels:
+      app: parcs-daemon-static
+  template:
+    metadata:
+      labels:
+        app: parcs-daemon-static
+      annotations:
+        # Running points cannot move: keep consolidation / scale-down away from the pool.
+        karpenter.sh/do-not-disrupt: "true"
+        cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
+    spec:
+      dnsPolicy: ClusterFirst
+      containers:
+      - name: parcs-daemon
+        image: oleksiibohusevych/parcsdaemon
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 1111
+        - containerPort: 2222   # callbacks from nested points
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 2Gi
+          requests:
+            cpu: 1000m
+            memory: 2Gi
+        readinessProbe:
+          tcpSocket:
+            port: 1111
+          periodSeconds: 5
+        volumeMounts:
+        - name: parcs-storage-volume
+          mountPath: /var/lib/storage
+        env:
+        - name: Hosting__Environment
+          value: Kubernetes
+        - name: Kubernetes__NamespaceName
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: Kubernetes__DaemonsHeadlessServiceName
+          value: parcs-daemon-headless
+        - name: HostApi__Uri
+          value: parcs-hostapi-internal
+        - name: Elasticsearch__BaseUrl
+          value: 'http://elasticsearch:9200'
+        # Nested points of modules running here also stay in the pool.
+        - name: Scaling__Mode
+          value: Static
+        - name: HostTcp__AdvertisedAddress
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+      volumes:
+      - name: parcs-storage-volume
+        persistentVolumeClaim:
+          claimName: parcs-storage-volume-claim
+---
 apiVersion: v1
 kind: Service
 metadata:
@@ -324,6 +411,9 @@ spec:
           value: Default
         - name: Kubernetes__DaemonsHeadlessServiceName
           value: parcs-daemon-headless
+        # Elastic: points are provisioned through the queue (KEDA). Static: the parcs-daemon-static pool.
+        - name: Scaling__Mode
+          value: Elastic
         - name: Database__HostName
           value: parcs-database
         - name: Database__DatabaseName
@@ -529,6 +619,15 @@ spec:
           value: "120"
         - name: Parcs__DaemonCpuRequestMillicores
           value: "250"
+        # Must match parcs-hostapi. In Static mode capacity = Ready pods of the headless Service.
+        - name: Scaling__Mode
+          value: Elastic
+        - name: Kubernetes__DaemonsHeadlessServiceName
+          value: parcs-daemon-headless
+        - name: Kubernetes__NamespaceName
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
         resources:
           limits:
             cpu: 500m

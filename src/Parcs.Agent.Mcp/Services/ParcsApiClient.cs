@@ -16,6 +16,7 @@ namespace Parcs.Agent.Mcp.Services;
 ///   POST /api/AsynchronousJobRuns          — submit job for async execution (202 Accepted)
 ///   GET  /api/Jobs/{jobId}/stream          — SSE stream of job status events
 ///   GET  /api/JobOutputs/{jobId}           — download output zip
+///   PUT  /api/Jobs/{jobId}                 — cancel a job
 ///
 /// Why async submit + SSE instead of /api/SynchronousJobRuns:
 ///   The synchronous endpoint blocks for the entire job duration (minutes). During that
@@ -23,7 +24,7 @@ namespace Parcs.Agent.Mcp.Services;
 ///   treat the connection as idle and close it. The async + SSE approach emits heartbeat
 ///   comments every few seconds, keeping every hop in the chain alive.
 /// </summary>
-public sealed class ParcsApiClient
+public sealed class ParcsApiClient : IParcsApiClient
 {
     private readonly string _baseUrl;
     private readonly IHttpClientFactory _httpClientFactory;
@@ -41,6 +42,18 @@ public sealed class ParcsApiClient
         _callbackUrl       = configuration["Parcs:CallbackUrl"] ?? "http://parcs-agent-mcp:8080/noop";
         _httpClientFactory = httpClientFactory;
         _logger            = logger;
+    }
+
+    /// <summary>Returns the id of the newest module named <paramref name="moduleName"/>, or null when there is none.</summary>
+    public async Task<long?> FindModuleAsync(string moduleName, CancellationToken ct = default)
+    {
+        var json = await _baseUrl.AppendPathSegment("api/Modules").GetStringAsync(cancellationToken: ct);
+        using var doc = JsonDocument.Parse(json);
+
+        return doc.RootElement.EnumerateArray()
+            .Where(m => m.TryGetProperty("name", out var n) && n.GetString() == moduleName)
+            .Select(m => (long?)m.GetProperty("id").GetInt64())
+            .Max();
     }
 
     /// <summary>
@@ -264,5 +277,13 @@ public sealed class ParcsApiClient
         await entryStream.CopyToAsync(ms, ct);
         return ms.ToArray();
     }
-}
 
+    /// <summary>Cancels a job; the host stops its points and the status stream reports Cancelled.</summary>
+    public async Task CancelJobAsync(long jobId, CancellationToken ct = default)
+    {
+        _logger.LogInformation("Cancelling job {JobId}", jobId);
+        await _baseUrl
+            .AppendPathSegment($"api/Jobs/{jobId}")
+            .PutAsync(cancellationToken: ct);
+    }
+}

@@ -1,8 +1,9 @@
-using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Text.Json;
+using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
-using ModelContextProtocol.Protocol.Types;
+using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using Parcs.Agent.Mcp.Models;
 using Parcs.Agent.Mcp.Services;
@@ -12,478 +13,366 @@ namespace Parcs.Agent.Mcp.Tools;
 /// <summary>
 /// MCP tool set that exposes PARCS distributed parallel compute to AI agents.
 ///
-/// ── Execution model ─────────────────────────────────────────────────────────
-/// An agent's computation is structured as a sequence of LAYERS, where each
-/// layer runs C# code in parallel across N daemon workers:
-///
-///   1. create_session  — compile a C# IAgentComputation class once.
-///   2. run_layer       — execute that code on N workers; block until done.
-///   3. Repeat run_layer for each subsequent layer, passing previousLayerId
-///      from the last completed layer so workers can access prior results.
-///
-/// ── Error recovery ──────────────────────────────────────────────────────────
-/// If a layer fails, call create_session again with corrected code and re-run
-/// from the last successful layerId — no earlier work is lost.
+/// A computation is a sequence of LAYERS; each layer runs one IAgentComputation class of a
+/// compiled session on N daemon workers. No call blocks longer than its waitSeconds: a layer
+/// that is still running comes back as status "Running" with its layerId, and wait_layer picks
+/// it up. Every tool returns the same envelope { ok, status, sessionId?, layerId?, layer?,
+/// output?, outputs?, workers?, error? } as structured content and as JSON text.
 /// </summary>
 [McpServerToolType]
 public sealed class ParcsAgentTools
 {
-    private readonly SessionManager           _sessions;
-    private readonly ClusterInfoService       _clusterInfo;
-    private readonly IHttpClientFactory       _httpClientFactory;
-    private readonly ILogger<ParcsAgentTools> _logger;
+    private const int DefaultWaitSeconds = 60;
+    private const int MaxWaitSeconds     = 200;
 
-    // Maps datasetUrl → local NFS path; avoids repeated downloads.
-    private static readonly ConcurrentDictionary<string, string> _datasetCache = new();
+    private const string EnvelopeDoc =
+        "Every PARCS tool returns { ok, status, sessionId?, layerId?, layerKey?, layer?, output?, outputs?, workers?, hint?, error? }; " +
+        "ok is false exactly when error = { code, message, retryable, layerId?, failedWorkers?, diagnostics? } is set. ";
 
-    private static readonly JsonSerializerOptions _jsonOptions = new()
+    private const string LayerResultDoc =
+        "Layer result: status is Queued | Running (ok, call wait_layer) | Completed | CompletedWithFailures | Failed | Cancelled. " +
+        "layer = { entryPoint, parallelism, previousLayerIds, inherit?, peerChannels?, successCount, failureCount, queuedSeconds, " +
+        "elapsedSeconds, submittedAt, startedAt, completedAt, jobId }. When parallelism is 1, output is that worker's output (parsed when it " +
+        "is JSON); with more workers the default summary view has no outputs (hint says so): view 'outputs' adds outputs[] " +
+        "(one per worker, null for failed ones); view 'full' also adds workers[] = " +
+        "{ workerIndex, success, output, error, elapsedSeconds, peers? (workers it had a peer channel with) }. Error codes: invalid_argument, session_not_found, " +
+        "layer_not_found, layer_key_conflict, previous_layer_not_ready, previous_layer_failed, capacity_exceeded, not_ready, " +
+        "worker_error, out_of_memory, daemon_timeout, no_daemons, host_unavailable, job_failed, cancelled.";
+
+    internal static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
     {
-        WriteIndented = false,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
         Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
     };
 
+    private readonly SessionManager           _sessions;
+    private readonly IClusterInfoService      _clusterInfo;
+    private readonly CapacityGate             _gate;
+    private readonly ILogger<ParcsAgentTools> _logger;
+
     public ParcsAgentTools(
-        SessionManager            sessions,
-        ClusterInfoService        clusterInfo,
-        IHttpClientFactory        httpClientFactory,
-        ILogger<ParcsAgentTools>  logger)
+        SessionManager           sessions,
+        IClusterInfoService      clusterInfo,
+        CapacityGate             gate,
+        ILogger<ParcsAgentTools> logger)
     {
-        _sessions          = sessions;
-        _clusterInfo       = clusterInfo;
-        _httpClientFactory = httpClientFactory;
-        _logger            = logger;
+        _sessions    = sessions;
+        _clusterInfo = clusterInfo;
+        _gate        = gate;
+        _logger      = logger;
     }
 
-    // ─────────────────────────────────────────────────────────────────
-    // Tool: get_cluster_info
-    // ─────────────────────────────────────────────────────────────────
-
-    [McpServerTool(Name = "get_cluster_info")]
-    [Description(
-        "Returns PARCS cluster capacity: daemon-eligible worker node count, the number of daemon " +
-        "workers that fit on those nodes now (currentCapacity), the ceiling on simultaneous " +
-        "workers (maxParallelism, the autoscaler's replica limit shared by all running jobs) and " +
-        "the per-daemon CPU request in millicores. Call once at the start to decide how many " +
-        "workers to use per layer. Up to currentCapacity workers start without new nodes; " +
-        "between currentCapacity and maxParallelism, nodes are added on demand, which adds " +
-        "minutes of start-up latency. Never request more than maxParallelism.")]
-    public async Task<string> GetClusterInfoAsync(CancellationToken ct)
+    [McpServerTool(Name = "get_cluster_info", ReadOnly = true, UseStructuredContent = true, OutputSchemaType = typeof(ToolEnvelope))]
+    [Description(EnvelopeDoc +
+        "Returns cluster capacity in output = { scalingMode: 'elastic'|'static', workerNodeCount, currentCapacity, " +
+        "maxParallelism, daemonCpuRequestMillicores, capacitySource: 'kubernetes'|'dns'|'configuration'|'fallback', " +
+        "freeWorkers, runningLayers, queuedLayers }. Call once at the start to size parallelism. Never request more than " +
+        "maxParallelism. In elastic mode, workers above currentCapacity need new nodes (minutes of start-up); in static " +
+        "mode a fixed pool serves all layers and nothing is provisioned. Layers that do not fit in freeWorkers wait in a " +
+        "server-side queue. capacitySource 'fallback' means the numbers are a configured guess.")]
+    public async Task<CallToolResult> GetClusterInfoAsync(CancellationToken ct)
     {
         var info = await _clusterInfo.GetClusterInfoAsync(ct);
-        return JsonSerializer.Serialize(new
+        _gate.SetCapacity(info.MaxParallelism);
+        return Respond(new ToolEnvelope
         {
-            workerNodeCount            = info.WorkerNodeCount,
-            currentCapacity            = info.CurrentCapacity,
-            maxParallelism             = info.MaxParallelism,
-            daemonCpuRequestMillicores = info.DaemonCpuRequestMillicores,
-        }, _jsonOptions);
+            Ok = true,
+            Output = JsonSerializer.SerializeToNode(new
+            {
+                scalingMode                = info.ScalingMode,
+                workerNodeCount            = info.WorkerNodeCount,
+                currentCapacity            = info.CurrentCapacity,
+                maxParallelism             = info.MaxParallelism,
+                daemonCpuRequestMillicores = info.DaemonCpuRequestMillicores,
+                capacitySource             = info.CapacitySource,
+                freeWorkers                = Math.Max(0, info.MaxParallelism - _gate.InUse),
+                runningLayers              = _sessions.CountLayers(LayerStatus.Running),
+                queuedLayers               = _sessions.CountLayers(LayerStatus.Queued),
+            }, JsonOptions),
+        });
     }
 
-    // ─────────────────────────────────────────────────────────────────
-    // Tool: create_session
-    // ─────────────────────────────────────────────────────────────────
-
-    [McpServerTool(Name = "create_session")]
-    [Description(
-        "Compiles C# source code and registers it as a PARCS compute session. " +
-        "The code must implement IAgentComputation from Parcs.Agent.Runtime:\n\n" +
-        "  public interface IAgentComputation {\n" +
-        "    Task<AgentLayerResult> ExecuteAsync(AgentLayerInput input, CancellationToken ct);\n" +
-        "  }\n\n" +
-        "AgentLayerInput fields available to each worker:\n" +
-        "  • WorkerIndex         – 0-based index of this worker\n" +
-        "  • TotalWorkers        – total number of workers in this layer\n" +
-        "  • PreviousLayerResultJson – full JSON output of the previous layer (populated " +
-        "    automatically when you pass previousLayerId to run_layer)\n" +
-        "  • CustomData          – shared payload broadcast to all workers\n" +
-        "  • Parameters          – Dictionary<string,string> of named parameters\n" +
-        "  • DatasetPath         – path to the dataset file on shared NFS storage " +
-        "(populated when datasetUrl is passed to run_layer)\n\n" +
-        "Return AgentLayerResult.Ok(outputJson) or AgentLayerResult.Error(message).\n\n" +
-        "Example aggregation layer reading the previous layer's output:\n" +
-        "  var prev = JsonSerializer.Deserialize<JsonElement>(input.PreviousLayerResultJson!);\n" +
-        "  int total = 0;\n" +
-        "  foreach (var r in prev.GetProperty(\"results\").EnumerateArray())\n" +
-        "      if (r.GetProperty(\"success\").GetBoolean())\n" +
-        "          total += JsonSerializer.Deserialize<JsonElement>(r.GetProperty(\"outputData\").GetString()!)\n" +
-        "                       .GetProperty(\"count\").GetInt32();\n\n" +
-        "Returns { sessionId } on success. On compile failure, the tool result is marked as an " +
-        "error (isError) and the content holds the compiler diagnostics — fix the code and call " +
-        "create_session again, no state is lost.")]
-    public CallToolResponse CreateSession(
-        [Description("Complete C# class implementing IAgentComputation, or just the ExecuteAsync method body (usings and class wrapper are added automatically).")]
+    [McpServerTool(Name = "create_session", Idempotent = true, UseStructuredContent = true, OutputSchemaType = typeof(ToolEnvelope))]
+    [Description(EnvelopeDoc +
+        "Compiles C# source with one or more classes implementing IAgentComputation from Parcs.Agent.Runtime:\n" +
+        "  public interface IAgentComputation { Task<AgentLayerResult> ExecuteAsync(AgentLayerInput input, CancellationToken ct); }\n" +
+        "AgentLayerInput: WorkerIndex, TotalWorkers, SessionId, LayerId, CustomData (same for every worker), WorkerInput " +
+        "(workerInputs[WorkerIndex] of run_layer), Parameters (Dictionary<string,string>), PreviousLayerResults (one JSON " +
+        "document per parent layer), PreviousLayerResultJson (= the first of them) and GetPreviousOutputs(parentIndex = 0), " +
+        "which returns the parent's per-worker outputs in worker order (null for failed workers), InheritedOutputs (for each " +
+        "parent, the output of its worker with this WorkerIndex), and Peer(j) -> IAgentChannel, a direct channel to worker " +
+        "j opened the first time either side asks: { SendAsync(string), ReceiveAsync() } plus the extensions " +
+        "SendJsonAsync<T>, ReceiveJsonAsync<T>, ExchangeJsonAsync<T>. " + PeersDoc + " Return " +
+        "AgentLayerResult.Ok(outputJson) or AgentLayerResult.Error(message). Workers have no network or file access " +
+        "besides their peer channels.\n" +
+        "Returns status 'Created' or 'Reused' (the same source returns the same session), sessionId and output = " +
+        "{ entryPoints: [full class names] }; pass one as run_layer's entryPoint when there are several. On compile " +
+        "failure: error.code 'compile_error' with diagnostics [{ id, line, column, message }].")]
+    public CallToolResult CreateSession(
+        [Description("Complete C# source with one or more IAgentComputation classes, or just the body of ExecuteAsync (usings and a class wrapper are then added).")]
         string sourceCode)
     {
         try
         {
-            var session = _sessions.CreateSession(sourceCode);
-            _logger.LogInformation("Session {Id} created via MCP", session.SessionId);
-
-            return Ok(new
+            var (session, reused) = _sessions.CreateSession(sourceCode);
+            return Respond(new ToolEnvelope
             {
-                sessionId = session.SessionId,
-                createdAt = session.CreatedAt,
-                message   = "Compiled successfully. Use sessionId with run_layer.",
+                Ok        = true,
+                Status    = reused ? "Reused" : "Created",
+                SessionId = session.SessionId,
+                Output    = new JsonObject { ["entryPoints"] = new JsonArray([.. session.EntryPoints.Select(e => JsonValue.Create(e))]) },
             });
         }
-        catch (InvalidOperationException ex) when (ex.Message.StartsWith("Compilation failed"))
+        catch (CompilationFailedException ex)
         {
-            return Err(ex.Message);
+            return Respond(ToolEnvelope.Fail(new ToolError
+            {
+                Code = ErrorCodes.CompileError, Message = ex.Message, Diagnostics = ex.Diagnostics,
+            }));
         }
     }
 
-    // ─────────────────────────────────────────────────────────────────
-    // Tool: run_layer  (synchronous — the primary execution tool)
-    // ─────────────────────────────────────────────────────────────────
-
-    [McpServerTool(Name = "run_layer")]
-    [Description(
-        "Executes the compiled session code across 'parallelism' daemon workers in parallel, " +
-        "waits for all workers to finish, and returns aggregated results.\n\n" +
-        "To chain layers, pass the layerId returned by the previous run_layer call as " +
-        "previousLayerId — the server fetches the stored result automatically and makes it " +
-        "available to every worker via input.PreviousLayerResultJson. You never need to " +
-        "read or repeat the full result JSON.\n\n" +
-        "If the connection drops before this returns, the layer keeps running on the cluster " +
-        "server-side — call get_layer_result with the layerId from list_sessions, or prefer " +
-        "submit_layer for anything that might run long, since it returns a layerId immediately.\n\n" +
-        "Returns on success (all fields camelCase, 'results' always a top-level array):\n" +
-        "  { layerId, sessionId, status:'Completed', totalElapsedSeconds, successCount, failureCount,\n" +
-        "    results: [ { workerIndex, success, outputData, errorMessage, elapsedSeconds } ] }\n\n" +
-        "On failure the tool result is marked as an error (isError); check errorMessage in the " +
-        "content. If workers ran out of memory, reduce parallelism or simplify per-worker work " +
-        "size and call run_layer again. If the C# code threw, fix it with create_session and " +
-        "retry from the last good layerId.")]
-    public async Task<CallToolResponse> RunLayerAsync(
-        [Description("Session ID from create_session.")]
-        string sessionId,
-
-        [Description("Number of parallel workers. Must not exceed maxParallelism from get_cluster_info.")]
-        int parallelism,
-
-        [Description("layerId from the previous run_layer call. The server retrieves the stored " +
-                     "result and passes it to every worker as input.PreviousLayerResultJson. " +
-                     "Omit for the first layer.")]
-        string? previousLayerId = null,
-
-        [Description("Optional shared string payload sent unchanged to every worker via input.CustomData. " +
-                     "Use this to broadcast a small configuration value (e.g. a threshold, a mode flag, " +
-                     "or a compact serialised object) that all workers need identically. " +
-                     "For worker-specific inputs, use parameters instead. Maximum a few KB.")]
-        string? customData = null,
-
-        [Description("Optional named parameters available to every worker via input.Parameters " +
-                     "(a Dictionary<string,string>). Pass as a JSON object: {\"key\": \"value\"}. " +
-                     "Workers read values with input.Parameters[\"key\"].")]
-        Dictionary<string, string>? parameters = null,
-
-        [Description(
-            "Optional URL of a dataset file. Downloaded once by the MCP server to shared cluster " +
-            "storage; all workers read it from the same NFS path via input.DatasetPath. " +
-            "Supports HuggingFace raw URLs, GCS, Azure Blob, or any public HTTPS URL. " +
-            "The file is cached by URL so repeated calls with the same URL skip the download. " +
-            "Workers read it with File.ReadAllBytes(input.DatasetPath!) or File.ReadAllText(...). " +
-            "Pass null when workers generate their own data from a seed.")]
-        string? datasetUrl = null,
-
+    [McpServerTool(Name = "run_layer", UseStructuredContent = true, OutputSchemaType = typeof(ToolEnvelope))]
+    [Description(EnvelopeDoc +
+        "Runs a session's computation on 'parallelism' workers and waits up to waitSeconds (default 60, max 200) for it " +
+        "to finish. If it is still running, returns status 'Running' with layerId: call wait_layer(layerId). Pass a " +
+        "layerKey to make the call idempotent: repeating it with the same key and arguments returns the same layer " +
+        "instead of starting another job, with reused: true (a key whose layer Failed or was Cancelled starts a new attempt). Chain layers " +
+        "with previousLayerIds; workers read the parents' results through input.PreviousLayerResults, or only their own " +
+        "share with inherit 'byIndex'. All workers of a layer run at once and can talk to each other directly through " +
+        "input.Peer(j): the code builds whatever topology it needs as it runs (a ring, a tree, a hypercube, a grid, " +
+        "partners chosen from the data) instead of a layer per exchange. " + LayerResultDoc)]
+    public async Task<CallToolResult> RunLayerAsync(
+        [Description("Session ID from create_session.")] string sessionId,
+        [Description("Number of workers; at most maxParallelism from get_cluster_info.")] int parallelism,
+        [Description("Seconds to wait for completion before returning status 'Running' (0–200, default 60).")] int? waitSeconds = null,
+        [Description("Caller-chosen idempotency key, unique per logical layer within the session, e.g. 'map-3'.")] string? layerKey = null,
+        [Description("Full or simple name of the IAgentComputation class to run; required when the session has several.")] string? entryPoint = null,
+        [Description("layerIds of completed parent layers, in the order workers see them in input.PreviousLayerResults.")] string[]? previousLayerIds = null,
+        [Description("Small string sent unchanged to every worker as input.CustomData.")] string? customData = null,
+        [Description("Named parameters sent unchanged to every worker as input.Parameters.")] Dictionary<string, string>? parameters = null,
+        [Description("One string per worker (exactly 'parallelism' entries); worker i reads workerInputs[i] as input.WorkerInput.")] string?[]? workerInputs = null,
+        [Description("If true, the first failed worker fails the whole layer (status Failed) instead of CompletedWithFailures.")] bool failFast = false,
+        [Description("Seconds a peer channel receive waits before throwing TimeoutException (1–900, default 60); also bounds opening a channel.")] int? channelTimeoutSeconds = null,
+        [Description("'all' (default): every worker gets every parent's whole result. 'byIndex': worker i gets only output i of each parent, in input.InheritedOutputs (parents must have the same parallelism).")] string? inherit = null,
+        [Description("'summary' (default), 'outputs' or 'full'.")] string? view = null,
         CancellationToken ct = default)
     {
-        var resolved = await ResolveLayerInputsAsync(sessionId, previousLayerId, datasetUrl, ct);
-        if (resolved.Error is not null)
-            return resolved.Error;
-
-        _logger.LogInformation(
-            "run_layer — session={Session} parallelism={P} prevLayer={Prev} dataset={Url}",
-            sessionId, parallelism, previousLayerId ?? "none", datasetUrl ?? "none");
-
-        var layer = await _sessions.RunLayerSyncAsync(
-            sessionId, parallelism, resolved.PreviousLayerResultJson,
-            customData, parameters ?? new(), resolved.DatasetPath, ct);
-
-        return BuildLayerResponse(layer);
-    }
-
-    // ─────────────────────────────────────────────────────────────────
-    // Tool: submit_layer  (non-blocking — returns immediately)
-    // ─────────────────────────────────────────────────────────────────
-
-    [McpServerTool(Name = "submit_layer")]
-    [Description(
-        "Starts executing the compiled session code across 'parallelism' daemon workers and " +
-        "returns immediately with a layerId, without waiting for the layer to finish. Use this " +
-        "instead of run_layer when a layer might run for more than a couple of minutes, or when " +
-        "you want to avoid holding the connection open. Poll get_layer_result(layerId) every " +
-        "few seconds until status is 'Completed' or 'Failed'.\n\n" +
-        "Takes the same parameters as run_layer. Returns { layerId, sessionId, status:'Running' }.")]
-    public async Task<CallToolResponse> SubmitLayerAsync(
-        [Description("Session ID from create_session.")]
-        string sessionId,
-
-        [Description("Number of parallel workers. Must not exceed maxParallelism from get_cluster_info.")]
-        int parallelism,
-
-        [Description("layerId from a previous run_layer/submit_layer call, to feed its result to " +
-                     "every worker as input.PreviousLayerResultJson. Omit for the first layer.")]
-        string? previousLayerId = null,
-
-        [Description("Optional shared string payload sent unchanged to every worker via input.CustomData.")]
-        string? customData = null,
-
-        [Description("Optional named parameters available to every worker via input.Parameters.")]
-        Dictionary<string, string>? parameters = null,
-
-        [Description("Optional URL of a dataset file — see run_layer for details.")]
-        string? datasetUrl = null,
-
-        CancellationToken ct = default)
-    {
-        var session = _sessions.GetSession(sessionId);
-        if (session is null)
-            return Err($"Session '{sessionId}' not found.");
-
-        var resolved = await ResolveLayerInputsAsync(sessionId, previousLayerId, datasetUrl, ct);
-        if (resolved.Error is not null)
-            return resolved.Error;
-
-        var layer = _sessions.CreateLayer(sessionId);
-
-        _logger.LogInformation(
-            "submit_layer — session={Session} layer={Layer} parallelism={P} prevLayer={Prev}",
-            sessionId, layer.LayerId, parallelism, previousLayerId ?? "none");
-
-        // Runs detached from this request's CancellationToken — the layer must keep running
-        // even after this call returns and the MCP request completes.
-        _sessions.SubmitLayerBackground(
-            layer, session, parallelism, resolved.PreviousLayerResultJson,
-            customData, parameters ?? new(), resolved.DatasetPath, CancellationToken.None);
-
-        return Ok(new
+        var request = new LayerRequest
         {
-            layerId   = layer.LayerId,
-            sessionId = layer.SessionId,
-            status    = "Running",
-        });
+            SessionId             = sessionId,
+            Parallelism           = parallelism,
+            LayerKey              = layerKey,
+            EntryPoint            = entryPoint,
+            PreviousLayerIds      = previousLayerIds ?? [],
+            CustomData            = customData,
+            Parameters            = parameters ?? new(),
+            WorkerInputs          = workerInputs,
+            FailFast              = failFast,
+            ChannelTimeoutSeconds = channelTimeoutSeconds,
+            Inherit               = inherit,
+        };
+        return await StartAndWaitAsync(request, ClampWait(waitSeconds ?? DefaultWaitSeconds), view, ct);
     }
 
-    // ─────────────────────────────────────────────────────────────────
-    // Tool: get_layer_result
-    // ─────────────────────────────────────────────────────────────────
+    private const string PeersDoc =
+        "No topology is declared: it is whatever channels the code opens. Either end may open a channel first; " +
+        "Peers.AcceptAsync() returns the next channel another worker opened to this one unasked, and Peers.Connected " +
+        "lists the workers connected so far. Sends never block (no deadlock when both sides send first); a receive " +
+        "throws TimeoutException after channelTimeoutSeconds and IOException when the other worker failed. Pass " +
+        "failFast: true when workers wait on each other.";
 
-    [McpServerTool(Name = "get_layer_result")]
-    [Description(
-        "Returns the stored result of a previously executed layer by its layerId.\n\n" +
-        "Primary use cases:\n" +
-        "  1. Recovery after connection drop, or polling a submit_layer call: if status is " +
-        "'Running', the layer is still executing on the cluster — wait and call again.\n" +
-        "  2. Lazy reads: retrieve a completed layer's result on demand without re-running.\n\n" +
-        "Returns the same shape as run_layer: { layerId, sessionId, status, ..., results: [...] } " +
-        "on completion, { layerId, sessionId, status:'Running' } while still executing, or an " +
-        "error tool result (isError) if the layer failed or was not found.")]
-    public CallToolResponse GetLayerResult(
-        [Description("layerId returned by run_layer or submit_layer.")]
-        string layerId)
+    [McpServerTool(Name = "submit_layer", UseStructuredContent = true, OutputSchemaType = typeof(ToolEnvelope))]
+    [Description(EnvelopeDoc +
+        "Same as run_layer with waitSeconds 0: starts the layer and returns at once with status 'Queued' or 'Running' " +
+        "and layerId (or the finished layer when layerKey names one). Use wait_layer to wait for it. " + LayerResultDoc)]
+    public async Task<CallToolResult> SubmitLayerAsync(
+        [Description("Session ID from create_session.")] string sessionId,
+        [Description("Number of workers; at most maxParallelism from get_cluster_info.")] int parallelism,
+        [Description("Caller-chosen idempotency key, see run_layer.")] string? layerKey = null,
+        [Description("IAgentComputation class to run, see run_layer.")] string? entryPoint = null,
+        [Description("layerIds of completed parent layers.")] string[]? previousLayerIds = null,
+        [Description("Small string sent to every worker as input.CustomData.")] string? customData = null,
+        [Description("Named parameters sent to every worker as input.Parameters.")] Dictionary<string, string>? parameters = null,
+        [Description("One string per worker, read as input.WorkerInput.")] string?[]? workerInputs = null,
+        [Description("Fail the whole layer on the first failed worker.")] bool failFast = false,
+        [Description("Receive timeout of peer channels, see run_layer.")] int? channelTimeoutSeconds = null,
+        [Description("'all' (default) or 'byIndex', see run_layer.")] string? inherit = null,
+        CancellationToken ct = default)
+    {
+        var request = new LayerRequest
+        {
+            SessionId             = sessionId,
+            Parallelism           = parallelism,
+            LayerKey              = layerKey,
+            EntryPoint            = entryPoint,
+            PreviousLayerIds      = previousLayerIds ?? [],
+            CustomData            = customData,
+            Parameters            = parameters ?? new(),
+            WorkerInputs          = workerInputs,
+            FailFast              = failFast,
+            ChannelTimeoutSeconds = channelTimeoutSeconds,
+            Inherit               = inherit,
+        };
+        return await StartAndWaitAsync(request, TimeSpan.Zero, null, ct);
+    }
+
+    [McpServerTool(Name = "wait_layer", ReadOnly = true, UseStructuredContent = true, OutputSchemaType = typeof(ToolEnvelope))]
+    [Description(EnvelopeDoc +
+        "Waits up to waitSeconds (default 60, max 200) for a layer to finish and returns it; returns at once if it " +
+        "already has. Status 'Running' or 'Queued' means call wait_layer again. " + LayerResultDoc)]
+    public async Task<CallToolResult> WaitLayerAsync(
+        [Description("layerId from run_layer, submit_layer or list_layers.")] string layerId,
+        [Description("Seconds to wait (0–200, default 60).")] int? waitSeconds = null,
+        [Description("'summary' (default), 'outputs' or 'full'.")] string? view = null,
+        CancellationToken ct = default)
     {
         var layer = _sessions.GetLayer(layerId);
         if (layer is null)
-            return Err($"Layer '{layerId}' not found.");
+            return Respond(LayerNotFound(layerId));
 
-        return BuildLayerResponse(layer);
+        await _sessions.WaitAsync(layer, ClampWait(waitSeconds ?? DefaultWaitSeconds), ct);
+        return Respond(LayerResponses.Build(layer, view));
     }
 
-    // ─────────────────────────────────────────────────────────────────
-    // Tool: list_sessions
-    // ─────────────────────────────────────────────────────────────────
-
-    [McpServerTool(Name = "list_sessions")]
-    [Description(
-        "Lists all active compute sessions in this MCP server instance, ordered newest first, " +
-        "each with its layers (layerId, status, submittedAt) in submission order. " +
-        "Useful for resuming a multi-layer pipeline after a connection interruption.")]
-    public string ListSessions()
+    [McpServerTool(Name = "get_layer_result", ReadOnly = true, UseStructuredContent = true, OutputSchemaType = typeof(ToolEnvelope))]
+    [Description(EnvelopeDoc + "Returns a layer's current state without waiting. " + LayerResultDoc)]
+    public CallToolResult GetLayerResult(
+        [Description("layerId from run_layer, submit_layer or list_layers.")] string layerId,
+        [Description("'summary' (default), 'outputs' or 'full'.")] string? view = null)
     {
-        var sessions = _sessions.ListSessions();
-        return JsonSerializer.Serialize(new
+        var layer = _sessions.GetLayer(layerId);
+        return Respond(layer is null ? LayerNotFound(layerId) : LayerResponses.Build(layer, view));
+    }
+
+    [McpServerTool(Name = "list_sessions", ReadOnly = true, UseStructuredContent = true, OutputSchemaType = typeof(ToolEnvelope))]
+    [Description(EnvelopeDoc +
+        "Lists sessions newest first in output = { sessions: [{ sessionId, createdAt, entryPoints, layers: [{ layerId, " +
+        "layerKey, status, submittedAt }] }] }. Useful for resuming after a connection interruption.")]
+    public CallToolResult ListSessions() => Respond(new ToolEnvelope
+    {
+        Ok = true,
+        Output = JsonSerializer.SerializeToNode(new
         {
-            count    = sessions.Count,
-            sessions = sessions.Select(s => new
+            sessions = _sessions.ListSessions().Select(s => new
             {
-                sessionId = s.SessionId,
-                createdAt = s.CreatedAt,
-                layers    = _sessions.ListLayers(s.SessionId).Select(l => new
+                sessionId   = s.SessionId,
+                createdAt   = s.CreatedAt,
+                entryPoints = s.EntryPoints,
+                layers      = _sessions.ListLayers(s.SessionId).Select(l => new
                 {
                     layerId     = l.LayerId,
+                    layerKey    = l.LayerKey,
                     status      = l.Status.ToString(),
                     submittedAt = l.SubmittedAt,
                 }),
             }),
-        }, _jsonOptions);
-    }
+        }, JsonOptions),
+    });
 
-    // ─────────────────────────────────────────────────────────────────
-    // Private helpers
-    // ─────────────────────────────────────────────────────────────────
-
-    private const string DatasetsRoot = "/var/lib/storage/Datasets";
-
-    private static CallToolResponse Ok(object payload) => new()
-    {
-        Content = [new Content { Type = "text", Text = JsonSerializer.Serialize(payload, _jsonOptions) }],
-    };
-
-    private static CallToolResponse Err(string message) => new()
-    {
-        IsError = true,
-        Content = [new Content { Type = "text", Text = JsonSerializer.Serialize(new { error = message }, _jsonOptions) }],
-    };
-
-    private readonly record struct ResolvedLayerInputs(
-        string? PreviousLayerResultJson, string? DatasetPath, CallToolResponse? Error);
-
-    /// <summary>
-    /// Resolves previousLayerId → stored result JSON and datasetUrl → local NFS path, shared by
-    /// run_layer and submit_layer. Returns an <see cref="ResolvedLayerInputs.Error"/> tool
-    /// response instead of throwing, so callers can return it directly.
-    /// </summary>
-    private async Task<ResolvedLayerInputs> ResolveLayerInputsAsync(
-        string sessionId, string? previousLayerId, string? datasetUrl, CancellationToken ct)
+    [McpServerTool(Name = "list_layers", ReadOnly = true, UseStructuredContent = true, OutputSchemaType = typeof(ToolEnvelope))]
+    [Description(EnvelopeDoc +
+        "Lists a session's layers in submission order in output = { layers: [{ layerId, layerKey, status, entryPoint, " +
+        "parallelism, previousLayerIds, submittedAt, completedAt }] }. Recovers layerIds lost to a timeout or a dropped connection.")]
+    public CallToolResult ListLayers([Description("Session ID from create_session.")] string sessionId)
     {
         if (_sessions.GetSession(sessionId) is null)
-            return new ResolvedLayerInputs(null, null, Err($"Session '{sessionId}' not found."));
-
-        string? previousLayerResultJson = null;
-        if (!string.IsNullOrWhiteSpace(previousLayerId))
         {
-            var prevLayer = _sessions.GetLayer(previousLayerId);
-            if (prevLayer is null)
-                return new ResolvedLayerInputs(null, null,
-                    Err($"previousLayerId '{previousLayerId}' not found. Use the layerId returned by the previous run_layer/submit_layer call."));
-            if (prevLayer.Status != LayerStatus.Completed)
-                return new ResolvedLayerInputs(null, null,
-                    Err($"previousLayerId '{previousLayerId}' has status '{prevLayer.Status}' — only Completed layers can be referenced."));
-            previousLayerResultJson = prevLayer.ResultJson;
-        }
-
-        string? datasetPath = null;
-        if (!string.IsNullOrWhiteSpace(datasetUrl) && datasetUrl != "null")
-        {
-            datasetPath = await FetchDatasetAsync(datasetUrl, ct);
-            if (datasetPath is null)
-                return new ResolvedLayerInputs(null, null, Err($"Failed to download dataset from '{datasetUrl}'."));
-        }
-
-        return new ResolvedLayerInputs(previousLayerResultJson, datasetPath, null);
-    }
-
-    /// <summary>
-    /// Builds the tool response for a layer. resultJson (produced by AgentRunnerMainModule, and
-    /// stored verbatim as PreviousLayerResultJson for the next layer) is camelCase and already
-    /// shaped as { sessionId, layerId, totalElapsedSeconds, anyFailures, results: [...] } — this
-    /// flattens that straight into the top-level response, matching what run_layer documents.
-    /// </summary>
-    private CallToolResponse BuildLayerResponse(LayerRecord layer)
-    {
-        if (layer.Status == LayerStatus.Running)
-        {
-            return Ok(new
+            return Respond(ToolEnvelope.Fail(new ToolError
             {
-                layerId   = layer.LayerId,
-                sessionId = layer.SessionId,
-                status    = "Running",
-                message   = $"The layer is still executing on the cluster " +
-                            $"(the SSE connection to the original call may have dropped). " +
-                            $"Call get_layer_result(\"{layer.LayerId}\") again in a few seconds.",
-            });
+                Code = ErrorCodes.SessionNotFound, Message = $"Session '{sessionId}' not found.",
+            }));
         }
 
-        if (layer.Status == LayerStatus.Failed)
+        return Respond(new ToolEnvelope
         {
-            var errMsg = layer.ErrorMessage ?? "unknown error";
-            var hint   = errMsg.Contains("OutOfMemory", StringComparison.OrdinalIgnoreCase) ||
-                         errMsg.Contains("out of memory", StringComparison.OrdinalIgnoreCase)
-                ? " Try reducing parallelism or the per-worker data volume."
-                : errMsg.Contains("Timed out", StringComparison.OrdinalIgnoreCase)
-                ? " A daemon likely failed to schedule or connect — this is a cluster-side issue, retrying the layer is reasonable."
-                : string.Empty;
-
-            return Err($"layerId={layer.LayerId}: {errMsg}{hint}");
-        }
-
-        JsonElement? results = null;
-        int successCount = 0, failureCount = 0;
-        double totalElapsed = 0;
-
-        if (layer.ResultJson is not null)
-        {
-            try
+            Ok        = true,
+            SessionId = sessionId,
+            Output    = JsonSerializer.SerializeToNode(new
             {
-                var doc = JsonDocument.Parse(layer.ResultJson);
-
-                if (doc.RootElement.TryGetProperty("totalElapsedSeconds", out var te) ||
-                    doc.RootElement.TryGetProperty("TotalElapsedSeconds", out te))
-                    totalElapsed = te.GetDouble();
-
-                if (doc.RootElement.TryGetProperty("results", out var r) ||
-                    doc.RootElement.TryGetProperty("Results", out r))
+                layers = _sessions.ListLayers(sessionId).Select(l => new
                 {
-                    results = r.Clone();
-                    foreach (var worker in r.EnumerateArray())
-                    {
-                        var success = (worker.TryGetProperty("success", out var s) ||
-                                       worker.TryGetProperty("Success", out s)) && s.GetBoolean();
-                        if (success) successCount++; else failureCount++;
-                    }
-                }
-            }
-            catch
-            {
-                // If parsing fails, fall through with an empty results array rather than
-                // returning the whole thing as an opaque, unparsed string.
-            }
-        }
-
-        return Ok(new
-        {
-            layerId             = layer.LayerId,
-            sessionId           = layer.SessionId,
-            status              = layer.Status.ToString(),
-            submittedAt         = layer.SubmittedAt,
-            completedAt         = layer.CompletedAt,
-            totalElapsedSeconds = totalElapsed,
-            successCount,
-            failureCount,
-            results,   // top-level array, matching the tool description — not nested under "result"
+                    layerId          = l.LayerId,
+                    layerKey         = l.LayerKey,
+                    status           = l.Status.ToString(),
+                    entryPoint       = l.EntryPoint,
+                    parallelism      = l.Parallelism,
+                    previousLayerIds = l.PreviousLayerIds,
+                    submittedAt      = l.SubmittedAt,
+                    completedAt      = l.CompletedAt,
+                }),
+            }, JsonOptions),
         });
     }
 
-    private async Task<string?> FetchDatasetAsync(string url, CancellationToken ct)
+    [McpServerTool(Name = "delete_session", Destructive = true, Idempotent = true, UseStructuredContent = true, OutputSchemaType = typeof(ToolEnvelope))]
+    [Description(EnvelopeDoc +
+        "Deletes a session and all its layers, cancelling the ones still queued or running. Sessions and finished layers " +
+        "are otherwise kept, also across server restarts. Returns status 'Deleted' with output = { deletedLayers }, or " +
+        "error.code 'session_not_found'.")]
+    public async Task<CallToolResult> DeleteSessionAsync(
+        [Description("Session ID from create_session or list_sessions.")] string sessionId,
+        CancellationToken ct = default)
     {
-        var key  = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(
-                       System.Text.Encoding.UTF8.GetBytes(url)))[..16];
-        var dir  = Path.Combine(DatasetsRoot, key);
-        var path = Path.Combine(dir, "dataset.bin");
-
-        if (_datasetCache.ContainsKey(url) || File.Exists(path))
+        var deleted = await _sessions.DeleteSessionAsync(sessionId, ct);
+        if (deleted is null)
         {
-            _logger.LogInformation("Dataset already on shared storage: {Path}", path);
-            _datasetCache.TryAdd(url, path);
-            return path;
+            return Respond(ToolEnvelope.Fail(new ToolError
+            {
+                Code = ErrorCodes.SessionNotFound, Message = $"Session '{sessionId}' not found.",
+            }));
         }
 
-        _logger.LogInformation("Downloading dataset from {Url} → {Path}", url, path);
-        try
+        return Respond(new ToolEnvelope
         {
-            Directory.CreateDirectory(dir);
-            using var http = _httpClientFactory.CreateClient();
-            var bytes      = await http.GetByteArrayAsync(url, ct);
-            await File.WriteAllBytesAsync(path, bytes, ct);
-            _datasetCache[url] = path;
-            _logger.LogInformation("Dataset saved: {Path} ({Bytes} bytes)", path, bytes.Length);
-            return path;
-        }
-        catch (Exception ex)
+            Ok        = true,
+            Status    = "Deleted",
+            SessionId = sessionId,
+            Output    = new JsonObject { ["deletedLayers"] = deleted.Value },
+        });
+    }
+
+    [McpServerTool(Name = "cancel_layer", Destructive = true, Idempotent = true, UseStructuredContent = true, OutputSchemaType = typeof(ToolEnvelope))]
+    [Description(EnvelopeDoc +
+        "Cancels a Queued or Running layer and frees its workers; returns the layer (status Cancelled once the " +
+        "cancellation lands). A finished layer is returned unchanged. " + LayerResultDoc)]
+    public async Task<CallToolResult> CancelLayerAsync(
+        [Description("layerId to cancel.")] string layerId,
+        CancellationToken ct = default)
+    {
+        var layer = _sessions.GetLayer(layerId);
+        if (layer is null)
+            return Respond(LayerNotFound(layerId));
+
+        await _sessions.CancelAsync(layer, ct);
+        return Respond(LayerResponses.Build(layer, null));
+    }
+
+    private async Task<CallToolResult> StartAndWaitAsync(LayerRequest request, TimeSpan wait, string? view, CancellationToken ct)
+    {
+        var started = await _sessions.StartLayerAsync(request, ct);
+        if (started.Error is not null)
+            return Respond(ToolEnvelope.Fail(started.Error));
+
+        await _sessions.WaitAsync(started.Layer!, wait, ct);
+        return Respond(LayerResponses.Build(started.Layer!, view, reused: started.Reused));
+    }
+
+    private static TimeSpan ClampWait(int seconds) => TimeSpan.FromSeconds(Math.Clamp(seconds, 0, MaxWaitSeconds));
+
+    private static ToolEnvelope LayerNotFound(string layerId) => ToolEnvelope.Fail(new ToolError
+    {
+        Code = ErrorCodes.LayerNotFound, Message = $"Layer '{layerId}' not found.",
+    });
+
+    internal static CallToolResult Respond(ToolEnvelope envelope)
+    {
+        var node = JsonSerializer.SerializeToNode(envelope, JsonOptions)!;
+        return new CallToolResult
         {
-            _logger.LogError(ex, "Failed to download dataset from {Url}", url);
-            return null;
-        }
+            IsError           = !envelope.Ok,
+            Content           = [new TextContentBlock { Text = node.ToJsonString(JsonOptions) }],
+            StructuredContent = JsonSerializer.SerializeToElement(node, JsonOptions),
+        };
     }
 }
