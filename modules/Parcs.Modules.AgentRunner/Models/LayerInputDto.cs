@@ -30,13 +30,7 @@ public sealed class LayerInputDto
 
     public Dictionary<string, string> Parameters { get; set; } = new();
 
-    /// <summary>Topology of peer channels (AgentTopologySpec text form); null or "none" for none.</summary>
-    public string? Topology { get; set; }
-
-    /// <summary>Edges of a custom topology.</summary>
-    public List<int[]>? TopologyEdges { get; set; }
-
-    /// <summary>Default receive timeout of the peer channels, and the timeout for wiring them.</summary>
+    /// <summary>Default receive timeout of the peer channels, and the timeout for connecting one.</summary>
     public int ChannelTimeoutSeconds { get; set; } = 60;
 
     /// <summary>

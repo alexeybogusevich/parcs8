@@ -89,9 +89,10 @@ Put the map and the reduce class in **one** session and select one per layer wit
 | `WorkerInput` | `string?` | This worker's own entry of `workerInputs` |
 | `Parameters` | `Dictionary<string,string>` | Named values sent unchanged to every worker |
 | `InheritedOutputs` | `IReadOnlyList<string?>` | For each parent, the output of its worker with this `WorkerIndex` (the only parent data with `inherit: "byIndex"`) |
-| `Topology` | `AgentTopology` | Channels to this worker's neighbours when the layer has a `topology` (see below) |
+| `Peer(j)` | `IAgentChannel` | Direct channel to worker j, opened on first use by either side (see below) |
+| `Peers` | `IAgentPeers` | `Peers[j]` (= `Peer(j)`), `Connected`, `AcceptAsync()` for channels other workers opened |
 
-Workers have no network or file-system access besides their topology channels: generate data from
+Workers have no network or file-system access besides their peer channels: generate data from
 seeds or pass small inputs in `customData`, `parameters` or `workerInputs`.
 
 ### Returning results
@@ -163,16 +164,16 @@ Every PARCS tool returns { ok, status, sessionId?, layerId?, layerKey?, layer?, 
 
 Every PARCS tool returns { ok, status, sessionId?, layerId?, layerKey?, layer?, output?, outputs?, workers?, error? }; ok is false exactly when error = { code, message, retryable, layerId?, failedWorkers?, diagnostics? } is set. Compiles C# source with one or more classes implementing IAgentComputation from Parcs.Agent.Runtime:
   public interface IAgentComputation { Task<AgentLayerResult> ExecuteAsync(AgentLayerInput input, CancellationToken ct); }
-AgentLayerInput: WorkerIndex, TotalWorkers, SessionId, LayerId, CustomData (same for every worker), WorkerInput (workerInputs[WorkerIndex] of run_layer), Parameters (Dictionary<string,string>), PreviousLayerResults (one JSON document per parent layer), PreviousLayerResultJson (= the first of them) and GetPreviousOutputs(parentIndex = 0), which returns the parent's per-worker outputs in worker order (null for failed workers), InheritedOutputs (for each parent, the output of its worker with this WorkerIndex), and Topology (see run_layer's topology): Topology.Neighbors, Topology[peer] -> IAgentChannel { SendAsync(string), ReceiveAsync() } plus the extensions SendJsonAsync<T>, ReceiveJsonAsync<T>, ExchangeJsonAsync<T>, and Left/Right (ring, line), Parent/Children (tree, star), Dimensions/Partner(d) (hypercube), Row/Column/North/South/West/East (grid, torus). Sends never block; a receive throws TimeoutException after channelTimeoutSeconds and IOException when the neighbour failed. Return AgentLayerResult.Ok(outputJson) or AgentLayerResult.Error(message). Workers have no network or file access besides their topology channels.
+AgentLayerInput: WorkerIndex, TotalWorkers, SessionId, LayerId, CustomData (same for every worker), WorkerInput (workerInputs[WorkerIndex] of run_layer), Parameters (Dictionary<string,string>), PreviousLayerResults (one JSON document per parent layer), PreviousLayerResultJson (= the first of them) and GetPreviousOutputs(parentIndex = 0), which returns the parent's per-worker outputs in worker order (null for failed workers), InheritedOutputs (for each parent, the output of its worker with this WorkerIndex), and Peer(j) -> IAgentChannel, a direct channel to worker j opened the first time either side asks: { SendAsync(string), ReceiveAsync() } plus the extensions SendJsonAsync<T>, ReceiveJsonAsync<T>, ExchangeJsonAsync<T>. No topology is declared: it is whatever channels the code opens. Either end may open a channel first; Peers.AcceptAsync() returns the next channel another worker opened to this one unasked, and Peers.Connected lists the workers connected so far. Sends never block (no deadlock when both sides send first); a receive throws TimeoutException after channelTimeoutSeconds and IOException when the other worker failed. Pass failFast: true when workers wait on each other. Return AgentLayerResult.Ok(outputJson) or AgentLayerResult.Error(message). Workers have no network or file access besides their peer channels.
 Returns status 'Created' or 'Reused' (the same source returns the same session), sessionId and output = { entryPoints: [full class names] }; pass one as run_layer's entryPoint when there are several. On compile failure: error.code 'compile_error' with diagnostics [{ id, line, column, message }].
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
 | `sourceCode` | `string` | yes | Complete C# source with one or more IAgentComputation classes, or just the body of ExecuteAsync (usings and a class wrapper are then added). |
 
-### `run_layer(sessionId, parallelism, waitSeconds?, layerKey?, entryPoint?, previousLayerIds?, customData?, parameters?, workerInputs?, failFast?, topology?, topologyEdges?, channelTimeoutSeconds?, inherit?, view?)`
+### `run_layer(sessionId, parallelism, waitSeconds?, layerKey?, entryPoint?, previousLayerIds?, customData?, parameters?, workerInputs?, failFast?, channelTimeoutSeconds?, inherit?, view?)`
 
-Every PARCS tool returns { ok, status, sessionId?, layerId?, layerKey?, layer?, output?, outputs?, workers?, error? }; ok is false exactly when error = { code, message, retryable, layerId?, failedWorkers?, diagnostics? } is set. Runs a session's computation on 'parallelism' workers and waits up to waitSeconds (default 60, max 200) for it to finish. If it is still running, returns status 'Running' with layerId: call wait_layer(layerId). Pass a layerKey to make the call idempotent: repeating it with the same key and arguments returns the same layer instead of starting another job, with reused: true (a key whose layer Failed or was Cancelled starts a new attempt). Chain layers with previousLayerIds; workers read the parents' results through input.PreviousLayerResults, or only their own share with inherit 'byIndex'. Give the workers direct channels to each other with topology: they all run at once and exchange data peer to peer (halo exchange on a grid, token passing on a ring, reductions up a tree, all-reduce over hypercube dimensions) instead of a layer per exchange. Layer result: status is Queued | Running (ok, call wait_layer) | Completed | CompletedWithFailures | Failed | Cancelled. layer = { entryPoint, parallelism, previousLayerIds, topology?, inherit?, successCount, failureCount, queuedSeconds, elapsedSeconds, submittedAt, startedAt, completedAt, jobId }. When parallelism is 1, output is that worker's output (parsed when it is JSON). view 'outputs' adds outputs[] (one per worker, null for failed ones); view 'full' also adds workers[] = { workerIndex, success, output, error, elapsedSeconds }. Error codes: invalid_argument, session_not_found, layer_not_found, layer_key_conflict, previous_layer_not_ready, previous_layer_failed, capacity_exceeded, not_ready, worker_error, out_of_memory, daemon_timeout, no_daemons, host_unavailable, job_failed, cancelled.
+Every PARCS tool returns { ok, status, sessionId?, layerId?, layerKey?, layer?, output?, outputs?, workers?, error? }; ok is false exactly when error = { code, message, retryable, layerId?, failedWorkers?, diagnostics? } is set. Runs a session's computation on 'parallelism' workers and waits up to waitSeconds (default 60, max 200) for it to finish. If it is still running, returns status 'Running' with layerId: call wait_layer(layerId). Pass a layerKey to make the call idempotent: repeating it with the same key and arguments returns the same layer instead of starting another job, with reused: true (a key whose layer Failed or was Cancelled starts a new attempt). Chain layers with previousLayerIds; workers read the parents' results through input.PreviousLayerResults, or only their own share with inherit 'byIndex'. All workers of a layer run at once and can talk to each other directly through input.Peer(j): the code builds whatever topology it needs as it runs (a ring, a tree, a hypercube, a grid, partners chosen from the data) instead of a layer per exchange. Layer result: status is Queued | Running (ok, call wait_layer) | Completed | CompletedWithFailures | Failed | Cancelled. layer = { entryPoint, parallelism, previousLayerIds, inherit?, peerChannels?, successCount, failureCount, queuedSeconds, elapsedSeconds, submittedAt, startedAt, completedAt, jobId }. When parallelism is 1, output is that worker's output (parsed when it is JSON). view 'outputs' adds outputs[] (one per worker, null for failed ones); view 'full' also adds workers[] = { workerIndex, success, output, error, elapsedSeconds, peers? (workers it had a peer channel with) }. Error codes: invalid_argument, session_not_found, layer_not_found, layer_key_conflict, previous_layer_not_ready, previous_layer_failed, capacity_exceeded, not_ready, worker_error, out_of_memory, daemon_timeout, no_daemons, host_unavailable, job_failed, cancelled.
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
@@ -185,16 +186,14 @@ Every PARCS tool returns { ok, status, sessionId?, layerId?, layerKey?, layer?, 
 | `customData` | `string \| null` | no | Small string sent unchanged to every worker as input.CustomData. |
 | `parameters` | `object \| null` | no | Named parameters sent unchanged to every worker as input.Parameters. |
 | `workerInputs` | `array \| null` | no | One string per worker (exactly 'parallelism' entries); worker i reads workerInputs[i] as input.WorkerInput. |
-| `failFast` | `boolean \| null` | no | If true, the first failed worker fails the whole layer (status Failed) instead of CompletedWithFailures. Default: true with a topology, false otherwise. |
-| `topology` | `string \| null` | no | Direct worker-to-worker channels, input.Topology: 'none' (default), 'ring', 'line' (a ring without the wrap), 'star' (worker 0 is the hub), 'tree' or 'tree:K' (K-ary, worker 0 is the root, parent (i-1)/K), 'hypercube' (parallelism a power of two, partners i XOR 2^d), 'grid' or 'grid:RxC' (4-neighbour, R*C = parallelism; the squarest shape when RxC is omitted), 'torus' or 'torus:RxC' (grid with wrap-around), 'mesh' (all pairs) or 'custom' (with topologyEdges). |
-| `topologyEdges` | `array \| null` | no | Edges of topology 'custom': [[i, j], ...] worker pairs, each joined by one two-way channel. |
-| `channelTimeoutSeconds` | `integer \| null` | no | Seconds a topology channel receive waits before throwing TimeoutException (1–900, default 60); also bounds wiring the channels. |
+| `failFast` | `boolean` | no | If true, the first failed worker fails the whole layer (status Failed) instead of CompletedWithFailures. Default: `False`. |
+| `channelTimeoutSeconds` | `integer \| null` | no | Seconds a peer channel receive waits before throwing TimeoutException (1–900, default 60); also bounds opening a channel. |
 | `inherit` | `string \| null` | no | 'all' (default): every worker gets every parent's whole result. 'byIndex': worker i gets only output i of each parent, in input.InheritedOutputs (parents must have the same parallelism). |
 | `view` | `string \| null` | no | 'summary' (default), 'outputs' or 'full'. |
 
-### `submit_layer(sessionId, parallelism, layerKey?, entryPoint?, previousLayerIds?, customData?, parameters?, workerInputs?, failFast?, topology?, topologyEdges?, channelTimeoutSeconds?, inherit?)`
+### `submit_layer(sessionId, parallelism, layerKey?, entryPoint?, previousLayerIds?, customData?, parameters?, workerInputs?, failFast?, channelTimeoutSeconds?, inherit?)`
 
-Every PARCS tool returns { ok, status, sessionId?, layerId?, layerKey?, layer?, output?, outputs?, workers?, error? }; ok is false exactly when error = { code, message, retryable, layerId?, failedWorkers?, diagnostics? } is set. Same as run_layer with waitSeconds 0: starts the layer and returns at once with status 'Queued' or 'Running' and layerId (or the finished layer when layerKey names one). Use wait_layer to wait for it. Layer result: status is Queued | Running (ok, call wait_layer) | Completed | CompletedWithFailures | Failed | Cancelled. layer = { entryPoint, parallelism, previousLayerIds, topology?, inherit?, successCount, failureCount, queuedSeconds, elapsedSeconds, submittedAt, startedAt, completedAt, jobId }. When parallelism is 1, output is that worker's output (parsed when it is JSON). view 'outputs' adds outputs[] (one per worker, null for failed ones); view 'full' also adds workers[] = { workerIndex, success, output, error, elapsedSeconds }. Error codes: invalid_argument, session_not_found, layer_not_found, layer_key_conflict, previous_layer_not_ready, previous_layer_failed, capacity_exceeded, not_ready, worker_error, out_of_memory, daemon_timeout, no_daemons, host_unavailable, job_failed, cancelled.
+Every PARCS tool returns { ok, status, sessionId?, layerId?, layerKey?, layer?, output?, outputs?, workers?, error? }; ok is false exactly when error = { code, message, retryable, layerId?, failedWorkers?, diagnostics? } is set. Same as run_layer with waitSeconds 0: starts the layer and returns at once with status 'Queued' or 'Running' and layerId (or the finished layer when layerKey names one). Use wait_layer to wait for it. Layer result: status is Queued | Running (ok, call wait_layer) | Completed | CompletedWithFailures | Failed | Cancelled. layer = { entryPoint, parallelism, previousLayerIds, inherit?, peerChannels?, successCount, failureCount, queuedSeconds, elapsedSeconds, submittedAt, startedAt, completedAt, jobId }. When parallelism is 1, output is that worker's output (parsed when it is JSON). view 'outputs' adds outputs[] (one per worker, null for failed ones); view 'full' also adds workers[] = { workerIndex, success, output, error, elapsedSeconds, peers? (workers it had a peer channel with) }. Error codes: invalid_argument, session_not_found, layer_not_found, layer_key_conflict, previous_layer_not_ready, previous_layer_failed, capacity_exceeded, not_ready, worker_error, out_of_memory, daemon_timeout, no_daemons, host_unavailable, job_failed, cancelled.
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
@@ -206,15 +205,13 @@ Every PARCS tool returns { ok, status, sessionId?, layerId?, layerKey?, layer?, 
 | `customData` | `string \| null` | no | Small string sent to every worker as input.CustomData. |
 | `parameters` | `object \| null` | no | Named parameters sent to every worker as input.Parameters. |
 | `workerInputs` | `array \| null` | no | One string per worker, read as input.WorkerInput. |
-| `failFast` | `boolean \| null` | no | Fail the whole layer on the first failed worker; default true with a topology. |
-| `topology` | `string \| null` | no | Worker-to-worker channels, see run_layer. |
-| `topologyEdges` | `array \| null` | no | Edges of topology 'custom', see run_layer. |
-| `channelTimeoutSeconds` | `integer \| null` | no | Receive timeout of topology channels, see run_layer. |
+| `failFast` | `boolean` | no | Fail the whole layer on the first failed worker. Default: `False`. |
+| `channelTimeoutSeconds` | `integer \| null` | no | Receive timeout of peer channels, see run_layer. |
 | `inherit` | `string \| null` | no | 'all' (default) or 'byIndex', see run_layer. |
 
 ### `wait_layer(layerId, waitSeconds?, view?)`
 
-Every PARCS tool returns { ok, status, sessionId?, layerId?, layerKey?, layer?, output?, outputs?, workers?, error? }; ok is false exactly when error = { code, message, retryable, layerId?, failedWorkers?, diagnostics? } is set. Waits up to waitSeconds (default 60, max 200) for a layer to finish and returns it; returns at once if it already has. Status 'Running' or 'Queued' means call wait_layer again. Layer result: status is Queued | Running (ok, call wait_layer) | Completed | CompletedWithFailures | Failed | Cancelled. layer = { entryPoint, parallelism, previousLayerIds, topology?, inherit?, successCount, failureCount, queuedSeconds, elapsedSeconds, submittedAt, startedAt, completedAt, jobId }. When parallelism is 1, output is that worker's output (parsed when it is JSON). view 'outputs' adds outputs[] (one per worker, null for failed ones); view 'full' also adds workers[] = { workerIndex, success, output, error, elapsedSeconds }. Error codes: invalid_argument, session_not_found, layer_not_found, layer_key_conflict, previous_layer_not_ready, previous_layer_failed, capacity_exceeded, not_ready, worker_error, out_of_memory, daemon_timeout, no_daemons, host_unavailable, job_failed, cancelled.
+Every PARCS tool returns { ok, status, sessionId?, layerId?, layerKey?, layer?, output?, outputs?, workers?, error? }; ok is false exactly when error = { code, message, retryable, layerId?, failedWorkers?, diagnostics? } is set. Waits up to waitSeconds (default 60, max 200) for a layer to finish and returns it; returns at once if it already has. Status 'Running' or 'Queued' means call wait_layer again. Layer result: status is Queued | Running (ok, call wait_layer) | Completed | CompletedWithFailures | Failed | Cancelled. layer = { entryPoint, parallelism, previousLayerIds, inherit?, peerChannels?, successCount, failureCount, queuedSeconds, elapsedSeconds, submittedAt, startedAt, completedAt, jobId }. When parallelism is 1, output is that worker's output (parsed when it is JSON). view 'outputs' adds outputs[] (one per worker, null for failed ones); view 'full' also adds workers[] = { workerIndex, success, output, error, elapsedSeconds, peers? (workers it had a peer channel with) }. Error codes: invalid_argument, session_not_found, layer_not_found, layer_key_conflict, previous_layer_not_ready, previous_layer_failed, capacity_exceeded, not_ready, worker_error, out_of_memory, daemon_timeout, no_daemons, host_unavailable, job_failed, cancelled.
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
@@ -224,7 +221,7 @@ Every PARCS tool returns { ok, status, sessionId?, layerId?, layerKey?, layer?, 
 
 ### `get_layer_result(layerId, view?)`
 
-Every PARCS tool returns { ok, status, sessionId?, layerId?, layerKey?, layer?, output?, outputs?, workers?, error? }; ok is false exactly when error = { code, message, retryable, layerId?, failedWorkers?, diagnostics? } is set. Returns a layer's current state without waiting. Layer result: status is Queued | Running (ok, call wait_layer) | Completed | CompletedWithFailures | Failed | Cancelled. layer = { entryPoint, parallelism, previousLayerIds, topology?, inherit?, successCount, failureCount, queuedSeconds, elapsedSeconds, submittedAt, startedAt, completedAt, jobId }. When parallelism is 1, output is that worker's output (parsed when it is JSON). view 'outputs' adds outputs[] (one per worker, null for failed ones); view 'full' also adds workers[] = { workerIndex, success, output, error, elapsedSeconds }. Error codes: invalid_argument, session_not_found, layer_not_found, layer_key_conflict, previous_layer_not_ready, previous_layer_failed, capacity_exceeded, not_ready, worker_error, out_of_memory, daemon_timeout, no_daemons, host_unavailable, job_failed, cancelled.
+Every PARCS tool returns { ok, status, sessionId?, layerId?, layerKey?, layer?, output?, outputs?, workers?, error? }; ok is false exactly when error = { code, message, retryable, layerId?, failedWorkers?, diagnostics? } is set. Returns a layer's current state without waiting. Layer result: status is Queued | Running (ok, call wait_layer) | Completed | CompletedWithFailures | Failed | Cancelled. layer = { entryPoint, parallelism, previousLayerIds, inherit?, peerChannels?, successCount, failureCount, queuedSeconds, elapsedSeconds, submittedAt, startedAt, completedAt, jobId }. When parallelism is 1, output is that worker's output (parsed when it is JSON). view 'outputs' adds outputs[] (one per worker, null for failed ones); view 'full' also adds workers[] = { workerIndex, success, output, error, elapsedSeconds, peers? (workers it had a peer channel with) }. Error codes: invalid_argument, session_not_found, layer_not_found, layer_key_conflict, previous_layer_not_ready, previous_layer_failed, capacity_exceeded, not_ready, worker_error, out_of_memory, daemon_timeout, no_daemons, host_unavailable, job_failed, cancelled.
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
@@ -245,7 +242,7 @@ Every PARCS tool returns { ok, status, sessionId?, layerId?, layerKey?, layer?, 
 
 ### `cancel_layer(layerId)`
 
-Every PARCS tool returns { ok, status, sessionId?, layerId?, layerKey?, layer?, output?, outputs?, workers?, error? }; ok is false exactly when error = { code, message, retryable, layerId?, failedWorkers?, diagnostics? } is set. Cancels a Queued or Running layer and frees its workers; returns the layer (status Cancelled once the cancellation lands). A finished layer is returned unchanged. Layer result: status is Queued | Running (ok, call wait_layer) | Completed | CompletedWithFailures | Failed | Cancelled. layer = { entryPoint, parallelism, previousLayerIds, topology?, inherit?, successCount, failureCount, queuedSeconds, elapsedSeconds, submittedAt, startedAt, completedAt, jobId }. When parallelism is 1, output is that worker's output (parsed when it is JSON). view 'outputs' adds outputs[] (one per worker, null for failed ones); view 'full' also adds workers[] = { workerIndex, success, output, error, elapsedSeconds }. Error codes: invalid_argument, session_not_found, layer_not_found, layer_key_conflict, previous_layer_not_ready, previous_layer_failed, capacity_exceeded, not_ready, worker_error, out_of_memory, daemon_timeout, no_daemons, host_unavailable, job_failed, cancelled.
+Every PARCS tool returns { ok, status, sessionId?, layerId?, layerKey?, layer?, output?, outputs?, workers?, error? }; ok is false exactly when error = { code, message, retryable, layerId?, failedWorkers?, diagnostics? } is set. Cancels a Queued or Running layer and frees its workers; returns the layer (status Cancelled once the cancellation lands). A finished layer is returned unchanged. Layer result: status is Queued | Running (ok, call wait_layer) | Completed | CompletedWithFailures | Failed | Cancelled. layer = { entryPoint, parallelism, previousLayerIds, inherit?, peerChannels?, successCount, failureCount, queuedSeconds, elapsedSeconds, submittedAt, startedAt, completedAt, jobId }. When parallelism is 1, output is that worker's output (parsed when it is JSON). view 'outputs' adds outputs[] (one per worker, null for failed ones); view 'full' also adds workers[] = { workerIndex, success, output, error, elapsedSeconds, peers? (workers it had a peer channel with) }. Error codes: invalid_argument, session_not_found, layer_not_found, layer_key_conflict, previous_layer_not_ready, previous_layer_failed, capacity_exceeded, not_ready, worker_error, out_of_memory, daemon_timeout, no_daemons, host_unavailable, job_failed, cancelled.
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
@@ -290,40 +287,41 @@ var partials = input.GetPreviousOutputs()
 var rng = new Random(input.WorkerIndex * 1337 + 42);
 ```
 
-### Workers that talk to each other: topologies
+### Workers that talk to each other
 
-A layer started with `topology` gives its workers direct channels to their neighbours. All workers
-run at once, so an algorithm that would need one layer per exchange (and a round trip through the
-server each time) runs as a single layer:
-
-| `topology` | Neighbours of worker i | Helpers on `input.Topology` |
-|---|---|---|
-| `ring` | i-1 and i+1, wrapping | `Left`, `Right` |
-| `line` | i-1 and i+1, no wrap | `Left`, `Right` (null at the ends) |
-| `star` | worker 0 ↔ every other worker | `Parent` (0), `Children` (of worker 0) |
-| `tree`, `tree:K` | parent (i-1)/K, children K·i+1 … K·i+K | `Parent` (null at the root, worker 0), `Children` |
-| `hypercube` | i XOR 2^d for each dimension d (parallelism a power of 2) | `Dimensions`, `Partner(d)` |
-| `grid`, `grid:RxC` | 4 neighbours, R·C = parallelism (squarest shape if omitted) | `Row`, `Column`, `North`, `South`, `West`, `East` |
-| `torus`, `torus:RxC` | a grid that wraps around | as grid |
-| `mesh` | every other worker | — |
-| `custom` + `topologyEdges: [[i, j], ...]` | the listed pairs | — |
-
-`input.Topology.Neighbors` lists the neighbour indices; `input.Topology[peer]` is the channel to one:
+All workers of a layer run at once, and `input.Peer(j)` is a direct channel to worker j. There is no
+topology to declare: the shape of the computation is whatever channels your code opens as it runs,
+so an algorithm that would need one layer per exchange (and a round trip through the server each
+time) runs as a single layer. The first side to call `Peer(j)` connects; the other side gets the
+same channel from its own `Peer(i)` call.
 
 ```csharp
-var t = input.Topology;
-await t[t.Right!.Value].SendJsonAsync(value, ct);         // never blocks
-var fromLeft = await t[t.Left!.Value].ReceiveJsonAsync<long>(ct);
-// hypercube all-reduce: v holds the global sum on every worker afterwards
-for (var d = 0; d < t.Dimensions; d++) v += await t[t.Partner(d)].ExchangeJsonAsync(v, ct);
+int i = input.WorkerIndex, n = input.TotalWorkers;
+
+// ring: pass a value to the right, receive from the left
+await input.Peer((i + 1) % n).SendJsonAsync(value, ct);            // never blocks
+var fromLeft = await input.Peer((i - 1 + n) % n).ReceiveJsonAsync<long>(ct);
+
+// hypercube all-reduce (n a power of two): v holds the global sum on every worker afterwards
+for (var bit = 1; bit < n; bit <<= 1) v += await input.Peer(i ^ bit).ExchangeJsonAsync(v, ct);
+
+// binary tree reduce: children (2i+1, 2i+2) report to the parent (i-1)/2; worker 0 has the total
+foreach (var c in new[] { 2 * i + 1, 2 * i + 2 }.Where(c => c < n)) v += await input.Peer(c).ReceiveJsonAsync<long>(ct);
+if (i > 0) await input.Peer((i - 1) / 2).SendJsonAsync(v, ct);
 ```
 
-- Sends are buffered, so neighbours may both send before they receive (halo exchange) without
+Partners may also depend on the data. A worker that does not know who will contact it calls
+`await input.Peers.AcceptAsync(ct)`, which returns the next channel another worker opened to it
+(`channel.Peer` says who). `input.Peers.Connected` lists the workers connected so far. With
+`view: "full"`, every entry of `workers[]` shows the `peers` that worker talked to, and
+`layer.peerChannels` counts the channels the layer built.
+
+- Sends are buffered, so two workers may both send before they receive (halo exchange) without
   deadlocking. Messages on one channel arrive in order.
 - A receive waits at most `channelTimeoutSeconds` (default 60) and then throws `TimeoutException`
-  ("channel_timeout"); if the neighbour failed, it throws `IOException` at once. Every receive needs
-  a matching send on the other side.
-- `failFast` defaults to true for topology layers: one failed worker stalls its neighbours anyway.
+  ("channel_timeout"); if the other worker failed, it throws `IOException` at once. Every receive
+  needs a matching send on the other side.
+- Pass `failFast: true` when workers wait on each other: one failed worker stalls its partners anyway.
 - `parallelism` must fit in `freeWorkers`: all workers of the layer run at the same time.
 
 ### Passing each worker only its share: `inherit: "byIndex"`

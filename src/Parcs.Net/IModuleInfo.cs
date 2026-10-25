@@ -26,9 +26,9 @@ namespace Parcs.Net
         Task<IPoint[]> CreatePointsAsync(int count);
 
         /// <summary>
-        /// Opens an endpoint another point can connect to with <see cref="ConnectAsync"/>, which
-        /// gives the two points a channel of their own. This is how points form topologies other
-        /// than the star of parent channels: rings, trees, hypercubes, grids.
+        /// Opens an endpoint other points can connect to with <see cref="ConnectAsync"/>, which
+        /// gives each pair of points a channel of their own. This is how points build topologies
+        /// other than the star of parent channels as they run: rings, trees, hypercubes, grids.
         /// </summary>
         Task<IPeerEndpoint> OpenEndpointAsync();
 

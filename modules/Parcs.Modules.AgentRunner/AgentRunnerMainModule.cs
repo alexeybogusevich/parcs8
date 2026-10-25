@@ -81,15 +81,8 @@ public sealed class AgentRunnerMainModule : IModule
             await channels[i].WriteObjectAsync(new WorkerHandshake { WorkerIndex = i });
         }
 
-        // --- Step 4b: with a topology, relay the endpoint addresses; data then flows peer to peer ---
-        var topology = AgentTopologySpec.Parse(layerInput.Topology, layerInput.TopologyEdges).Validate(pointsCount);
-        if (!topology.IsNone)
-        {
-            await SendDialPlansAsync(channels, topology);
-            moduleInfo.Logger.LogInformation(
-                "Peer channels of topology {Topology}: {Edges} edges between {Count} workers",
-                topology, topology.Edges(pointsCount).Count, pointsCount);
-        }
+        // --- Step 4b: relay every worker's endpoint; workers open peer channels themselves, on demand ---
+        await SendDirectoryAsync(moduleInfo, channels);
 
         // --- Step 5: collect results concurrently, so a failure is seen as soon as it happens ---
         var pending = Enumerable.Range(0, pointsCount)
@@ -112,16 +105,14 @@ public sealed class AgentRunnerMainModule : IModule
             }
         }
 
-        if (!topology.IsNone)
+        // Every worker has returned, so none still reads: peer channels may close.
+        foreach (var channel in channels)
         {
-            // Every worker has returned, so no neighbour still reads: peer channels may close.
-            foreach (var channel in channels)
-            {
-                try { await channel.WriteObjectAsync(new WorkerRelease()); } catch { /* the worker is gone */ }
-            }
+            try { await channel.WriteObjectAsync(new WorkerRelease()); } catch { /* the worker is gone */ }
         }
 
         results.Sort((a, b) => a.WorkerIndex.CompareTo(b.WorkerIndex));
+        var peerChannels = results.Sum(r => r.Peers.Count(p => p > r.WorkerIndex));
         stopwatch.Stop();
 
         // --- Step 6: write output ---
@@ -138,8 +129,8 @@ public sealed class AgentRunnerMainModule : IModule
             Encoding.UTF8.GetBytes(outputJson), "agent_results.json");
 
         moduleInfo.Logger.LogInformation(
-            "AgentRunner completed in {Elapsed:F2}s — {Success}/{Total} workers succeeded",
-            stopwatch.Elapsed.TotalSeconds, results.Count(r => r.Success), pointsCount);
+            "AgentRunner completed in {Elapsed:F2}s — {Success}/{Total} workers succeeded, {PeerChannels} peer channels",
+            stopwatch.Elapsed.TotalSeconds, results.Count(r => r.Success), pointsCount, peerChannels);
 
         // Cleanup
         foreach (var point in points)
@@ -153,28 +144,32 @@ public sealed class AgentRunnerMainModule : IModule
     }
 
     /// <summary>
-    /// Reads every worker's endpoints and tells each worker which neighbours to dial: for an edge
-    /// (i, j) with i &lt; j, worker i listens and worker j dials. Fails the layer when a worker
-    /// could not open its endpoints, since its neighbours could never connect.
+    /// Reads every worker's endpoint and sends all of them to every worker. A worker that could
+    /// not open one (or did not answer) gets a null entry: only channels to it fail.
     /// </summary>
-    private static async Task SendDialPlansAsync(IChannel[] channels, AgentTopologySpec topology)
+    private static async Task SendDirectoryAsync(IModuleInfo moduleInfo, IChannel[] channels)
     {
-        var endpoints = await Task.WhenAll(channels.Select(c => c.ReadObjectAsync<WorkerEndpoints>()));
-
-        if (endpoints.FirstOrDefault(e => e.Error is not null) is { } failed)
+        var endpoints = await Task.WhenAll(channels.Select(async (c, i) =>
         {
-            throw new InvalidOperationException(
-                $"Worker {failed.WorkerIndex} failed (failFast): could not open peer endpoints: {failed.Error}");
+            try
+            {
+                return await c.ReadObjectAsync<WorkerEndpoint>();
+            }
+            catch (Exception ex)
+            {
+                return new WorkerEndpoint { WorkerIndex = i, Error = ex.Message };
+            }
+        }));
+
+        foreach (var failed in endpoints.Where(e => e.Address is null))
+        {
+            moduleInfo.Logger.LogWarning("Worker {Index} has no peer endpoint: {Error}", failed.WorkerIndex, failed.Error);
         }
 
-        for (int i = 0; i < channels.Length; i++)
+        var directory = new WorkerDirectory { Addresses = [.. endpoints.Select(e => e.Address)] };
+        foreach (var channel in channels)
         {
-            var plan = new WorkerDialPlan();
-            foreach (var peer in topology.NeighborsOf(i, channels.Length).Where(p => p < i))
-            {
-                plan.Dial[peer] = endpoints[peer].Endpoints[i];
-            }
-            await channels[i].WriteObjectAsync(plan);
+            try { await channel.WriteObjectAsync(directory); } catch { /* reported when its result is read */ }
         }
     }
 

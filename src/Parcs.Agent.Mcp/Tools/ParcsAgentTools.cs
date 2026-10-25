@@ -31,10 +31,10 @@ public sealed class ParcsAgentTools
 
     private const string LayerResultDoc =
         "Layer result: status is Queued | Running (ok, call wait_layer) | Completed | CompletedWithFailures | Failed | Cancelled. " +
-        "layer = { entryPoint, parallelism, previousLayerIds, topology?, inherit?, successCount, failureCount, queuedSeconds, " +
+        "layer = { entryPoint, parallelism, previousLayerIds, inherit?, peerChannels?, successCount, failureCount, queuedSeconds, " +
         "elapsedSeconds, submittedAt, startedAt, completedAt, jobId }. When parallelism is 1, output is that worker's output (parsed when it " +
         "is JSON). view 'outputs' adds outputs[] (one per worker, null for failed ones); view 'full' also adds workers[] = " +
-        "{ workerIndex, success, output, error, elapsedSeconds }. Error codes: invalid_argument, session_not_found, " +
+        "{ workerIndex, success, output, error, elapsedSeconds, peers? (workers it had a peer channel with) }. Error codes: invalid_argument, session_not_found, " +
         "layer_not_found, layer_key_conflict, previous_layer_not_ready, previous_layer_failed, capacity_exceeded, not_ready, " +
         "worker_error, out_of_memory, daemon_timeout, no_daemons, host_unavailable, job_failed, cancelled.";
 
@@ -99,13 +99,11 @@ public sealed class ParcsAgentTools
         "(workerInputs[WorkerIndex] of run_layer), Parameters (Dictionary<string,string>), PreviousLayerResults (one JSON " +
         "document per parent layer), PreviousLayerResultJson (= the first of them) and GetPreviousOutputs(parentIndex = 0), " +
         "which returns the parent's per-worker outputs in worker order (null for failed workers), InheritedOutputs (for each " +
-        "parent, the output of its worker with this WorkerIndex), and Topology (see run_layer's topology): Topology.Neighbors, " +
-        "Topology[peer] -> IAgentChannel { SendAsync(string), ReceiveAsync() } plus the extensions SendJsonAsync<T>, " +
-        "ReceiveJsonAsync<T>, ExchangeJsonAsync<T>, and Left/Right (ring, line), Parent/Children (tree, star), " +
-        "Dimensions/Partner(d) (hypercube), Row/Column/North/South/West/East (grid, torus). Sends never block; a receive " +
-        "throws TimeoutException after channelTimeoutSeconds and IOException when the neighbour failed. Return " +
+        "parent, the output of its worker with this WorkerIndex), and Peer(j) -> IAgentChannel, a direct channel to worker " +
+        "j opened the first time either side asks: { SendAsync(string), ReceiveAsync() } plus the extensions " +
+        "SendJsonAsync<T>, ReceiveJsonAsync<T>, ExchangeJsonAsync<T>. " + PeersDoc + " Return " +
         "AgentLayerResult.Ok(outputJson) or AgentLayerResult.Error(message). Workers have no network or file access " +
-        "besides their topology channels.\n" +
+        "besides their peer channels.\n" +
         "Returns status 'Created' or 'Reused' (the same source returns the same session), sessionId and output = " +
         "{ entryPoints: [full class names] }; pass one as run_layer's entryPoint when there are several. On compile " +
         "failure: error.code 'compile_error' with diagnostics [{ id, line, column, message }].")]
@@ -140,9 +138,9 @@ public sealed class ParcsAgentTools
         "layerKey to make the call idempotent: repeating it with the same key and arguments returns the same layer " +
         "instead of starting another job, with reused: true (a key whose layer Failed or was Cancelled starts a new attempt). Chain layers " +
         "with previousLayerIds; workers read the parents' results through input.PreviousLayerResults, or only their own " +
-        "share with inherit 'byIndex'. Give the workers direct channels to each other with topology: they all run at " +
-        "once and exchange data peer to peer (halo exchange on a grid, token passing on a ring, reductions up a tree, " +
-        "all-reduce over hypercube dimensions) instead of a layer per exchange. " + LayerResultDoc)]
+        "share with inherit 'byIndex'. All workers of a layer run at once and can talk to each other directly through " +
+        "input.Peer(j): the code builds whatever topology it needs as it runs (a ring, a tree, a hypercube, a grid, " +
+        "partners chosen from the data) instead of a layer per exchange. " + LayerResultDoc)]
     public async Task<CallToolResult> RunLayerAsync(
         [Description("Session ID from create_session.")] string sessionId,
         [Description("Number of workers; at most maxParallelism from get_cluster_info.")] int parallelism,
@@ -153,10 +151,8 @@ public sealed class ParcsAgentTools
         [Description("Small string sent unchanged to every worker as input.CustomData.")] string? customData = null,
         [Description("Named parameters sent unchanged to every worker as input.Parameters.")] Dictionary<string, string>? parameters = null,
         [Description("One string per worker (exactly 'parallelism' entries); worker i reads workerInputs[i] as input.WorkerInput.")] string?[]? workerInputs = null,
-        [Description("If true, the first failed worker fails the whole layer (status Failed) instead of CompletedWithFailures. Default: true with a topology, false otherwise.")] bool? failFast = null,
-        [Description(TopologyDoc)] string? topology = null,
-        [Description("Edges of topology 'custom': [[i, j], ...] worker pairs, each joined by one two-way channel.")] int[][]? topologyEdges = null,
-        [Description("Seconds a topology channel receive waits before throwing TimeoutException (1–900, default 60); also bounds wiring the channels.")] int? channelTimeoutSeconds = null,
+        [Description("If true, the first failed worker fails the whole layer (status Failed) instead of CompletedWithFailures.")] bool failFast = false,
+        [Description("Seconds a peer channel receive waits before throwing TimeoutException (1–900, default 60); also bounds opening a channel.")] int? channelTimeoutSeconds = null,
         [Description("'all' (default): every worker gets every parent's whole result. 'byIndex': worker i gets only output i of each parent, in input.InheritedOutputs (parents must have the same parallelism).")] string? inherit = null,
         [Description("'summary' (default), 'outputs' or 'full'.")] string? view = null,
         CancellationToken ct = default)
@@ -172,20 +168,18 @@ public sealed class ParcsAgentTools
             Parameters            = parameters ?? new(),
             WorkerInputs          = workerInputs,
             FailFast              = failFast,
-            Topology              = topology,
-            TopologyEdges         = topologyEdges,
             ChannelTimeoutSeconds = channelTimeoutSeconds,
             Inherit               = inherit,
         };
         return await StartAndWaitAsync(request, ClampWait(waitSeconds ?? DefaultWaitSeconds), view, ct);
     }
 
-    private const string TopologyDoc =
-        "Direct worker-to-worker channels, input.Topology: 'none' (default), 'ring', 'line' (a ring without the wrap), " +
-        "'star' (worker 0 is the hub), 'tree' or 'tree:K' (K-ary, worker 0 is the root, parent (i-1)/K), 'hypercube' " +
-        "(parallelism a power of two, partners i XOR 2^d), 'grid' or 'grid:RxC' (4-neighbour, R*C = parallelism; the " +
-        "squarest shape when RxC is omitted), 'torus' or 'torus:RxC' (grid with wrap-around), 'mesh' (all pairs) or " +
-        "'custom' (with topologyEdges).";
+    private const string PeersDoc =
+        "No topology is declared: it is whatever channels the code opens. Either end may open a channel first; " +
+        "Peers.AcceptAsync() returns the next channel another worker opened to this one unasked, and Peers.Connected " +
+        "lists the workers connected so far. Sends never block (no deadlock when both sides send first); a receive " +
+        "throws TimeoutException after channelTimeoutSeconds and IOException when the other worker failed. Pass " +
+        "failFast: true when workers wait on each other.";
 
     [McpServerTool(Name = "submit_layer", UseStructuredContent = true, OutputSchemaType = typeof(ToolEnvelope))]
     [Description(EnvelopeDoc +
@@ -200,10 +194,8 @@ public sealed class ParcsAgentTools
         [Description("Small string sent to every worker as input.CustomData.")] string? customData = null,
         [Description("Named parameters sent to every worker as input.Parameters.")] Dictionary<string, string>? parameters = null,
         [Description("One string per worker, read as input.WorkerInput.")] string?[]? workerInputs = null,
-        [Description("Fail the whole layer on the first failed worker; default true with a topology.")] bool? failFast = null,
-        [Description("Worker-to-worker channels, see run_layer.")] string? topology = null,
-        [Description("Edges of topology 'custom', see run_layer.")] int[][]? topologyEdges = null,
-        [Description("Receive timeout of topology channels, see run_layer.")] int? channelTimeoutSeconds = null,
+        [Description("Fail the whole layer on the first failed worker.")] bool failFast = false,
+        [Description("Receive timeout of peer channels, see run_layer.")] int? channelTimeoutSeconds = null,
         [Description("'all' (default) or 'byIndex', see run_layer.")] string? inherit = null,
         CancellationToken ct = default)
     {
@@ -218,8 +210,6 @@ public sealed class ParcsAgentTools
             Parameters            = parameters ?? new(),
             WorkerInputs          = workerInputs,
             FailFast              = failFast,
-            Topology              = topology,
-            TopologyEdges         = topologyEdges,
             ChannelTimeoutSeconds = channelTimeoutSeconds,
             Inherit               = inherit,
         };

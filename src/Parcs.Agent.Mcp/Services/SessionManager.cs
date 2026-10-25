@@ -22,14 +22,7 @@ public sealed record LayerRequest
     public IReadOnlyList<string?>? WorkerInputs { get; init; }
     public string? LayerKey { get; init; }
 
-    /// <summary>Null means the default: true for a layer with a topology, false otherwise.</summary>
-    public bool? FailFast { get; init; }
-
-    /// <summary>Peer-channel topology in <see cref="AgentTopologySpec"/> text form; null for none.</summary>
-    public string? Topology { get; init; }
-
-    /// <summary>[i, j] worker pairs of a custom topology.</summary>
-    public IReadOnlyList<int[]>? TopologyEdges { get; init; }
+    public bool FailFast { get; init; }
 
     public int? ChannelTimeoutSeconds { get; init; }
 
@@ -247,16 +240,6 @@ public sealed partial class SessionManager
                 $"workerInputs has {inputs.Count} entries; it needs exactly one per worker ({request.Parallelism}).");
         }
 
-        AgentTopologySpec topology;
-        try
-        {
-            topology = AgentTopologySpec.Parse(request.Topology, request.TopologyEdges).Validate(request.Parallelism);
-        }
-        catch (FormatException ex)
-        {
-            return StartLayerResult.Fail(ErrorCodes.InvalidArgument, ex.Message);
-        }
-
         var channelTimeout = request.ChannelTimeoutSeconds ?? DefaultChannelTimeoutSeconds;
         if (channelTimeout < 1 || channelTimeout > MaxChannelTimeoutSeconds)
         {
@@ -275,8 +258,8 @@ public sealed partial class SessionManager
         if (inherit == InheritModes.ByIndex && request.PreviousLayerIds.Count == 0)
             return StartLayerResult.Fail(ErrorCodes.InvalidArgument, "inherit 'byIndex' needs previousLayerIds.");
 
-        var failFast = request.FailFast ?? !topology.IsNone;
-        var options = new LayerOptions(topology, channelTimeout, inherit, failFast);
+        var failFast = request.FailFast;
+        var options = new LayerOptions(channelTimeout, inherit, failFast);
         var fingerprint = Fingerprint(request, entryPoint, options);
 
         // An identical repeat of a keyed call returns the original layer before anything else is
@@ -344,8 +327,6 @@ public sealed partial class SessionManager
             Parallelism      = request.Parallelism,
             PreviousLayerIds = request.PreviousLayerIds,
             FailFast         = failFast,
-            Topology         = topology.IsNone ? null : topology.ToString(),
-            TopologyEdges    = topology.Kind == AgentTopologySpec.Custom ? request.TopologyEdges : null,
             ChannelTimeoutSeconds = channelTimeout,
             Inherit          = inherit,
         };
@@ -375,9 +356,9 @@ public sealed partial class SessionManager
 
         Persist(layer);
         _logger.LogInformation(
-            "Layer {LayerId} submitted — session={Session} key={Key} entryPoint={EntryPoint} parallelism={P} parents={Parents} topology={Topology}",
+            "Layer {LayerId} submitted — session={Session} key={Key} entryPoint={EntryPoint} parallelism={P} parents={Parents}",
             layer.LayerId, layer.SessionId, layer.LayerKey ?? "none", entryPoint ?? "default",
-            layer.Parallelism, layer.PreviousLayerIds.Count, layer.Topology ?? "none");
+            layer.Parallelism, layer.PreviousLayerIds.Count);
 
         // Detached from the caller: the layer keeps running after the tool call returns.
         _ = Task.Run(() => ExecuteAsync(layer, session, request, previousResults), CancellationToken.None);
@@ -456,8 +437,6 @@ public sealed partial class SessionManager
                 PreviousLayerResults  = byIndex ? [] : previousResults,
                 CustomData            = string.IsNullOrWhiteSpace(request.CustomData) ? null : request.CustomData,
                 Parameters            = request.Parameters,
-                Topology              = layer.Topology,
-                TopologyEdges         = layer.TopologyEdges,
                 ChannelTimeoutSeconds = layer.ChannelTimeoutSeconds,
                 PerWorkerFiles        = perWorkerFiles,
                 Inherit               = layer.Inherit,
@@ -694,7 +673,7 @@ public sealed partial class SessionManager
     }
 
     /// <summary>Request options after defaults are applied, as they take part in the fingerprint.</summary>
-    private sealed record LayerOptions(AgentTopologySpec Topology, int ChannelTimeoutSeconds, string Inherit, bool FailFast);
+    private sealed record LayerOptions(int ChannelTimeoutSeconds, string Inherit, bool FailFast);
 
     private static string Fingerprint(LayerRequest request, string? entryPoint, LayerOptions options) => Hash(JsonSerializer.Serialize(new
     {
@@ -705,8 +684,6 @@ public sealed partial class SessionManager
         Parameters = request.Parameters.OrderBy(p => p.Key, StringComparer.Ordinal).ToList(),
         request.WorkerInputs,
         options.FailFast,
-        Topology = options.Topology.ToString(),
-        TopologyEdges = options.Topology.CustomEdges,
         options.ChannelTimeoutSeconds,
         options.Inherit,
     }));

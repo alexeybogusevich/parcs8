@@ -66,9 +66,9 @@ public sealed class LayerSummary
     [JsonPropertyName("previousLayerIds")]
     public IReadOnlyList<string> PreviousLayerIds { get; init; } = [];
 
-    /// <summary>Peer-channel topology (ring, tree:2, grid:4x8, ...); absent when the layer has none.</summary>
-    [JsonPropertyName("topology")]
-    public string? Topology { get; init; }
+    /// <summary>Peer channels the workers opened between them (each pair counted once); absent when none.</summary>
+    [JsonPropertyName("peerChannels")]
+    public int? PeerChannels { get; init; }
 
     /// <summary>"byIndex" when each worker received only its own output of each parent; absent for "all".</summary>
     [JsonPropertyName("inherit")]
@@ -117,6 +117,10 @@ public sealed class WorkerDetail
 
     [JsonPropertyName("elapsedSeconds")]
     public double ElapsedSeconds { get; init; }
+
+    /// <summary>Workers this one had a peer channel with; absent when none.</summary>
+    [JsonPropertyName("peers")]
+    public IReadOnlyList<int>? Peers { get; init; }
 }
 
 public sealed record ToolError

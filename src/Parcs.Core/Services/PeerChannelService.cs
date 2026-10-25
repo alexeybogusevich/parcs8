@@ -4,6 +4,7 @@ using Parcs.Core.Services.Interfaces;
 using Parcs.Net;
 using System.Net;
 using System.Net.Sockets;
+using System.Threading.Channels;
 
 namespace Parcs.Core.Services
 {
@@ -15,14 +16,14 @@ namespace Parcs.Core.Services
 
         public IPeerEndpoint OpenEndpoint(CancellationToken cancellationToken)
         {
-            // The slot is registered before the address is handed out, so a fast peer cannot
+            // The listener is registered before the address is handed out, so a fast peer cannot
             // connect before it exists.
             var correlationId = Guid.NewGuid().ToString("N");
-            var slotCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            var connection = _callbackTcpServer.WaitForConnectionAsync(correlationId, slotCancellation.Token);
+            var listenerCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            var connections = _callbackTcpServer.Listen(correlationId, listenerCancellation.Token);
             var (address, port) = _callbackTcpServer.GetAdvertisedEndpoint();
 
-            return new PeerEndpoint(PeerAddress.Format(address, port, correlationId), connection, slotCancellation, cancellationToken);
+            return new PeerEndpoint(PeerAddress.Format(address, port, correlationId), connections, listenerCancellation, cancellationToken);
         }
 
         public async Task<IChannel> ConnectAsync(string endpointAddress, CancellationToken cancellationToken)
@@ -51,35 +52,38 @@ namespace Parcs.Core.Services
         }
 
         private sealed class PeerEndpoint(
-            string address, Task<NetworkChannel> connection, CancellationTokenSource slotCancellation, CancellationToken channelCancellation) : IPeerEndpoint
+            string address, ChannelReader<NetworkChannel> connections, CancellationTokenSource listenerCancellation, CancellationToken channelCancellation) : IPeerEndpoint
         {
-            private int _accepted;
             private int _disposed;
 
             public string Address { get; } = address;
 
             public async Task<IChannel> AcceptAsync(CancellationToken cancellationToken = default)
             {
-                if (Interlocked.Exchange(ref _accepted, 1) == 1)
+                NetworkChannel channel;
+                try
                 {
-                    throw new InvalidOperationException("An endpoint accepts one channel only; open another endpoint for the next peer.");
+                    channel = await connections.ReadAsync(cancellationToken);
+                }
+                catch (ChannelClosedException)
+                {
+                    throw new OperationCanceledException("The endpoint is closed.");
                 }
 
-                var channel = await connection.WaitAsync(cancellationToken);
                 channel.SetCancellation(channelCancellation);
                 return channel;
             }
 
             public ValueTask DisposeAsync()
             {
-                // Frees the slot if nobody connected; an accepted channel belongs to the caller.
+                // Stops listening and closes connections nobody accepted; accepted channels belong to the caller.
                 if (Interlocked.Exchange(ref _disposed, 1) == 1)
                 {
                     return ValueTask.CompletedTask;
                 }
 
-                slotCancellation.Cancel();
-                slotCancellation.Dispose();
+                listenerCancellation.Cancel();
+                listenerCancellation.Dispose();
                 return ValueTask.CompletedTask;
             }
         }

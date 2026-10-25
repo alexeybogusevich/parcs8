@@ -1,25 +1,25 @@
 namespace Parcs.Modules.AgentRunner.Models;
 
 /// <summary>
-/// Worker → main, first message of a layer with a topology: the endpoints this worker opened,
-/// one per neighbour with a higher index (keyed by that neighbour), or why it could not open them.
+/// Worker → main, first message after the handshake: the endpoint other workers dial to open a
+/// channel to this one, or why it could not be opened.
 /// </summary>
-public sealed class WorkerEndpoints
+public sealed class WorkerEndpoint
 {
     public int WorkerIndex { get; set; }
-    public Dictionary<int, string> Endpoints { get; set; } = new();
+    public string? Address { get; set; }
     public string? Error { get; set; }
 }
 
-/// <summary>Main → worker: the endpoint of each neighbour with a lower index, which this worker dials.</summary>
-public sealed class WorkerDialPlan
+/// <summary>Main → worker: every worker's endpoint by index (null for a worker without one).</summary>
+public sealed class WorkerDirectory
 {
-    public Dictionary<int, string> Dial { get; set; } = new();
+    public List<string?> Addresses { get; set; } = new();
 }
 
 /// <summary>
 /// Main → worker, after every worker has returned its result: peer channels may close now.
-/// Closing earlier could reset a connection whose last messages the neighbour has not read yet.
+/// Closing earlier could reset a connection whose last messages the other worker has not read yet.
 /// </summary>
 public sealed class WorkerRelease
 {

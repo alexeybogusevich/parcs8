@@ -3,15 +3,15 @@ using System.Text.Json;
 namespace Parcs.Agent.Runtime;
 
 /// <summary>
-/// A channel to one neighbouring worker of the layer's topology. Sends are buffered and never
-/// block, so two neighbours that both send before they receive do not deadlock. A receive waits
-/// at most the layer's channel timeout and then throws <see cref="TimeoutException"/>; it throws
-/// <see cref="IOException"/> once the neighbour has failed or closed the channel.
-/// Messages arrive in the order they were sent.
+/// A channel to one other worker of the layer. Sends are buffered and never block, so two
+/// workers that both send before they receive do not deadlock. A receive waits at most the
+/// layer's channel timeout and then throws <see cref="TimeoutException"/>; it throws
+/// <see cref="IOException"/> once the other worker has failed or closed the channel, or could
+/// not be reached. Messages arrive in the order they were sent.
 /// </summary>
 public interface IAgentChannel
 {
-    /// <summary>Worker index of the neighbour at the other end.</summary>
+    /// <summary>Worker index at the other end.</summary>
     int Peer { get; }
 
     Task SendAsync(string message, CancellationToken cancellationToken = default);

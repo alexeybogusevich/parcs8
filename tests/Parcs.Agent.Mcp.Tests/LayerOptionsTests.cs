@@ -6,68 +6,51 @@ using Parcs.Agent.Mcp.Tools;
 
 namespace Parcs.Agent.Mcp.Tests;
 
-/// <summary>Topology, inherit, delete_session and the session store.</summary>
+/// <summary>Peer channels, inherit, delete_session and the session store.</summary>
 public class LayerOptionsTests
 {
-    // ─── Topology ────────────────────────────────────────────────────
+    // ─── Peer channels ───────────────────────────────────────────────
 
     [Test]
-    public async Task TopologyReachesTheJobAndFailsFastByDefault()
+    public async Task ChannelTimeoutDefaultsTo60AndFailFastToFalse()
     {
         var harness = new Harness();
-        var layer = await harness.RunAsync(new LayerRequest { SessionId = harness.NewSession(), Parallelism = 6, Topology = "Grid" });
+        var layer = await harness.RunAsync(new LayerRequest { SessionId = harness.NewSession(), Parallelism = 4 });
 
         using var input = JsonDocument.Parse(harness.Api.LayerInputs[layer.JobId!.Value]);
-        var envelope = LayerResponses.Build(layer, null);
         Assert.Multiple(() =>
         {
-            Assert.That(input.RootElement.GetProperty("Topology").GetString(), Is.EqualTo("grid:2x3"));
             Assert.That(input.RootElement.GetProperty("ChannelTimeoutSeconds").GetInt32(), Is.EqualTo(60));
-            Assert.That(input.RootElement.GetProperty("FailFast").GetBoolean(), Is.True);
-            Assert.That(envelope.Layer!.Topology, Is.EqualTo("grid:2x3"));
+            Assert.That(input.RootElement.GetProperty("FailFast").GetBoolean(), Is.False);
+            Assert.That(input.RootElement.TryGetProperty("Topology", out _), Is.False, "the topology is not declared");
         });
     }
 
     [Test]
-    public async Task ExplicitFailFastOverridesTheTopologyDefault()
+    public async Task ExplicitChannelTimeoutReachesTheJob()
     {
         var harness = new Harness();
         var layer = await harness.RunAsync(new LayerRequest
         {
-            SessionId = harness.NewSession(), Parallelism = 4, Topology = "ring", FailFast = false, ChannelTimeoutSeconds = 5,
+            SessionId = harness.NewSession(), Parallelism = 4, FailFast = true, ChannelTimeoutSeconds = 5,
         });
 
         using var input = JsonDocument.Parse(harness.Api.LayerInputs[layer.JobId!.Value]);
         Assert.Multiple(() =>
         {
-            Assert.That(input.RootElement.GetProperty("FailFast").GetBoolean(), Is.False);
+            Assert.That(input.RootElement.GetProperty("FailFast").GetBoolean(), Is.True);
             Assert.That(input.RootElement.GetProperty("ChannelTimeoutSeconds").GetInt32(), Is.EqualTo(5));
         });
     }
 
-    [Test]
-    public async Task CustomEdgesAreSentWithTheLayer()
-    {
-        var harness = new Harness();
-        var layer = await harness.RunAsync(new LayerRequest
-        {
-            SessionId = harness.NewSession(), Parallelism = 3, Topology = "custom", TopologyEdges = [[0, 2], [2, 1]],
-        });
-
-        using var input = JsonDocument.Parse(harness.Api.LayerInputs[layer.JobId!.Value]);
-        Assert.That(input.RootElement.GetProperty("TopologyEdges")[1][0].GetInt32(), Is.EqualTo(2));
-    }
-
-    [TestCase("hypercube", 6, null)]
-    [TestCase("donut", 4, null)]
-    [TestCase("ring", 4, 0)]
-    [TestCase("ring", 4, 901)]
-    public async Task InvalidTopologyArgumentsAreRejected(string topology, int parallelism, int? channelTimeout)
+    [TestCase(0)]
+    [TestCase(901)]
+    public async Task OutOfRangeChannelTimeoutsAreRejected(int channelTimeout)
     {
         var harness = new Harness();
         var started = await harness.Sessions.StartLayerAsync(new LayerRequest
         {
-            SessionId = harness.NewSession(), Parallelism = parallelism, Topology = topology, ChannelTimeoutSeconds = channelTimeout,
+            SessionId = harness.NewSession(), Parallelism = 2, ChannelTimeoutSeconds = channelTimeout,
         });
 
         Assert.Multiple(() =>
@@ -78,19 +61,37 @@ public class LayerOptionsTests
     }
 
     [Test]
-    public async Task LayerKeyDistinguishesTopologies()
+    public async Task TheGraphTheWorkersBuiltIsReported()
     {
+        // A ring of three as the workers report it: each lists the workers it had a channel with.
         var harness = new Harness();
-        var sessionId = harness.NewSession();
-        await harness.RunAsync(new LayerRequest { SessionId = sessionId, Parallelism = 4, LayerKey = "k", Topology = "ring" });
+        harness.Api.Output = _ => """
+            {"results":[
+              {"workerIndex":0,"success":true,"outputData":"0","peers":[1,2]},
+              {"workerIndex":1,"success":true,"outputData":"1","peers":[0,2]},
+              {"workerIndex":2,"success":true,"outputData":"2","peers":[0,1]}]}
+            """;
+        var layer = await harness.RunAsync(new LayerRequest { SessionId = harness.NewSession(), Parallelism = 3 });
 
-        var same = await harness.Sessions.StartLayerAsync(new LayerRequest { SessionId = sessionId, Parallelism = 4, LayerKey = "k", Topology = "RING" });
-        var other = await harness.Sessions.StartLayerAsync(new LayerRequest { SessionId = sessionId, Parallelism = 4, LayerKey = "k", Topology = "mesh" });
-
+        var full = LayerResponses.Build(layer, "full");
         Assert.Multiple(() =>
         {
-            Assert.That(same.Reused, Is.True, "the same topology in another spelling is the same layer");
-            Assert.That(other.Error!.Code, Is.EqualTo(ErrorCodes.LayerKeyConflict));
+            Assert.That(full.Layer!.PeerChannels, Is.EqualTo(3));
+            Assert.That(full.Workers![1].Peers, Is.EqualTo(new[] { 0, 2 }));
+        });
+    }
+
+    [Test]
+    public async Task LayersWithoutPeerChannelsReportNone()
+    {
+        var harness = new Harness();
+        var layer = await harness.RunAsync(new LayerRequest { SessionId = harness.NewSession(), Parallelism = 2 });
+
+        var full = LayerResponses.Build(layer, "full");
+        Assert.Multiple(() =>
+        {
+            Assert.That(full.Layer!.PeerChannels, Is.Null);
+            Assert.That(full.Workers!.All(w => w.Peers is null), Is.True);
         });
     }
 
@@ -201,11 +202,11 @@ public class LayerOptionsTests
         {
             var before = new Harness(store: Store(root));
             var sessionId = before.NewSession();
-            var layer = await before.RunAsync(new LayerRequest { SessionId = sessionId, Parallelism = 1, LayerKey = "k", Topology = "ring" });
+            var layer = await before.RunAsync(new LayerRequest { SessionId = sessionId, Parallelism = 1, LayerKey = "k", ChannelTimeoutSeconds = 7 });
 
             var after = new Harness(store: Store(root));
             var restored = after.Sessions.GetLayer(layer.LayerId)!;
-            var again = await after.Sessions.StartLayerAsync(new LayerRequest { SessionId = sessionId, Parallelism = 1, LayerKey = "k", Topology = "ring" });
+            var again = await after.Sessions.StartLayerAsync(new LayerRequest { SessionId = sessionId, Parallelism = 1, LayerKey = "k", ChannelTimeoutSeconds = 7 });
             var child = await after.Sessions.StartLayerAsync(new LayerRequest { SessionId = sessionId, Parallelism = 1, PreviousLayerIds = [layer.LayerId] });
 
             Assert.Multiple(() =>
@@ -213,7 +214,7 @@ public class LayerOptionsTests
                 Assert.That(after.Sessions.GetSession(sessionId)!.Assembly, Is.EqualTo(before.Sessions.GetSession(sessionId)!.Assembly));
                 Assert.That(after.Sessions.CreateSession(Harness.BodySource).Reused, Is.True);
                 Assert.That(restored.Status, Is.EqualTo(LayerStatus.Completed));
-                Assert.That(restored.Topology, Is.EqualTo("ring"));
+                Assert.That(restored.ChannelTimeoutSeconds, Is.EqualTo(7));
                 Assert.That(LayerResponses.Build(restored, null).Output!["value"]!.GetValue<int>(), Is.EqualTo(42));
                 Assert.That(again.Reused, Is.True, "the layerKey still names the stored layer");
                 Assert.That(child.Error, Is.Null, "a stored layer can be a parent");

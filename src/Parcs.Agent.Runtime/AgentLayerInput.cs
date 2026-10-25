@@ -50,10 +50,15 @@ public sealed class AgentLayerInput
     public IReadOnlyList<string?> InheritedOutputs { get; init; } = [];
 
     /// <summary>
-    /// This worker's neighbours and channels to them when the layer runs with a topology;
-    /// otherwise a topology of kind <c>none</c> with no neighbours.
+    /// Direct channels to the other workers, opened on demand; see <see cref="Peer"/>.
     /// </summary>
-    public AgentTopology Topology { get; init; } = AgentTopology.Unconnected(0, 1);
+    public IAgentPeers Peers { get; init; } = new UnavailableAgentPeers("Peer channels exist only inside a running PARCS layer.");
+
+    /// <summary>
+    /// The channel to worker <paramref name="worker"/>, opened the first time either side asks:
+    /// the workers build the layer's topology as they run. Same as <c>Peers[worker]</c>.
+    /// </summary>
+    public IAgentChannel Peer(int worker) => Peers[worker];
 
     /// <summary>
     /// Returns the per-worker outputs of a parent layer in worker order, with null for workers

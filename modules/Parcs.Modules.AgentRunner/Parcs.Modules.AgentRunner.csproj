@@ -19,4 +19,8 @@
     <ProjectReference Include="..\..\src\Parcs.Agent.Runtime\Parcs.Agent.Runtime.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="Parcs.Core.Tests" />
+  </ItemGroup>
+
 </Project>

@@ -23,12 +23,12 @@ namespace Parcs.Modules.AgentRunner;
 ///   5. Execute IAgentComputation.ExecuteAsync.
 ///   6. Write WorkerResult back to the parent channel.
 ///
-/// With a topology, the worker first wires its peer channels (between steps 2 and 3):
-///   a. Open one endpoint per neighbour with a higher index; send them as WorkerEndpoints.
-///   b. Read WorkerDialPlan and dial every neighbour with a lower index; each new channel
-///      starts with the dialer's index, which the accepting side checks.
+/// Peer channels (between steps 2 and 3, and after step 6):
+///   a. Open one endpoint and send its address as WorkerEndpoint.
+///   b. Read the WorkerDirectory of every worker's endpoint. Nothing is connected yet: the user
+///      code opens channels on demand through input.Peer(j), so it builds the topology as it runs.
 ///   c. After step 6, wait for WorkerRelease before closing the peer channels, so no channel
-///      is reset while a neighbour still reads from it.
+///      is reset while another worker still reads from it.
 /// </summary>
 public sealed class AgentRunnerWorkerModule : IModule
 {
@@ -56,26 +56,13 @@ public sealed class AgentRunnerWorkerModule : IModule
         IReadOnlyList<string?> inheritedOutputs = ownFile?.InheritedOutputs
             ?? [.. layerInput.PreviousLayerResults.Select(r => LayerResultDocument.ReadOutputs(r) is var o && index < o.Count ? o[index] : null)];
 
-        var spec = AgentTopologySpec.Parse(layerInput.Topology, layerInput.TopologyEdges).Validate(layerInput.TotalWorkers);
         var channelTimeout = TimeSpan.FromSeconds(Math.Max(1, layerInput.ChannelTimeoutSeconds));
 
         moduleInfo.Logger.LogInformation(
-            "Worker {Index}/{Total} starting — session={Session} layer={Layer} topology={Topology}",
-            index, layerInput.TotalWorkers, layerInput.SessionId, layerInput.LayerId, spec);
+            "Worker {Index}/{Total} starting — session={Session} layer={Layer}",
+            index, layerInput.TotalWorkers, layerInput.SessionId, layerInput.LayerId);
 
-        var peers = new Dictionary<int, PeerChannel>();
-        string? wiringError = null;
-        if (!spec.IsNone)
-        {
-            try
-            {
-                peers = await WirePeersAsync(moduleInfo, spec, index, layerInput.TotalWorkers, channelTimeout, cancellationToken);
-            }
-            catch (Exception ex) when (ex is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
-            {
-                wiringError = $"Wiring the {spec} channels failed: {ex.Message}";
-            }
-        }
+        var (peers, peerError) = await OpenPeersAsync(moduleInfo, index, channelTimeout);
 
         var input = new AgentLayerInput
         {
@@ -89,19 +76,16 @@ public sealed class AgentRunnerWorkerModule : IModule
             WorkerInput             = workerInput,
             Parameters              = layerInput.Parameters,
             InheritedOutputs        = inheritedOutputs,
-            Topology                = new AgentTopology(spec, index, layerInput.TotalWorkers,
-                                          peers.ToDictionary(p => p.Key, p => (IAgentChannel)p.Value)),
+            Peers                   = (IAgentPeers?)peers ?? new UnavailableAgentPeers($"Worker {index} has no peer channels: {peerError}"),
         };
 
         WorkerResult result;
         try
         {
-            if (wiringError is not null)
-                throw new InvalidOperationException(wiringError);
-
             // --- Steps 3–5: load assembly and execute ---
             var outputData = await ExecuteUserCodeAsync(assemblyBytes, layerInput.EntryPoint, input, cancellationToken);
-            await Task.WhenAll(peers.Values.Select(p => p.FlushAsync()));
+            if (peers is not null)
+                await peers.FlushAsync();
 
             stopwatch.Stop();
             result = new WorkerResult
@@ -110,6 +94,7 @@ public sealed class AgentRunnerWorkerModule : IModule
                 Success        = true,
                 OutputData     = outputData,
                 ElapsedSeconds = stopwatch.Elapsed.TotalSeconds,
+                Peers          = [.. input.Peers.Connected],
             };
 
             moduleInfo.Logger.LogInformation(
@@ -127,97 +112,49 @@ public sealed class AgentRunnerWorkerModule : IModule
                 Success        = false,
                 ErrorMessage   = ex.Message,
                 ElapsedSeconds = stopwatch.Elapsed.TotalSeconds,
+                Peers          = [.. input.Peers.Connected],
             };
 
-            // Close at once, so neighbours waiting on this worker fail now instead of timing out.
-            await DisposePeersAsync(peers);
+            // Close at once, so workers waiting on this one fail now instead of timing out.
+            if (peers is not null)
+            {
+                await peers.DisposeAsync();
+                peers = null;
+            }
         }
 
         // --- Step 6: return result ---
         await moduleInfo.Parent.WriteObjectAsync(result);
 
-        if (!spec.IsNone)
-        {
-            await moduleInfo.Parent.ReadObjectAsync<WorkerRelease>();
-            await DisposePeersAsync(peers);
-        }
+        await moduleInfo.Parent.ReadObjectAsync<WorkerRelease>();
+        if (peers is not null)
+            await peers.DisposeAsync();
     }
 
     /// <summary>
-    /// Connects this worker to its neighbours: listens for the higher-indexed ones, dials the
-    /// lower-indexed ones through the main module's dial plan. Every channel opens with the
-    /// dialer's index, so a mis-wired edge fails loudly instead of mixing up neighbours.
+    /// Opens this worker's endpoint, announces it and reads everyone's. Always answers the main
+    /// module, so a worker without an endpoint still runs; only its peer channels are unavailable.
     /// </summary>
-    private static async Task<Dictionary<int, PeerChannel>> WirePeersAsync(
-        IModuleInfo moduleInfo, AgentTopologySpec spec, int index, int count, TimeSpan timeout, CancellationToken cancellationToken)
+    private static async Task<(PeerMesh? Peers, string? Error)> OpenPeersAsync(IModuleInfo moduleInfo, int index, TimeSpan timeout)
     {
-        var neighbors = spec.NeighborsOf(index, count);
-        var endpoints = new Dictionary<int, IPeerEndpoint>();
-        var announcement = new WorkerEndpoints { WorkerIndex = index };
+        IPeerEndpoint? endpoint = null;
+        var announcement = new WorkerEndpoint { WorkerIndex = index };
         try
         {
-            foreach (var peer in neighbors.Where(p => p > index))
-            {
-                var endpoint = await moduleInfo.OpenEndpointAsync();
-                endpoints[peer] = endpoint;
-                announcement.Endpoints[peer] = endpoint.Address;
-            }
+            endpoint = await moduleInfo.OpenEndpointAsync();
+            announcement.Address = endpoint.Address;
         }
         catch (Exception ex)
         {
             announcement.Error = ex.Message;
         }
 
-        // Always answer, so the main module learns of the failure instead of waiting.
         await moduleInfo.Parent.WriteObjectAsync(announcement);
-        if (announcement.Error is not null)
-            throw new InvalidOperationException(announcement.Error);
+        var directory = await moduleInfo.Parent.ReadObjectAsync<WorkerDirectory>();
 
-        var plan = await moduleInfo.Parent.ReadObjectAsync<WorkerDialPlan>();
-
-        using var timeoutSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        timeoutSource.CancelAfter(timeout);
-
-        var dialed = plan.Dial.Select(async entry =>
-        {
-            var channel = await moduleInfo.ConnectAsync(entry.Value).WaitAsync(timeoutSource.Token);
-            await channel.WriteDataAsync(index);
-            return (Peer: entry.Key, Channel: channel);
-        });
-        var accepted = endpoints.Select(async entry =>
-        {
-            var channel = await entry.Value.AcceptAsync(timeoutSource.Token);
-            var hello = await channel.ReadIntAsync().WaitAsync(timeoutSource.Token);
-            if (hello != entry.Key)
-                throw new InvalidOperationException($"Expected worker {entry.Key} on this endpoint, but worker {hello} connected.");
-            return (Peer: entry.Key, Channel: channel);
-        });
-
-        try
-        {
-            var channels = await Task.WhenAll(dialed.Concat(accepted));
-            return channels.ToDictionary(c => c.Peer, c => new PeerChannel(c.Peer, c.Channel, timeout));
-        }
-        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
-        {
-            throw new TimeoutException($"Not every neighbour of worker {index} connected within {timeout.TotalSeconds:0.#}s.");
-        }
-        finally
-        {
-            foreach (var endpoint in endpoints.Values)
-            {
-                await endpoint.DisposeAsync();
-            }
-        }
-    }
-
-    private static async Task DisposePeersAsync(Dictionary<int, PeerChannel> peers)
-    {
-        foreach (var peer in peers.Values)
-        {
-            await peer.DisposeAsync();
-        }
-        peers.Clear();
+        return endpoint is null
+            ? (null, announcement.Error)
+            : (new PeerMesh(index, directory.Addresses, endpoint, moduleInfo.ConnectAsync, timeout), null);
     }
 
     private static async Task<string?> ExecuteUserCodeAsync(

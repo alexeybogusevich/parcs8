@@ -29,7 +29,7 @@ public static class LayerResponses
                     EntryPoint       = layer.EntryPoint,
                     Parallelism      = layer.Parallelism,
                     PreviousLayerIds = layer.PreviousLayerIds,
-                    Topology         = layer.Topology,
+                    PeerChannels     = workers?.Sum(w => w.Peers?.Count(p => p > w.WorkerIndex) ?? 0) is > 0 and var channels ? channels : null,
                     Inherit          = layer.Inherit == Services.InheritModes.ByIndex ? layer.Inherit : null,
                     SuccessCount     = workers?.Count(w => w.Success),
                     FailureCount     = workers?.Count(w => !w.Success),
@@ -68,6 +68,8 @@ public static class LayerResponses
                                      ? ParseOutput(o.GetString()!) : null,
                 Error          = r.TryGetProperty("errorMessage", out var m) && m.ValueKind == JsonValueKind.String ? m.GetString() : null,
                 ElapsedSeconds = r.TryGetProperty("elapsedSeconds", out var t) ? t.GetDouble() : 0,
+                Peers          = r.TryGetProperty("peers", out var p) && p.ValueKind == JsonValueKind.Array && p.GetArrayLength() > 0
+                                     ? [.. p.EnumerateArray().Select(e => e.GetInt32())] : null,
             })
             .OrderBy(w => w.WorkerIndex)
             .ToList();

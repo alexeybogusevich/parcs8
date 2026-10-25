@@ -66,12 +66,27 @@ namespace Parcs.Core.Tests
         }
 
         [Test]
-        public async Task AnEndpointAcceptsOnlyOnce()
+        public async Task OneEndpointAcceptsManyPeers()
         {
             await using var endpoint = _service.OpenEndpoint(CancellationToken.None);
-            _ = endpoint.AcceptAsync();
 
-            Assert.ThrowsAsync<InvalidOperationException>(() => endpoint.AcceptAsync());
+            var dialers = new List<Parcs.Net.IChannel>();
+            for (var i = 0; i < 3; i++)
+            {
+                var dialer = await _service.ConnectAsync(endpoint.Address, CancellationToken.None);
+                await dialer.WriteDataAsync(i);
+                dialers.Add(dialer);
+            }
+
+            var received = new List<int>();
+            for (var i = 0; i < 3; i++)
+            {
+                using var accepted = await endpoint.AcceptAsync().WaitAsync(TimeSpan.FromSeconds(5));
+                received.Add(await accepted.ReadIntAsync());
+            }
+            dialers.ForEach(d => d.Dispose());
+
+            Assert.That(received, Is.EquivalentTo(new[] { 0, 1, 2 }));
         }
 
         [Test]
