@@ -8,11 +8,10 @@ namespace Parcs.Modules.Ring
     /// <summary>
     /// One node of the ring. Protocol with the main module:
     ///   1. Read NodeSetup.
-    ///   2. Open a peer endpoint and send its address; read every node's address.
-    ///   3. Dial the right neighbour (sending this node's index first) and accept the left one.
+    ///   2. Take the "left" and "right" links the main module set up before this node started.
     ///      From here on data only flows around the ring, never through the main module.
-    ///   4. All-reduce a vector with the ring algorithm, then pass a token around TokenLaps times.
-    ///   5. Send NodeReport.
+    ///   3. All-reduce a vector with the ring algorithm, then pass a token around TokenLaps times.
+    ///   4. Send NodeReport.
     /// </summary>
     public class RingWorkerModule : IModule
     {
@@ -94,31 +93,17 @@ namespace Parcs.Modules.Ring
             right?.Dispose();
         }
 
-        /// <summary>Channels to the left and right neighbours (null for a ring of one).</summary>
+        /// <summary>
+        /// Channels to the left and right neighbours (null for a ring of one). The main module
+        /// linked them before this node started; in a ring of two, left and right are the same
+        /// node but still two channels, one per direction.
+        /// </summary>
         private static async Task<(IChannel Left, IChannel Right)> WireAsync(IModuleInfo moduleInfo, NodeSetup setup)
         {
-            var (index, nodes) = (setup.Index, setup.Nodes);
-            await using var endpoint = await moduleInfo.OpenEndpointAsync();
-            await moduleInfo.Parent.WriteDataAsync(endpoint.Address);
-            var addresses = await moduleInfo.Parent.ReadObjectAsync<List<string>>();
-
-            if (nodes == 1)
+            if (setup.Nodes == 1)
                 return (null, null);
 
-            // In a ring of two, left and right are the same node but still two channels, one per direction.
-            var dial = Task.Run(async () =>
-            {
-                var channel = await moduleInfo.ConnectAsync(addresses[RingAlgorithms.Right(index, nodes)]);
-                await channel.WriteDataAsync(index);
-                return channel;
-            });
-
-            var left = await endpoint.AcceptAsync();
-            var hello = await left.ReadIntAsync();
-            if (hello != RingAlgorithms.Left(index, nodes))
-                throw new InvalidOperationException($"Expected node {RingAlgorithms.Left(index, nodes)} on the left of node {index}, got {hello}.");
-
-            return (left, await dial);
+            return (await moduleInfo.GetLinkAsync("left"), await moduleInfo.GetLinkAsync("right"));
         }
     }
 }

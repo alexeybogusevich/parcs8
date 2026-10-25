@@ -178,7 +178,9 @@ public sealed class ParcsAgentTools
     private const string PeersDoc =
         "No topology is declared: it is whatever channels the code opens. Either end may open a channel first; " +
         "Peers.AcceptAsync() returns the next channel another worker opened to this one unasked, and Peers.Connected " +
-        "lists the workers connected so far. Sends never block (no deadlock when both sides send first); a receive " +
+        "lists the workers connected so far. channel.HasMessage and channel.TryReceive(out m) check without waiting; " +
+        "Peers.ReceiveAnyAsync(new[] { j, k }) waits for whichever of those workers sends first and returns (Peer, Message). " +
+        "Sends never block (no deadlock when both sides send first); a receive " +
         "throws TimeoutException after channelTimeoutSeconds and IOException when the other worker failed. Pass " +
         "failFast: true when workers wait on each other.";
 

@@ -19,7 +19,8 @@ namespace Parcs.Core.Models
         CancellationToken cancellationToken,
         IPointCreationService pointCreationService = null,
         IDaemonAllocator daemonAllocator = null,
-        IPeerChannelService peerChannelService = null) : IModuleInfo
+        IPeerChannelService peerChannelService = null,
+        PointLinks links = null) : IModuleInfo
     {
         private readonly long _jobId = jobMetadata.JobId;
         private readonly long _moduleId = jobMetadata.ModuleId;
@@ -38,6 +39,7 @@ namespace Parcs.Core.Models
         // Without a shared allocator, points are balanced over the pool within this job only.
         private readonly IDaemonAllocator _daemonAllocator = daemonAllocator ?? new DaemonAllocator();
         private readonly IPeerChannelService _peerChannelService = peerChannelService;
+        private readonly PointLinks _links = links;
 
         public bool IsHost => Parent is null;
 
@@ -177,6 +179,30 @@ namespace Parcs.Core.Models
         public async Task<IChannel> ConnectAsync(string endpointAddress)
         {
             var channel = await PeerChannels.ConnectAsync(endpointAddress, _cancellationToken);
+            TrackPeerChannel(channel);
+            return channel;
+        }
+
+        public async Task LinkPointsAsync(IPoint first, string nameAtFirst, IPoint second, string nameAtSecond)
+        {
+            if (first is not Point listener || second is not Point dialer)
+                throw new ArgumentException("Only points created by this module can be linked.");
+            if (ReferenceEquals(first, second))
+                throw new ArgumentException("A point cannot be linked to itself.");
+            ArgumentException.ThrowIfNullOrEmpty(nameAtFirst);
+            ArgumentException.ThrowIfNullOrEmpty(nameAtSecond);
+
+            // The first point's daemon listens, the second's dials; both connect before their modules start.
+            var address = await listener.OpenLinkAsync(nameAtFirst);
+            await dialer.ConnectLinkAsync(nameAtSecond, address);
+        }
+
+        public async Task<IChannel> GetLinkAsync(string name)
+        {
+            if (_links is null)
+                throw new KeyNotFoundException($"This module has no link named '{name}': links are set up for points, not for the main module.");
+
+            var channel = await _links.GetAsync(name).WaitAsync(_cancellationToken);
             TrackPeerChannel(channel);
             return channel;
         }

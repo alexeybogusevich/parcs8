@@ -164,7 +164,7 @@ Every PARCS tool returns { ok, status, sessionId?, layerId?, layerKey?, layer?, 
 
 Every PARCS tool returns { ok, status, sessionId?, layerId?, layerKey?, layer?, output?, outputs?, workers?, hint?, error? }; ok is false exactly when error = { code, message, retryable, layerId?, failedWorkers?, diagnostics? } is set. Compiles C# source with one or more classes implementing IAgentComputation from Parcs.Agent.Runtime:
   public interface IAgentComputation { Task<AgentLayerResult> ExecuteAsync(AgentLayerInput input, CancellationToken ct); }
-AgentLayerInput: WorkerIndex, TotalWorkers, SessionId, LayerId, CustomData (same for every worker), WorkerInput (workerInputs[WorkerIndex] of run_layer), Parameters (Dictionary<string,string>), PreviousLayerResults (one JSON document per parent layer), PreviousLayerResultJson (= the first of them) and GetPreviousOutputs(parentIndex = 0), which returns the parent's per-worker outputs in worker order (null for failed workers), InheritedOutputs (for each parent, the output of its worker with this WorkerIndex), and Peer(j) -> IAgentChannel, a direct channel to worker j opened the first time either side asks: { SendAsync(string), ReceiveAsync() } plus the extensions SendJsonAsync<T>, ReceiveJsonAsync<T>, ExchangeJsonAsync<T>. No topology is declared: it is whatever channels the code opens. Either end may open a channel first; Peers.AcceptAsync() returns the next channel another worker opened to this one unasked, and Peers.Connected lists the workers connected so far. Sends never block (no deadlock when both sides send first); a receive throws TimeoutException after channelTimeoutSeconds and IOException when the other worker failed. Pass failFast: true when workers wait on each other. Return AgentLayerResult.Ok(outputJson) or AgentLayerResult.Error(message). Workers have no network or file access besides their peer channels.
+AgentLayerInput: WorkerIndex, TotalWorkers, SessionId, LayerId, CustomData (same for every worker), WorkerInput (workerInputs[WorkerIndex] of run_layer), Parameters (Dictionary<string,string>), PreviousLayerResults (one JSON document per parent layer), PreviousLayerResultJson (= the first of them) and GetPreviousOutputs(parentIndex = 0), which returns the parent's per-worker outputs in worker order (null for failed workers), InheritedOutputs (for each parent, the output of its worker with this WorkerIndex), and Peer(j) -> IAgentChannel, a direct channel to worker j opened the first time either side asks: { SendAsync(string), ReceiveAsync() } plus the extensions SendJsonAsync<T>, ReceiveJsonAsync<T>, ExchangeJsonAsync<T>. No topology is declared: it is whatever channels the code opens. Either end may open a channel first; Peers.AcceptAsync() returns the next channel another worker opened to this one unasked, and Peers.Connected lists the workers connected so far. channel.HasMessage and channel.TryReceive(out m) check without waiting; Peers.ReceiveAnyAsync(new[] { j, k }) waits for whichever of those workers sends first and returns (Peer, Message). Sends never block (no deadlock when both sides send first); a receive throws TimeoutException after channelTimeoutSeconds and IOException when the other worker failed. Pass failFast: true when workers wait on each other. Return AgentLayerResult.Ok(outputJson) or AgentLayerResult.Error(message). Workers have no network or file access besides their peer channels.
 Returns status 'Created' or 'Reused' (the same source returns the same session), sessionId and output = { entryPoints: [full class names] }; pass one as run_layer's entryPoint when there are several. On compile failure: error.code 'compile_error' with diagnostics [{ id, line, column, message }].
 
 | Argument | Type | Required | Description |
@@ -315,6 +315,21 @@ Partners may also depend on the data. A worker that does not know who will conta
 (`channel.Peer` says who). `input.Peers.Connected` lists the workers connected so far. With
 `view: "full"`, every entry of `workers[]` shows the `peers` that worker talked to, and
 `layer.peerChannels` counts the channels the layer built.
+
+To serve whichever partner is ready first, wait on several channels at once, or check without waiting:
+
+```csharp
+// Selective wait: the next message from any of these workers, and who sent it.
+var (from, msg) = await input.Peers.ReceiveAnyAsync(new[] { 1, 2, 3 }, ct);
+var (from2, v) = await input.Peers.ReceiveAnyJsonAsync<long>(new[] { 1, 2, 3 }, ct);
+
+// Probing never waits: poll a channel between units of local work.
+if (input.Peer(j).HasMessage) { ... }
+if (input.Peer(j).TryReceive(out var next)) { ... }
+```
+
+`ReceiveAnyAsync` takes the first named worker when several have a message waiting, skips a
+partner that has finished, and fails only when all of them have.
 
 - Sends are buffered, so two workers may both send before they receive (halo exchange) without
   deadlocking. Messages on one channel arrive in order.

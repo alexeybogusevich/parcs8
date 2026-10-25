@@ -108,6 +108,55 @@ internal sealed class PeerMesh : IAgentPeers, IAsyncDisposable
         }
     }
 
+    public Task<(int Peer, string Message)> ReceiveAnyAsync(IEnumerable<int> workers, CancellationToken cancellationToken = default) =>
+        ReceiveAnyAsync(workers, _timeout, cancellationToken);
+
+    public async Task<(int Peer, string Message)> ReceiveAnyAsync(
+        IEnumerable<int> workers, TimeSpan timeout, CancellationToken cancellationToken = default)
+    {
+        var channels = workers.Distinct().Select(w => (PeerChannel)this[w]).ToList();
+        if (channels.Count == 0)
+            throw new ArgumentException("Name at least one worker to receive from.", nameof(workers));
+        var asked = string.Join(", ", channels.Select(c => c.Peer));
+
+        using var timeoutSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeoutSource.CancelAfter(timeout);
+        try
+        {
+            while (true)
+            {
+                foreach (var channel in channels)
+                {
+                    if (channel.TryReceive(out var message))
+                        return (channel.Peer, message);
+                }
+
+                // Wait for any of them; the waits of this round are cancelled once one completes.
+                using var round = CancellationTokenSource.CreateLinkedTokenSource(timeoutSource.Token);
+                var waits = channels.ToDictionary(c => c.WaitForMessageAsync(round.Token), c => c);
+                await Task.WhenAny(waits.Keys);
+                await round.CancelAsync();
+                timeoutSource.Token.ThrowIfCancellationRequested();
+
+                // A channel that closed without a message drops out; the wait fails once all have.
+                foreach (var (wait, channel) in waits)
+                {
+                    if (wait.IsFaulted && !channel.HasMessage)
+                    {
+                        channels.Remove(channel);
+                        if (channels.Count == 0)
+                            throw wait.Exception!.InnerException!;
+                    }
+                }
+            }
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            throw new TimeoutException(
+                $"channel_timeout: no message from any of workers {asked} within {timeout.TotalSeconds:0.#}s.");
+        }
+    }
+
     /// <summary>Waits, best-effort, until every channel has written what was sent on it.</summary>
     public Task FlushAsync()
     {

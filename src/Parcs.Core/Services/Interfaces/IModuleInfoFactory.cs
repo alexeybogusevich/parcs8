@@ -9,7 +9,8 @@ namespace Parcs.Core.Services.Interfaces
             JobMetadata jobMetadata,
             IDictionary<string, string> arguments,
             IChannel parentChannel = null,
-            CancellationToken cancellationToken = default);
+            CancellationToken cancellationToken = default,
+            PointLinks links = null);
 
         IModuleInfo Create(
             JobMetadata jobMetadata,

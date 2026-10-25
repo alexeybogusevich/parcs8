@@ -178,6 +178,105 @@ namespace Parcs.Core.Tests
             }
         }
 
+        [Test]
+        public async Task ProbingNeverWaits()
+        {
+            var meshes = Meshes(2);
+            try
+            {
+                var channel = meshes[0][1];
+                Assert.Multiple(() =>
+                {
+                    Assert.That(channel.HasMessage, Is.False);
+                    Assert.That(channel.TryReceive(out _), Is.False);
+                });
+
+                await meshes[1][0].SendAsync("x");
+                await PollAsync(() => channel.HasMessage);
+
+                Assert.Multiple(() =>
+                {
+                    Assert.That(channel.TryReceive(out var message), Is.True);
+                    Assert.That(message, Is.EqualTo("x"));
+                    Assert.That(channel.HasMessage, Is.False);
+                });
+            }
+            finally
+            {
+                await DisposeAsync(meshes);
+            }
+        }
+
+        [Test]
+        public async Task SelectiveWaitTakesWhoeverSendsFirst()
+        {
+            var meshes = Meshes(4);
+            try
+            {
+                var waiting = meshes[0].ReceiveAnyAsync([1, 2, 3]);
+                await Task.Delay(200);
+                Assert.That(waiting.IsCompleted, Is.False, "nobody has sent yet");
+
+                await meshes[2][0].SendAsync("from 2");
+                var (peer, message) = await waiting.WaitAsync(Timeout);
+                Assert.That((peer, message), Is.EqualTo((2, "from 2")));
+
+                // With several waiting, the first named wins and the rest stay for later.
+                await meshes[3][0].SendAsync("from 3");
+                await meshes[1][0].SendAsync("from 1");
+                await PollAsync(() => meshes[0][1].HasMessage && meshes[0][3].HasMessage);
+                Assert.Multiple(async () =>
+                {
+                    Assert.That(await meshes[0].ReceiveAnyAsync([3, 1]), Is.EqualTo((3, "from 3")));
+                    Assert.That(await meshes[0].ReceiveAnyAsync([3, 1]), Is.EqualTo((1, "from 1")));
+                    Assert.That(() => meshes[0].ReceiveAnyAsync([1, 2, 3], TimeSpan.FromMilliseconds(100)),
+                        Throws.InstanceOf<TimeoutException>().With.Message.Contains("any of workers 1, 2, 3"));
+                });
+            }
+            finally
+            {
+                await DisposeAsync(meshes);
+            }
+        }
+
+        [Test]
+        public async Task SelectiveWaitFailsOnlyWhenEveryPartnerIsGone()
+        {
+            var meshes = Meshes(3);
+            try
+            {
+                _ = meshes[1][0];
+                _ = meshes[2][0];
+                await PollAsync(() => meshes[0].Connected.Count == 2);
+
+                var waiting = meshes[0].ReceiveAnyAsync([1, 2]);
+                await ((PeerMesh)meshes[1]).DisposeAsync();
+                await Task.Delay(200);
+                Assert.That(waiting.IsCompleted, Is.False, "worker 2 may still send");
+
+                await meshes[2][0].SendAsync("still here");
+                Assert.That(await waiting.WaitAsync(Timeout), Is.EqualTo((2, "still here")));
+
+                await ((PeerMesh)meshes[2]).DisposeAsync();
+                Assert.That(() => meshes[0].ReceiveAnyAsync([1, 2]), Throws.InstanceOf<IOException>());
+            }
+            finally
+            {
+                await DisposeAsync(meshes);
+            }
+        }
+
+        private static async Task PollAsync(Func<bool> condition)
+        {
+            var deadline = DateTime.UtcNow + Timeout;
+            while (!condition())
+            {
+                if (DateTime.UtcNow > deadline)
+                    Assert.Fail("Timed out waiting for the condition.");
+                await Task.Delay(10);
+            }
+        }
+
         /// <summary>One mesh per worker, wired as the main module wires them; <paramref name="missing"/> has no endpoint.</summary>
         private PeerMesh?[] MeshesOrNull(int count, int missing)
         {

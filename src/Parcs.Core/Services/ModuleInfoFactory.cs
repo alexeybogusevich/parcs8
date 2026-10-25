@@ -30,7 +30,8 @@ namespace Parcs.Core.Services
             JobMetadata jobMetadata,
             IDictionary<string, string> arguments,
             IChannel parentChannel = null,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken = default,
+            PointLinks links = null)
         {
             var argumentsProvider = _argumentsProviderFactory.Create(arguments);
 
@@ -46,7 +47,8 @@ namespace Parcs.Core.Services
                 cancellationToken,
                 _pointCreationService,
                 _daemonAllocator,
-                _peerChannelService);
+                _peerChannelService,
+                links);
         }
 
         public IModuleInfo Create(
