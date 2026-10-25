@@ -82,6 +82,24 @@ public class LayerOptionsTests
     }
 
     [Test]
+    public async Task TheSummaryViewSaysWhereTheWorkerOutputsAre()
+    {
+        var harness = new Harness();
+        harness.Api.Output = _ => FakeParcsApi.Results((true, "1"), (true, "2"), (true, "3"));
+        var multi = await harness.RunAsync(new LayerRequest { SessionId = harness.NewSession(), Parallelism = 3 });
+        var single = await harness.RunAsync(new LayerRequest { SessionId = harness.NewSession(), Parallelism = 1 });
+
+        Assert.Multiple(() =>
+        {
+            var summary = LayerResponses.Build(multi, null);
+            Assert.That(summary.Outputs, Is.Null);
+            Assert.That(summary.Hint, Does.Contain("3 worker outputs are not shown").And.Contain(multi.LayerId).And.Contain("view: \"outputs\""));
+            Assert.That(LayerResponses.Build(multi, "outputs").Hint, Is.Null, "the outputs are there");
+            Assert.That(LayerResponses.Build(single, null).Hint, Is.Null, "a single worker's output is in output");
+        });
+    }
+
+    [Test]
     public async Task LayersWithoutPeerChannelsReportNone()
     {
         var harness = new Harness();
@@ -219,10 +237,13 @@ public class LayerOptionsTests
                 Assert.That(again.Reused, Is.True, "the layerKey still names the stored layer");
                 Assert.That(child.Error, Is.Null, "a stored layer can be a parent");
             });
+
+            // The child runs in the background and saves itself to the store; let it finish first.
+            await Harness.EventuallyAsync(() => child.Layer!.IsTerminal, "the child layer finishes");
         }
         finally
         {
-            Directory.Delete(root, recursive: true);
+            await DeleteStoreAsync(root);
         }
     }
 
@@ -247,7 +268,7 @@ public class LayerOptionsTests
         }
         finally
         {
-            Directory.Delete(root, recursive: true);
+            await DeleteStoreAsync(root);
         }
     }
 
@@ -271,9 +292,26 @@ public class LayerOptionsTests
         }
         finally
         {
-            Directory.Delete(root, recursive: true);
+            await DeleteStoreAsync(root);
         }
     }
 
     private static FileSessionStore Store(string root) => new(root, NullLogger<FileSessionStore>.Instance);
+
+    // A layer finishing in the background may still be writing to the store for a moment.
+    private static async Task DeleteStoreAsync(string root)
+    {
+        for (var attempt = 0; ; attempt++)
+        {
+            try
+            {
+                Directory.Delete(root, recursive: true);
+                return;
+            }
+            catch (IOException) when (attempt < 20)
+            {
+                await Task.Delay(50);
+            }
+        }
+    }
 }

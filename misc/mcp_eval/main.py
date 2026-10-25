@@ -115,6 +115,7 @@ async def main() -> None:
         "task": args.task[:200],
         "wall_clock_seconds": wall_seconds,
         "max_result_chars": config.ptc.max_result_chars,
+        "preload_skill": config.agent.preload_skill,
         **run_metrics(messages, log),
         "calls": [c.__dict__ for c in log.calls],
     }

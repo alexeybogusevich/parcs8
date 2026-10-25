@@ -112,6 +112,7 @@ async def create_parcs_agent(orchestration: str | None = None, log: CallLog | No
         tools=tools,
         backend=backend,
         skills=["/skills/"],
-        memory=["/memory/AGENTS.md"],
+        # Memory files are always in context; skills are only listed by description.
+        memory=["/memory/AGENTS.md"] + (["/skills/parcs-cluster/SKILL.md"] if config.agent.preload_skill else []),
         middleware=middleware,
     )

@@ -49,6 +49,13 @@ public sealed class ToolEnvelope
     [JsonPropertyName("workers")]
     public IReadOnlyList<WorkerDetail>? Workers { get; init; }
 
+    /// <summary>
+    /// Where the rest of the result is, when this view leaves it out: a finished multi-worker
+    /// layer in the summary view says how to get its worker outputs.
+    /// </summary>
+    [JsonPropertyName("hint")]
+    public string? Hint { get; init; }
+
     [JsonPropertyName("error")]
     public ToolError? Error { get; init; }
 

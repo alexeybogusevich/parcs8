@@ -26,14 +26,15 @@ public sealed class ParcsAgentTools
     private const int MaxWaitSeconds     = 200;
 
     private const string EnvelopeDoc =
-        "Every PARCS tool returns { ok, status, sessionId?, layerId?, layerKey?, layer?, output?, outputs?, workers?, error? }; " +
+        "Every PARCS tool returns { ok, status, sessionId?, layerId?, layerKey?, layer?, output?, outputs?, workers?, hint?, error? }; " +
         "ok is false exactly when error = { code, message, retryable, layerId?, failedWorkers?, diagnostics? } is set. ";
 
     private const string LayerResultDoc =
         "Layer result: status is Queued | Running (ok, call wait_layer) | Completed | CompletedWithFailures | Failed | Cancelled. " +
         "layer = { entryPoint, parallelism, previousLayerIds, inherit?, peerChannels?, successCount, failureCount, queuedSeconds, " +
         "elapsedSeconds, submittedAt, startedAt, completedAt, jobId }. When parallelism is 1, output is that worker's output (parsed when it " +
-        "is JSON). view 'outputs' adds outputs[] (one per worker, null for failed ones); view 'full' also adds workers[] = " +
+        "is JSON); with more workers the default summary view has no outputs (hint says so): view 'outputs' adds outputs[] " +
+        "(one per worker, null for failed ones); view 'full' also adds workers[] = " +
         "{ workerIndex, success, output, error, elapsedSeconds, peers? (workers it had a peer channel with) }. Error codes: invalid_argument, session_not_found, " +
         "layer_not_found, layer_key_conflict, previous_layer_not_ready, previous_layer_failed, capacity_exceeded, not_ready, " +
         "worker_error, out_of_memory, daemon_timeout, no_daemons, host_unavailable, job_failed, cancelled.";

@@ -92,6 +92,13 @@ class EvalSettings(BaseModel):
     task_ids: str = ""
 
 
+class AgentSettings(BaseModel):
+    # Load skills/parcs-cluster/SKILL.md into the context of every run, like memory/AGENTS.md.
+    # When false, the agent only sees the skill's description and reads the file if it chooses
+    # to, which models often skip (AGENT__PRELOAD_SKILL=false reproduces the earlier runs).
+    preload_skill: bool = True
+
+
 class Config(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=_ENV_FILE,
@@ -106,6 +113,7 @@ class Config(BaseSettings):
     paths: PathSettings = Field(default_factory=PathSettings)
     langsmith: LangSmithSettings = Field(default_factory=LangSmithSettings)
     eval: EvalSettings = Field(default_factory=EvalSettings)
+    agent: AgentSettings = Field(default_factory=AgentSettings)
 
 
 config = Config() # type: ignore
