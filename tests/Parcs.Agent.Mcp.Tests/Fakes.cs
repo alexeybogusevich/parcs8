@@ -100,10 +100,12 @@ internal sealed class FakeClusterInfo(int maxParallelism) : IClusterInfoService
 {
     public int MaxParallelism { get; set; } = maxParallelism;
 
+    public string ScalingMode { get; set; } = ScalingModes.Static;
+
     public Task<ClusterInfoResult> GetClusterInfoAsync(CancellationToken ct = default) =>
         Task.FromResult(new ClusterInfoResult
         {
-            ScalingMode     = ScalingModes.Static,
+            ScalingMode     = ScalingMode,
             CapacitySource  = CapacitySources.Configuration,
             CurrentCapacity = MaxParallelism,
             MaxParallelism  = MaxParallelism,

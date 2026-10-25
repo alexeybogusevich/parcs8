@@ -28,6 +28,12 @@ public sealed record LayerRequest
 
     /// <summary>"all" (default) or "byIndex".</summary>
     public string? Inherit { get; init; }
+
+    /// <summary>Points the layer may use in all, its workers and every point they spawn; null means parallelism (no spawning).</summary>
+    public int? MaxPoints { get; init; }
+
+    /// <summary>How deep spawned points may nest below the workers; null means 3 when spawning is on.</summary>
+    public int? MaxDepth { get; init; }
 }
 
 /// <summary>How a layer receives its parents' results.</summary>
@@ -57,6 +63,12 @@ public sealed partial class SessionManager
 {
     public const int DefaultChannelTimeoutSeconds = 60;
     public const int MaxChannelTimeoutSeconds     = 900;
+
+    // Spawning (SpawnAsync in worker code). In static mode a daemon hosts several points, so a
+    // layer may use more points than there are daemons; in elastic mode every point is a pod.
+    public const int DefaultSpawnDepth           = 3;
+    public const int MaxSpawnDepth               = 8;
+    public const int StaticPointsPerWorker       = 4;
 
     private readonly ConcurrentDictionary<string, SessionRecord> _sessions = new();
     private readonly ConcurrentDictionary<string, string>        _sessionsBySource = new();
@@ -258,8 +270,19 @@ public sealed partial class SessionManager
         if (inherit == InheritModes.ByIndex && request.PreviousLayerIds.Count == 0)
             return StartLayerResult.Fail(ErrorCodes.InvalidArgument, "inherit 'byIndex' needs previousLayerIds.");
 
+        var maxPoints = request.MaxPoints ?? request.Parallelism;
+        if (maxPoints < request.Parallelism)
+            return StartLayerResult.Fail(ErrorCodes.InvalidArgument,
+                $"maxPoints ({maxPoints}) counts the workers too, so it must be at least parallelism ({request.Parallelism}).");
+        var spawning = maxPoints > request.Parallelism;
+        var maxDepth = request.MaxDepth ?? (spawning ? DefaultSpawnDepth : 0);
+        if (maxDepth < 0 || maxDepth > MaxSpawnDepth)
+            return StartLayerResult.Fail(ErrorCodes.InvalidArgument, $"maxDepth must be between 0 and {MaxSpawnDepth}.");
+        if (spawning && maxDepth == 0)
+            return StartLayerResult.Fail(ErrorCodes.InvalidArgument, "maxPoints above parallelism lets workers spawn, which needs maxDepth of at least 1.");
+
         var failFast = request.FailFast;
-        var options = new LayerOptions(channelTimeout, inherit, failFast);
+        var options = new LayerOptions(channelTimeout, inherit, failFast, maxPoints, maxDepth);
         var fingerprint = Fingerprint(request, entryPoint, options);
 
         // An identical repeat of a keyed call returns the original layer before anything else is
@@ -318,6 +341,20 @@ public sealed partial class SessionManager
                 $"({cluster.ScalingMode} mode, capacity source: {cluster.CapacitySource}).");
         }
 
+        // Spawned points must be schedulable while their parents wait for them. Elastic mode gives
+        // every point its own pod, so the whole budget must fit and is reserved up front; in
+        // static mode a daemon hosts several points, so the budget may exceed the daemons.
+        var pointLimit = cluster.ScalingMode == ScalingModes.Static
+            ? cluster.MaxParallelism * StaticPointsPerWorker
+            : cluster.MaxParallelism;
+        if (maxPoints > pointLimit)
+        {
+            return StartLayerResult.Fail(ErrorCodes.CapacityExceeded,
+                $"maxPoints {maxPoints} exceeds the {pointLimit} points this cluster can run at once " +
+                $"({cluster.ScalingMode} mode, maxParallelism {cluster.MaxParallelism}).");
+        }
+        var slots = Math.Min(maxPoints, cluster.MaxParallelism);
+
         var layer = new LayerRecord
         {
             SessionId        = session.SessionId,
@@ -329,6 +366,9 @@ public sealed partial class SessionManager
             FailFast         = failFast,
             ChannelTimeoutSeconds = channelTimeout,
             Inherit          = inherit,
+            MaxPoints        = maxPoints,
+            MaxDepth         = maxDepth,
+            Slots            = slots,
         };
 
         if (layer.LayerKey is { } layerKey)
@@ -413,7 +453,7 @@ public sealed partial class SessionManager
         IDisposable? lease = null;
         try
         {
-            lease = await _gate.AcquireAsync(layer.Parallelism, token);
+            lease = await _gate.AcquireAsync(layer.Slots, token);
             lock (layer.Sync)
             {
                 layer.Status    = LayerStatus.Running;
@@ -438,6 +478,8 @@ public sealed partial class SessionManager
                 CustomData            = string.IsNullOrWhiteSpace(request.CustomData) ? null : request.CustomData,
                 Parameters            = request.Parameters,
                 ChannelTimeoutSeconds = layer.ChannelTimeoutSeconds,
+                MaxPoints             = layer.MaxPoints,
+                MaxDepth              = layer.MaxDepth,
                 PerWorkerFiles        = perWorkerFiles,
                 Inherit               = layer.Inherit,
             };
@@ -673,7 +715,7 @@ public sealed partial class SessionManager
     }
 
     /// <summary>Request options after defaults are applied, as they take part in the fingerprint.</summary>
-    private sealed record LayerOptions(int ChannelTimeoutSeconds, string Inherit, bool FailFast);
+    private sealed record LayerOptions(int ChannelTimeoutSeconds, string Inherit, bool FailFast, int MaxPoints, int MaxDepth);
 
     private static string Fingerprint(LayerRequest request, string? entryPoint, LayerOptions options) => Hash(JsonSerializer.Serialize(new
     {
@@ -686,7 +728,9 @@ public sealed partial class SessionManager
         options.FailFast,
         options.ChannelTimeoutSeconds,
         options.Inherit,
-    }));
+    })
+        // Only spawning layers carry the budget, so layers stored before it keep their fingerprint.
+        + (options.MaxPoints > request.Parallelism ? $"|spawn:{options.MaxPoints}:{options.MaxDepth}" : ""));
 
     private static string Hash(string value) =>
         Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value)));

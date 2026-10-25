@@ -29,6 +29,10 @@ namespace Parcs.Modules.AgentRunner;
 ///      code opens channels on demand through input.Peer(j), so it builds the topology as it runs.
 ///   c. After step 6, wait for WorkerRelease before closing the peer channels, so no channel
 ///      is reset while another worker still reads from it.
+///
+/// A spawned point runs this same module, started by a worker's SpawnAsync instead of by the
+/// main module (see <see cref="WorkerSpawner"/>): its handshake carries its class, input and
+/// budget, its peers are its siblings, and its result goes back to the spawning worker.
 /// </summary>
 public sealed class AgentRunnerWorkerModule : IModule
 {
@@ -46,28 +50,41 @@ public sealed class AgentRunnerWorkerModule : IModule
         var layerInput = JsonSerializer.Deserialize<LayerInputDto>(layerInputJson)
             ?? throw new InvalidOperationException("Failed to deserialise layer_input.json");
 
-        var ownFile = layerInput.PerWorkerFiles
+        // A spawned point gets its class and input from the spawning worker; a layer worker from the layer files.
+        var spawned = handshake.IsSpawned;
+        var ownFile = !spawned && layerInput.PerWorkerFiles
             ? JsonSerializer.Deserialize<WorkerInputFileDto>(ReadInputFile(moduleInfo, $"worker_{index}.json"))
             : null;
         var workerInputs = layerInput.WorkerInputs;
-        var workerInput = ownFile is not null
-            ? ownFile.WorkerInput
-            : workerInputs is not null && index < workerInputs.Count ? workerInputs[index] : null;
-        IReadOnlyList<string?> inheritedOutputs = ownFile?.InheritedOutputs
-            ?? [.. layerInput.PreviousLayerResults.Select(r => LayerResultDocument.ReadOutputs(r) is var o && index < o.Count ? o[index] : null)];
+        var workerInput = spawned
+            ? handshake.WorkerInput
+            : ownFile is not null
+                ? ownFile.WorkerInput
+                : workerInputs is not null && index < workerInputs.Count ? workerInputs[index] : null;
+        IReadOnlyList<string?> inheritedOutputs = spawned
+            ? []
+            : ownFile?.InheritedOutputs
+                ?? [.. layerInput.PreviousLayerResults.Select(r => LayerResultDocument.ReadOutputs(r) is var o && index < o.Count ? o[index] : null)];
+        var entryPoint = spawned ? handshake.EntryPoint : layerInput.EntryPoint;
+        var totalWorkers = handshake.Siblings ?? layerInput.TotalWorkers;
 
         var channelTimeout = TimeSpan.FromSeconds(Math.Max(1, layerInput.ChannelTimeoutSeconds));
 
         moduleInfo.Logger.LogInformation(
-            "Worker {Index}/{Total} starting — session={Session} layer={Layer}",
-            index, layerInput.TotalWorkers, layerInput.SessionId, layerInput.LayerId);
+            "Worker {Index}/{Total} at depth {Depth} starting — session={Session} layer={Layer}",
+            index, totalWorkers, handshake.Depth, layerInput.SessionId, layerInput.LayerId);
 
-        var (peers, peerError) = await OpenPeersAsync(moduleInfo, index, channelTimeout);
+        // In a spawned point's family mesh, index 0 is the spawning worker and siblings follow it.
+        var (peers, peerError) = await OpenPeersAsync(moduleInfo, spawned ? index + 1 : index, channelTimeout);
+        IAgentPeers agentPeers = peers is null
+            ? new UnavailableAgentPeers($"Worker {index} has no peer channels: {peerError}")
+            : spawned ? new FamilyPeers(peers, index, totalWorkers) : peers;
+        var spawner = new WorkerSpawner(moduleInfo, handshake.Depth, handshake.MaxDepth, handshake.SpawnBudget, entryPoint, channelTimeout);
 
         var input = new AgentLayerInput
         {
             WorkerIndex             = index,
-            TotalWorkers            = layerInput.TotalWorkers,
+            TotalWorkers            = totalWorkers,
             SessionId               = layerInput.SessionId,
             LayerId                 = layerInput.LayerId,
             PreviousLayerResultJson = layerInput.PreviousLayerResults.FirstOrDefault(),
@@ -76,14 +93,21 @@ public sealed class AgentRunnerWorkerModule : IModule
             WorkerInput             = workerInput,
             Parameters              = layerInput.Parameters,
             InheritedOutputs        = inheritedOutputs,
-            Peers                   = (IAgentPeers?)peers ?? new UnavailableAgentPeers($"Worker {index} has no peer channels: {peerError}"),
+            Peers                   = agentPeers,
+            Depth                   = handshake.Depth,
+            MaxDepth                = handshake.MaxDepth,
+            // Opened at once, so the spawning worker can talk to this child as soon as it starts.
+            Spawner                 = spawned && peers is not null ? new RenumberedChannel(peers[0], -1) : null,
+            Spawning                = spawner,
         };
 
         WorkerResult result;
         try
         {
             // --- Steps 3–5: load assembly and execute ---
-            var outputData = await ExecuteUserCodeAsync(assemblyBytes, layerInput.EntryPoint, input, cancellationToken);
+            var outputData = await ExecuteUserCodeAsync(assemblyBytes, entryPoint, input, cancellationToken);
+            // Children finish before their parent reports, so a subtree is done when its root is.
+            var spawnedPoints = await spawner.CompleteAsync();
             if (peers is not null)
                 await peers.FlushAsync();
 
@@ -95,6 +119,7 @@ public sealed class AgentRunnerWorkerModule : IModule
                 OutputData     = outputData,
                 ElapsedSeconds = stopwatch.Elapsed.TotalSeconds,
                 Peers          = [.. input.Peers.Connected],
+                Spawned        = spawnedPoints,
             };
 
             moduleInfo.Logger.LogInformation(
@@ -116,6 +141,7 @@ public sealed class AgentRunnerWorkerModule : IModule
             };
 
             // Close at once, so workers waiting on this one fail now instead of timing out.
+            await spawner.AbortAsync();
             if (peers is not null)
             {
                 await peers.DisposeAsync();
@@ -124,11 +150,23 @@ public sealed class AgentRunnerWorkerModule : IModule
         }
 
         // --- Step 6: return result ---
-        await moduleInfo.Parent.WriteObjectAsync(result);
-
-        await moduleInfo.Parent.ReadObjectAsync<WorkerRelease>();
-        if (peers is not null)
-            await peers.DisposeAsync();
+        try
+        {
+            await moduleInfo.Parent.WriteObjectAsync(result);
+            await moduleInfo.Parent.ReadObjectAsync<WorkerRelease>();
+        }
+        catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
+        {
+            // The parent is gone: a spawning worker that failed closes its children's channels.
+            // Failing here would report this worker's exit as a failure of the whole job.
+            moduleInfo.Logger.LogWarning(
+                "Worker {Index} at depth {Depth} lost its parent before it was released: {Msg}", index, handshake.Depth, ex.Message);
+        }
+        finally
+        {
+            if (peers is not null)
+                await peers.DisposeAsync();
+        }
     }
 
     /// <summary>

@@ -30,6 +30,8 @@ public static class LayerResponses
                     Parallelism      = layer.Parallelism,
                     PreviousLayerIds = layer.PreviousLayerIds,
                     PeerChannels     = workers?.Sum(w => w.Peers?.Count(p => p > w.WorkerIndex) ?? 0) is > 0 and var channels ? channels : null,
+                    MaxPoints        = layer.MaxPoints > layer.Parallelism ? layer.MaxPoints : null,
+                    SpawnedPoints    = workers?.Sum(w => w.Spawned) is > 0 and var spawned ? spawned : null,
                     Inherit          = layer.Inherit == Services.InheritModes.ByIndex ? layer.Inherit : null,
                     SuccessCount     = workers?.Count(w => w.Success),
                     FailureCount     = workers?.Count(w => !w.Success),
@@ -81,6 +83,7 @@ public static class LayerResponses
                                      ? ParseOutput(o.GetString()!) : null,
                 Error          = r.TryGetProperty("errorMessage", out var m) && m.ValueKind == JsonValueKind.String ? m.GetString() : null,
                 ElapsedSeconds = r.TryGetProperty("elapsedSeconds", out var t) ? t.GetDouble() : 0,
+                Spawned        = r.TryGetProperty("spawned", out var sp) && sp.ValueKind == JsonValueKind.Number ? sp.GetInt32() : 0,
                 Peers          = r.TryGetProperty("peers", out var p) && p.ValueKind == JsonValueKind.Array && p.GetArrayLength() > 0
                                      ? [.. p.EnumerateArray().Select(e => e.GetInt32())] : null,
             })

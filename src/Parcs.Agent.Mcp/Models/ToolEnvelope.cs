@@ -74,6 +74,14 @@ public sealed class LayerSummary
     public IReadOnlyList<string> PreviousLayerIds { get; init; } = [];
 
     /// <summary>Peer channels the workers opened between them (each pair counted once); absent when none.</summary>
+    /// <summary>The layer's points budget when it allows spawning; absent otherwise.</summary>
+    [JsonPropertyName("maxPoints")]
+    public int? MaxPoints { get; init; }
+
+    /// <summary>Points the workers spawned, at every depth; absent when none.</summary>
+    [JsonPropertyName("spawnedPoints")]
+    public int? SpawnedPoints { get; init; }
+
     [JsonPropertyName("peerChannels")]
     public int? PeerChannels { get; init; }
 
@@ -128,6 +136,11 @@ public sealed class WorkerDetail
     /// <summary>Workers this one had a peer channel with; absent when none.</summary>
     [JsonPropertyName("peers")]
     public IReadOnlyList<int>? Peers { get; init; }
+
+    /// <summary>Points this worker spawned, at every depth below it; absent when none.</summary>
+    [JsonPropertyName("spawned")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public int Spawned { get; init; }
 }
 
 public sealed record ToolError

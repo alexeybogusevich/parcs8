@@ -61,6 +61,38 @@ public sealed class AgentLayerInput
     public IAgentChannel Peer(int worker) => Peers[worker];
 
     /// <summary>
+    /// How deep this worker is: 0 for the layer's workers, 1 for points they spawned, and so on.
+    /// A spawned worker's <see cref="WorkerIndex"/> and <see cref="TotalWorkers"/> count its siblings,
+    /// and <see cref="Peer"/> reaches them.
+    /// </summary>
+    public int Depth { get; init; }
+
+    /// <summary>The deepest a spawned point may be (the layer's maxDepth); 0 when spawning is off.</summary>
+    public int MaxDepth { get; init; }
+
+    /// <summary>For a spawned worker, the channel to the worker that spawned it; null at depth 0.</summary>
+    public IAgentChannel? Spawner { get; init; }
+
+    /// <summary>Spawning support, set by the runner; null outside a running PARCS layer.</summary>
+    public IAgentSpawner? Spawning { get; init; }
+
+    /// <summary>How many more points this worker may spawn below itself (its children's subtrees included).</summary>
+    public int SpawnBudget => Spawning?.Remaining ?? 0;
+
+    /// <summary>
+    /// Recursion: starts <paramref name="count"/> new points that run this session's code one level
+    /// deeper, <paramref name="entryPoint"/> (default: this worker's class) with
+    /// <c>inputs[i]</c> as child i's <see cref="WorkerInput"/>. The children get an even split of
+    /// the rest of this worker's budget, or <paramref name="budgetPerChild"/> each. Fails at once
+    /// when the layer's maxDepth or points budget would be exceeded.
+    /// </summary>
+    public Task<IAgentSpawn> SpawnAsync(
+        int count, string? entryPoint = null, IReadOnlyList<string?>? inputs = null, int? budgetPerChild = null,
+        CancellationToken cancellationToken = default) =>
+        Spawning?.SpawnAsync(count, entryPoint, inputs, budgetPerChild, cancellationToken)
+        ?? throw new InvalidOperationException("Spawning is available only inside a running PARCS layer.");
+
+    /// <summary>
     /// Returns the per-worker outputs of a parent layer in worker order, with null for workers
     /// that failed. <paramref name="parentIndex"/> selects the parent when the layer has several.
     /// Empty with <c>inherit: "byIndex"</c>; use <see cref="InheritedOutputs"/> then.
