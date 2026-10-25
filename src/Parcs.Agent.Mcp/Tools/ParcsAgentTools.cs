@@ -364,7 +364,7 @@ public sealed class ParcsAgentTools
         Code = ErrorCodes.LayerNotFound, Message = $"Layer '{layerId}' not found.",
     });
 
-    private static CallToolResult Respond(ToolEnvelope envelope)
+    internal static CallToolResult Respond(ToolEnvelope envelope)
     {
         var node = JsonSerializer.SerializeToNode(envelope, JsonOptions)!;
         return new CallToolResult

@@ -1,3 +1,4 @@
+using Parcs.Agent.Mcp.Models;
 using Parcs.Agent.Mcp.Services;
 using Parcs.Agent.Mcp.Tools;
 
@@ -30,7 +31,13 @@ builder.Services.AddHostedService(sp => sp.GetRequiredService<AgentRunnerModuleR
 builder.Services
     .AddMcpServer()
     .WithHttpTransport(options => options.Stateless = true)
-    .WithTools<ParcsAgentTools>();
+    .WithTools<ParcsAgentTools>()
+    // Wrong or misspelt argument names get an invalid_argument envelope that names them, instead
+    // of the SDK's generic binding error.
+    .WithRequestFilters(filters => filters.AddCallToolFilter(next => async (context, cancellationToken) =>
+        ToolArguments.Check(context.Params?.Name, context.Params?.Arguments?.Keys) is { } error
+            ? ParcsAgentTools.Respond(ToolEnvelope.Fail(error))
+            : await next(context, cancellationToken)));
 
 var app = builder.Build();
 

@@ -324,6 +324,44 @@ Partners may also depend on the data. A worker that does not know who will conta
 - Pass `failFast: true` when workers wait on each other: one failed worker stalls its partners anyway.
 - `parallelism` must fit in `freeWorkers`: all workers of the layer run at the same time.
 
+### Tree reduce of order-sensitive summaries
+
+Some merges care about order: summaries of consecutive ranges (first/last element, gaps or runs
+across a boundary, prefix sums) can only be merged with their neighbouring range. In a heap-numbered
+tree (children 2i+1 and 2i+2) a subtree does **not** cover consecutive workers: worker 1's subtree
+holds 1, 3, 4, 7, 8, …, so merging "my range + my children's ranges" as if they were adjacent gives
+wrong boundary results (a "gap" that spans the ranges of workers in between).
+
+Send the summaries up the tree **unmerged, tagged with their worker index**, and merge only at the
+root, in index order. Each node adds its own entry to its children's lists; the lists stay small
+(one entry per worker):
+
+```csharp
+record Part(int Worker, long Count, long First, long Last, long MaxGap, long GapStart);
+
+var parts = new List<Part> { mine };                          // this worker's summary
+foreach (var c in new[] { 2 * i + 1, 2 * i + 2 }.Where(c => c < n))
+    parts.AddRange(await input.Peer(c).ReceiveJsonAsync<List<Part>>(ct));
+if (i > 0)
+{
+    await input.Peer((i - 1) / 2).SendJsonAsync(parts, ct);
+    return AgentLayerResult.Ok("{}");
+}
+// root: fold left to right; the boundary gap is next.First - previous.Last
+var ordered = parts.OrderBy(p => p.Worker).ToList();
+var total = ordered[0];
+foreach (var p in ordered.Skip(1))
+{
+    var boundary = p.First - total.Last;
+    var (gap, start) = new[] { (total.MaxGap, total.GapStart), (p.MaxGap, p.GapStart), (boundary, total.Last) }.MaxBy(g => g.Item1);
+    total = new Part(0, total.Count + p.Count, total.First, p.Last, gap, start);
+}
+```
+
+Merging inside the tree is fine only when the merge is commutative and associative (sum, min,
+max, count). Otherwise keep the order explicit, as above. Check the result for plausibility: a
+gap or boundary value as large as a whole range means ranges were merged out of order.
+
 ### Passing each worker only its share: `inherit: "byIndex"`
 
 With `inherit: "byIndex"`, worker i of the child layer receives only output i of each parent in
