@@ -1,0 +1,437 @@
+[
+ {
+  "id": "01a17320-202a-7f62-972b-093d5670b905",
+  "parent_run_id": "01a1731f-9856-70f1-b4e2-ccd00a6414d6",
+  "parent_run_ids": [
+   "01a1731f-9856-70f1-b4e2-ccd00a6414d6"
+  ],
+  "run_type": "chain",
+  "name": "ParcsPTCMiddleware.after_agent",
+  "start_time": "2026-10-25 12:54:07.658072+00:00",
+  "end_time": "2026-10-25 12:54:07.735586+00:00",
+  "total_cost": null,
+  "error": null
+ },
+ {
+  "id": "01a17320-121a-7753-bf20-a8cf9886a13d",
+  "parent_run_id": "01a17320-121a-76f1-b82a-355b6050fb1f",
+  "parent_run_ids": [
+   "01a1731f-9856-70f1-b4e2-ccd00a6414d6",
+   "01a17320-1219-7940-aab8-30d8d8bcda3a",
+   "01a17320-1219-7130-8a94-5ee505399bdd",
+   "01a17320-121a-76f1-b82a-355b6050fb1f"
+  ],
+  "run_type": "llm",
+  "name": "ChatOpenAI",
+  "start_time": "2026-10-25 12:54:04.058534+00:00",
+  "end_time": "2026-10-25 12:54:07.651081+00:00",
+  "total_cost": 0.00074872,
+  "error": null,
+  "outputs": {
+   "generations": [
+    [
+     {
+      "message": {
+       "kwargs": {
+        "content": "Completed the three-layer computation over **400,000 total vectors**:\n\n- **Vectors:** 20 workers \u00d7 100,000 vectors each\n- **Dimension:** 50\n- **Per-worker seed:** `WorkerIndex * 1000 + 42`\n- **Covariance:** population covariance, normalized by each worker\u2019s 100,000 samples\n- **Global covariance:** merged using per-worker means and covariances\n\nResults:\n\n```json\n{\n  \"top3_eigenvalues\": [\n    0.08487516627953826,\n    0.08447457127273161,\n    0.08442655739632958\n  ],\n  \"trace\": 4.168136687207785\n}\n```",
+        "tool_calls": [],
+        "usage_metadata": {
+         "input_token_details": {
+          "audio": 0,
+          "cache_read": 5206
+         },
+         "input_tokens": 6677,
+         "output_token_details": {
+          "audio": 0,
+          "reasoning": 134
+         },
+         "output_tokens": 292,
+         "total_tokens": 6969
+        }
+       }
+      }
+     }
+    ]
+   ]
+  }
+ },
+ {
+  "id": "01a17320-121a-76f1-b82a-355b6050fb1f",
+  "parent_run_id": "01a17320-1219-7130-8a94-5ee505399bdd",
+  "parent_run_ids": [
+   "01a1731f-9856-70f1-b4e2-ccd00a6414d6",
+   "01a17320-1219-7940-aab8-30d8d8bcda3a",
+   "01a17320-1219-7130-8a94-5ee505399bdd"
+  ],
+  "run_type": "chain",
+  "name": "ParcsPTCMiddleware.awrap_model_call",
+  "start_time": "2026-10-25 12:54:04.058034+00:00",
+  "end_time": "2026-10-25 12:54:07.651572+00:00",
+  "total_cost": 0.00074872,
+  "error": null
+ },
+ {
+  "id": "01a17320-1219-7130-8a94-5ee505399bdd",
+  "parent_run_id": "01a17320-1219-7940-aab8-30d8d8bcda3a",
+  "parent_run_ids": [
+   "01a1731f-9856-70f1-b4e2-ccd00a6414d6",
+   "01a17320-1219-7940-aab8-30d8d8bcda3a"
+  ],
+  "run_type": "chain",
+  "name": "ThreadNonceMiddleware.awrap_model_call",
+  "start_time": "2026-10-25 12:54:04.057534+00:00",
+  "end_time": "2026-10-25 12:54:07.651572+00:00",
+  "total_cost": 0.00074872,
+  "error": null
+ },
+ {
+  "id": "01a17320-1219-7940-aab8-30d8d8bcda3a",
+  "parent_run_id": "01a1731f-9856-70f1-b4e2-ccd00a6414d6",
+  "parent_run_ids": [
+   "01a1731f-9856-70f1-b4e2-ccd00a6414d6"
+  ],
+  "run_type": "chain",
+  "name": "model",
+  "start_time": "2026-10-25 12:54:04.057034+00:00",
+  "end_time": "2026-10-25 12:54:07.652072+00:00",
+  "total_cost": 0.00074872,
+  "error": null
+ },
+ {
+  "id": "ebbaa456-900a-4c39-9da0-7ca555ba7e37",
+  "parent_run_id": "01a1731f-e0bc-7e42-b0d1-c1cf38396c03",
+  "parent_run_ids": [
+   "01a1731f-9856-70f1-b4e2-ccd00a6414d6",
+   "01a1731f-e0bb-7c60-947c-0d2eb98c4753",
+   "01a1731f-e0bb-7ea1-a467-af4ce758d011",
+   "01a1731f-e0bc-7e42-b0d1-c1cf38396c03"
+  ],
+  "run_type": "tool",
+  "name": "run_layer",
+  "start_time": "2026-10-25 12:54:00.242231+00:00",
+  "end_time": "2026-10-25 12:54:04.050034+00:00",
+  "total_cost": null,
+  "error": null,
+  "inputs": {
+   "entryPoint": "Reduce",
+   "layerKey": "global-top3-2",
+   "parallelism": 1,
+   "previousLayerIds": [
+    "5be68673739f43dd8fa5a446b670b14e"
+   ],
+   "sessionId": "f60a2442c34d48dabfba0e40745acd90",
+   "waitSeconds": 200
+  },
+  "outputs": {
+   "output": [
+    {
+     "id": "lc_10bb6850-8c75-4d70-a536-7f72b86d380f",
+     "text": "{\"ok\":true,\"status\":\"Completed\",\"sessionId\":\"f60a2442c34d48dabfba0e40745acd90\",\"layerId\":\"18d1cba3f2534bb1a2d3cb4695cdd42e\",\"layerKey\":\"global-top3-2\",\"reused\":false,\"layer\":{\"entryPoint\":\"Reduce\",\"parallelism\":1,\"previousLayerIds\":[\"5be68673739f43dd8fa5a446b670b14e\"],\"successCount\":1,\"failureCount\":0,\"queuedSeconds\":0.0191691,\"elapsedSeconds\":3.2206796,\"submittedAt\":\"2026-10-25T12:54:00.1128887+00:00\",\"startedAt\":\"2026-10-25T12:54:00.1320578+00:00\",\"completedAt\":\"2026-10-25T12:54:03.3527374+00:00\",\"jobId\":171},\"output\":{\"top3\":[0.08487516627953826,0.08447457127273161,0.08442655739632958],\"trace\":4.168136687207785,\"dimensions\":50,\"samples\":400000}}",
+     "type": "text"
+    }
+   ]
+  }
+ },
+ {
+  "id": "ee3b1984-6d1f-46a2-955a-61e6334f8459",
+  "parent_run_id": "01a1731f-e0bc-7e42-b0d1-c1cf38396c03",
+  "parent_run_ids": [
+   "01a1731f-9856-70f1-b4e2-ccd00a6414d6",
+   "01a1731f-e0bb-7c60-947c-0d2eb98c4753",
+   "01a1731f-e0bb-7ea1-a467-af4ce758d011",
+   "01a1731f-e0bc-7e42-b0d1-c1cf38396c03"
+  ],
+  "run_type": "tool",
+  "name": "run_layer",
+  "start_time": "2026-10-25 12:53:56.433621+00:00",
+  "end_time": "2026-10-25 12:54:00.237231+00:00",
+  "total_cost": null,
+  "error": null,
+  "inputs": {
+   "entryPoint": "LocalCov",
+   "layerKey": "covariance-layer-1",
+   "parallelism": 4,
+   "previousLayerIds": [
+    "b98a05377c0c4cf18d28b78b1ff99124"
+   ],
+   "sessionId": "f60a2442c34d48dabfba0e40745acd90",
+   "waitSeconds": 200
+  },
+  "outputs": {
+   "output": [
+    {
+     "id": "lc_f439dd2c-673e-40e3-bebe-2b91abd7c5de",
+     "text": "{\"ok\":true,\"status\":\"Completed\",\"sessionId\":\"f60a2442c34d48dabfba0e40745acd90\",\"layerId\":\"5be68673739f43dd8fa5a446b670b14e\",\"layerKey\":\"covariance-layer-1\",\"reused\":false,\"layer\":{\"entryPoint\":\"LocalCov\",\"parallelism\":4,\"previousLayerIds\":[\"b98a05377c0c4cf18d28b78b1ff99124\"],\"successCount\":4,\"failureCount\":0,\"queuedSeconds\":0.0223961,\"elapsedSeconds\":3.2093808,\"submittedAt\":\"2026-10-25T12:53:56.2883472+00:00\",\"startedAt\":\"2026-10-25T12:53:56.3107433+00:00\",\"completedAt\":\"2026-10-25T12:53:59.5201241+00:00\",\"jobId\":170}}",
+     "type": "text"
+    }
+   ]
+  }
+ },
+ {
+  "id": "642ae9b8-e383-4b59-9083-9ffd6a49b6fa",
+  "parent_run_id": "01a1731f-e0bc-7e42-b0d1-c1cf38396c03",
+  "parent_run_ids": [
+   "01a1731f-9856-70f1-b4e2-ccd00a6414d6",
+   "01a1731f-e0bb-7c60-947c-0d2eb98c4753",
+   "01a1731f-e0bb-7ea1-a467-af4ce758d011",
+   "01a1731f-e0bc-7e42-b0d1-c1cf38396c03"
+  ],
+  "run_type": "tool",
+  "name": "run_layer",
+  "start_time": "2026-10-25 12:53:52.624583+00:00",
+  "end_time": "2026-10-25 12:53:56.429121+00:00",
+  "total_cost": null,
+  "error": null,
+  "inputs": {
+   "entryPoint": "Map",
+   "layerKey": "vectors-map-0",
+   "parallelism": 4,
+   "sessionId": "f60a2442c34d48dabfba0e40745acd90",
+   "waitSeconds": 200
+  },
+  "outputs": {
+   "output": [
+    {
+     "id": "lc_c2ff918e-87f1-4870-aaf0-1364769cfc03",
+     "text": "{\"ok\":true,\"status\":\"Completed\",\"sessionId\":\"f60a2442c34d48dabfba0e40745acd90\",\"layerId\":\"b98a05377c0c4cf18d28b78b1ff99124\",\"layerKey\":\"vectors-map-0\",\"reused\":false,\"layer\":{\"entryPoint\":\"Map\",\"parallelism\":4,\"previousLayerIds\":[],\"successCount\":4,\"failureCount\":0,\"queuedSeconds\":0.0245219,\"elapsedSeconds\":3.2067104,\"submittedAt\":\"2026-10-25T12:53:52.4842894+00:00\",\"startedAt\":\"2026-10-25T12:53:52.5088113+00:00\",\"completedAt\":\"2026-10-25T12:53:55.7155217+00:00\",\"jobId\":169}}",
+     "type": "text"
+    }
+   ]
+  }
+ },
+ {
+  "id": "f2c80790-0d06-444c-a176-b25060cc42dd",
+  "parent_run_id": "01a1731f-e0bc-7e42-b0d1-c1cf38396c03",
+  "parent_run_ids": [
+   "01a1731f-9856-70f1-b4e2-ccd00a6414d6",
+   "01a1731f-e0bb-7c60-947c-0d2eb98c4753",
+   "01a1731f-e0bb-7ea1-a467-af4ce758d011",
+   "01a1731f-e0bc-7e42-b0d1-c1cf38396c03"
+  ],
+  "run_type": "tool",
+  "name": "create_session",
+  "start_time": "2026-10-25 12:53:51.976318+00:00",
+  "end_time": "2026-10-25 12:53:52.620082+00:00",
+  "total_cost": null,
+  "error": null,
+  "inputs": {
+   "sourceCode": "<3043 chars>"
+  },
+  "outputs": {
+   "output": [
+    {
+     "id": "lc_9427870b-2822-4f3b-a999-bcb777a4e073",
+     "text": "{\"ok\":true,\"status\":\"Created\",\"sessionId\":\"f60a2442c34d48dabfba0e40745acd90\",\"output\":{\"entryPoints\":[\"LocalCov\",\"Map\",\"Reduce\"]}}",
+     "type": "text"
+    }
+   ]
+  }
+ },
+ {
+  "id": "b6aac5cc-677e-4913-ab19-8361fb78ed18",
+  "parent_run_id": "01a1731f-e0bc-7e42-b0d1-c1cf38396c03",
+  "parent_run_ids": [
+   "01a1731f-9856-70f1-b4e2-ccd00a6414d6",
+   "01a1731f-e0bb-7c60-947c-0d2eb98c4753",
+   "01a1731f-e0bb-7ea1-a467-af4ce758d011",
+   "01a1731f-e0bc-7e42-b0d1-c1cf38396c03"
+  ],
+  "run_type": "tool",
+  "name": "get_cluster_info",
+  "start_time": "2026-10-25 12:53:51.423029+00:00",
+  "end_time": "2026-10-25 12:53:51.973318+00:00",
+  "total_cost": null,
+  "error": null,
+  "inputs": {},
+  "outputs": {
+   "output": [
+    {
+     "id": "lc_685c69c2-d926-431a-81e2-fdf538fb0348",
+     "text": "{\"ok\":true,\"output\":{\"scalingMode\":\"static\",\"workerNodeCount\":1,\"currentCapacity\":4,\"maxParallelism\":4,\"daemonCpuRequestMillicores\":250,\"capacitySource\":\"dns\",\"freeWorkers\":4,\"runningLayers\":0,\"queuedLayers\":0}}",
+     "type": "text"
+    }
+   ]
+  }
+ },
+ {
+  "id": "01a1731f-e0bc-7e42-b0d1-c1cf38396c03",
+  "parent_run_id": "01a1731f-e0bb-7ea1-a467-af4ce758d011",
+  "parent_run_ids": [
+   "01a1731f-9856-70f1-b4e2-ccd00a6414d6",
+   "01a1731f-e0bb-7c60-947c-0d2eb98c4753",
+   "01a1731f-e0bb-7ea1-a467-af4ce758d011"
+  ],
+  "run_type": "tool",
+  "name": "eval",
+  "start_time": "2026-10-25 12:53:51.420031+00:00",
+  "end_time": "2026-10-25 12:54:04.054534+00:00",
+  "total_cost": null,
+  "error": null,
+  "inputs": {},
+  "outputs": {
+   "output": {
+    "additional_kwargs": {},
+    "content": "<result>{top3: [0.08487516627953826, 0.08447457127273161, 0.08442655739632958], trace: 4.168136687207785, dimensions: 50, samples: 400000}</result>",
+    "name": "eval",
+    "response_metadata": {},
+    "status": "success",
+    "tool_call_id": "call_kL0tWoCDTBoaOUbnsEYdoNs5",
+    "type": "tool"
+   }
+  }
+ },
+ {
+  "id": "01a1731f-e0bb-7ea1-a467-af4ce758d011",
+  "parent_run_id": "01a1731f-e0bb-7c60-947c-0d2eb98c4753",
+  "parent_run_ids": [
+   "01a1731f-9856-70f1-b4e2-ccd00a6414d6",
+   "01a1731f-e0bb-7c60-947c-0d2eb98c4753"
+  ],
+  "run_type": "chain",
+  "name": "ToolRetryMiddleware.awrap_tool_call",
+  "start_time": "2026-10-25 12:53:51.419529+00:00",
+  "end_time": "2026-10-25 12:54:04.054534+00:00",
+  "total_cost": null,
+  "error": null
+ },
+ {
+  "id": "01a1731f-e0bb-7c60-947c-0d2eb98c4753",
+  "parent_run_id": "01a1731f-9856-70f1-b4e2-ccd00a6414d6",
+  "parent_run_ids": [
+   "01a1731f-9856-70f1-b4e2-ccd00a6414d6"
+  ],
+  "run_type": "chain",
+  "name": "tools",
+  "start_time": "2026-10-25 12:53:51.419032+00:00",
+  "end_time": "2026-10-25 12:54:04.055034+00:00",
+  "total_cost": null,
+  "error": null
+ },
+ {
+  "id": "01a1731f-9974-7f83-ab5b-47caf92d12c6",
+  "parent_run_id": "01a1731f-98c5-7d71-96e4-b217075b5b40",
+  "parent_run_ids": [
+   "01a1731f-9856-70f1-b4e2-ccd00a6414d6",
+   "01a1731f-9887-76f3-ac64-3007de55c479",
+   "01a1731f-98c4-7bd0-ae01-c4e008127251",
+   "01a1731f-98c5-7d71-96e4-b217075b5b40"
+  ],
+  "run_type": "llm",
+  "name": "ChatOpenAI",
+  "start_time": "2026-10-25 12:53:33.171915+00:00",
+  "end_time": "2026-10-25 12:53:51.416529+00:00",
+  "total_cost": 0.0036146,
+  "error": null,
+  "outputs": {
+   "generations": [
+    [
+     {
+      "message": {
+       "kwargs": {
+        "content": "",
+        "tool_calls": [
+         {
+          "name": "eval"
+         }
+        ],
+        "usage_metadata": {
+         "input_tokens": 5209,
+         "output_tokens": 2144,
+         "total_tokens": 7353,
+         "input_token_details": {
+          "audio": 0,
+          "cache_read": 0
+         },
+         "output_token_details": {
+          "audio": 0,
+          "reasoning": 744
+         }
+        }
+       }
+      }
+     }
+    ]
+   ]
+  }
+ },
+ {
+  "id": "01a1731f-98c5-7d71-96e4-b217075b5b40",
+  "parent_run_id": "01a1731f-98c4-7bd0-ae01-c4e008127251",
+  "parent_run_ids": [
+   "01a1731f-9856-70f1-b4e2-ccd00a6414d6",
+   "01a1731f-9887-76f3-ac64-3007de55c479",
+   "01a1731f-98c4-7bd0-ae01-c4e008127251"
+  ],
+  "run_type": "chain",
+  "name": "ParcsPTCMiddleware.awrap_model_call",
+  "start_time": "2026-10-25 12:53:32.997403+00:00",
+  "end_time": "2026-10-25 12:53:51.417030+00:00",
+  "total_cost": 0.0036146,
+  "error": null
+ },
+ {
+  "id": "01a1731f-98c4-7bd0-ae01-c4e008127251",
+  "parent_run_id": "01a1731f-9887-76f3-ac64-3007de55c479",
+  "parent_run_ids": [
+   "01a1731f-9856-70f1-b4e2-ccd00a6414d6",
+   "01a1731f-9887-76f3-ac64-3007de55c479"
+  ],
+  "run_type": "chain",
+  "name": "ThreadNonceMiddleware.awrap_model_call",
+  "start_time": "2026-10-25 12:53:32.996402+00:00",
+  "end_time": "2026-10-25 12:53:51.417529+00:00",
+  "total_cost": 0.0036146,
+  "error": null
+ },
+ {
+  "id": "01a1731f-9887-76f3-ac64-3007de55c479",
+  "parent_run_id": "01a1731f-9856-70f1-b4e2-ccd00a6414d6",
+  "parent_run_ids": [
+   "01a1731f-9856-70f1-b4e2-ccd00a6414d6"
+  ],
+  "run_type": "chain",
+  "name": "model",
+  "start_time": "2026-10-25 12:53:32.934893+00:00",
+  "end_time": "2026-10-25 12:53:51.418030+00:00",
+  "total_cost": 0.0036146,
+  "error": null
+ },
+ {
+  "id": "01a1731f-9886-7f51-9acb-78df333f9833",
+  "parent_run_id": "01a1731f-9856-70f1-b4e2-ccd00a6414d6",
+  "parent_run_ids": [
+   "01a1731f-9856-70f1-b4e2-ccd00a6414d6"
+  ],
+  "run_type": "chain",
+  "name": "ParcsPTCMiddleware.before_agent",
+  "start_time": "2026-10-25 12:53:32.933892+00:00",
+  "end_time": "2026-10-25 12:53:32.934392+00:00",
+  "total_cost": null,
+  "error": null
+ },
+ {
+  "id": "01a1731f-9856-70f1-b4e2-ccd00a6414d6",
+  "parent_run_id": null,
+  "parent_run_ids": [],
+  "run_type": "chain",
+  "name": "ParcsAgent",
+  "start_time": "2026-10-25 12:53:32.885876+00:00",
+  "end_time": "2026-10-25 12:54:07.739086+00:00",
+  "total_cost": 0.00436332,
+  "error": null,
+  "extra": {
+   "metadata": {
+    "LANGSMITH__ENDPOINT": "https://api.smith.langchain.com",
+    "LANGSMITH__PROJECT": "parcs-agent-benchmark",
+    "LANGSMITH__TRACING_V2": "true",
+    "lc_agent_name": "ParcsAgent",
+    "ls_integration": "langchain_create_agent",
+    "ls_run_depth": 0,
+    "mode": "ptc",
+    "model": "openai/gpt-5.6-luna",
+    "revision_id": "7d8e2c8",
+    "thread_id": "0376135f-eae8-4cb8-88a0-ed1a8568ee5d"
+   }
+  }
+ }
+]

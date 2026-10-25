@@ -1,0 +1,2165 @@
+{
+ "cell": {
+  "family": "f2",
+  "n": 32,
+  "arm": "ptc",
+  "model": "haiku55",
+  "rep": 1,
+  "run_id": "f2-n32-ptc-haiku55-r1"
+ },
+ "task": "Find, on the PARCS cluster, the midpoint that exactly N = 32 bisection steps reach when searching\nfor the K-th smallest of M numbers v_1, ..., v_M, where M = 16777216 and K = 5000000.\n\nThe numbers: for i = 1, 2, ..., M, with unsigned 64-bit wrapping arithmetic (C# `ulong`),\n\n    z = (ulong)i * 0x9E3779B97F4A7C15\n    z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9\n    z = (z ^ (z >> 27)) * 0x94D049BB133111EB\n    z = z ^ (z >> 31)\n    v_i = (double)(z % 2147483647) / 2147483647.0\n\nThe bisection: start with lo = 0, hi = 1. One step computes mid = (lo + hi) / 2 and\nc = the number of i with v_i <= mid; then, if c >= K, hi = mid, otherwise lo = mid.\n\nFollow this layer plan exactly; it is part of the task:\n\n1. Each step is one layer that counts in parallel: parallelism = maxParallelism from\n   get_cluster_info, each worker counting its share of i = 1..M. That is 32 step layers in total.\n   Do not fold several steps into one layer.\n2. The layer for step j >= 2 lists the layer of step j - 1 in previousLayerIds. Its workers read\n   lo, hi and the partial counts of step j - 1 from there, add the counts and update lo and hi\n   themselves. Do not do this arithmetic yourself.\n3. After step 32, run one layer with parallelism 1 that reads the step-32 layer the same way,\n   applies the last update and outputs the final midpoint (lo + hi) / 2.\n\nThe run uses exactly 33 layers. Report the final midpoint from the last layer's output with\n17 significant digits. End your answer with a line of the form\n\nANSWER: <number>\n",
+ "config": {
+  "configurable": {
+   "thread_id": "bc349629-18c1-4c8a-8063-27b51cb74051"
+  },
+  "recursion_limit": 600,
+  "run_name": "f2-n32-ptc-haiku55-r1",
+  "tags": [
+   "f2",
+   "n32",
+   "ptc",
+   "haiku55"
+  ],
+  "metadata": {
+   "family": "f2",
+   "n": 32,
+   "arm": "ptc",
+   "model": "haiku55",
+   "rep": 1,
+   "run_id": "f2-n32-ptc-haiku55-r1",
+   "model_name": "anthropic/claude-haiku-5.5",
+   "manifest": "5ba7e99e0db5"
+  }
+ },
+ "trace_id": "9be8a3b7-96eb-468e-bf0f-c24625ed9157",
+ "cluster_info": {
+  "scalingMode": "static",
+  "workerNodeCount": 1,
+  "currentCapacity": 4,
+  "maxParallelism": 4,
+  "daemonCpuRequestMillicores": 250,
+  "capacitySource": "dns",
+  "freeWorkers": 4,
+  "runningLayers": 0,
+  "queuedLayers": 0
+ },
+ "messages": [
+  {
+   "type": "human",
+   "data": {
+    "content": "Find, on the PARCS cluster, the midpoint that exactly N = 32 bisection steps reach when searching\nfor the K-th smallest of M numbers v_1, ..., v_M, where M = 16777216 and K = 5000000.\n\nThe numbers: for i = 1, 2, ..., M, with unsigned 64-bit wrapping arithmetic (C# `ulong`),\n\n    z = (ulong)i * 0x9E3779B97F4A7C15\n    z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9\n    z = (z ^ (z >> 27)) * 0x94D049BB133111EB\n    z = z ^ (z >> 31)\n    v_i = (double)(z % 2147483647) / 2147483647.0\n\nThe bisection: start with lo = 0, hi = 1. One step computes mid = (lo + hi) / 2 and\nc = the number of i with v_i <= mid; then, if c >= K, hi = mid, otherwise lo = mid.\n\nFollow this layer plan exactly; it is part of the task:\n\n1. Each step is one layer that counts in parallel: parallelism = maxParallelism from\n   get_cluster_info, each worker counting its share of i = 1..M. That is 32 step layers in total.\n   Do not fold several steps into one layer.\n2. The layer for step j >= 2 lists the layer of step j - 1 in previousLayerIds. Its workers read\n   lo, hi and the partial counts of step j - 1 from there, add the counts and update lo and hi\n   themselves. Do not do this arithmetic yourself.\n3. After step 32, run one layer with parallelism 1 that reads the step-32 layer the same way,\n   applies the last update and outputs the final midpoint (lo + hi) / 2.\n\nThe run uses exactly 33 layers. Report the final midpoint from the last layer's output with\n17 significant digits. End your answer with a line of the form\n\nANSWER: <number>\n",
+    "additional_kwargs": {},
+    "response_metadata": {},
+    "type": "human",
+    "name": null,
+    "id": "6ef5f9e3-fbf1-40bd-9619-189c57b23c04"
+   }
+  },
+  {
+   "type": "ai",
+   "data": {
+    "content": "",
+    "additional_kwargs": {},
+    "response_metadata": {
+     "finish_reason": "tool_callstool_calls",
+     "model_name": "anthropic/claude-haiku-5.5anthropic/claude-haiku-5.5",
+     "service_tier": "default",
+     "model_provider": "openai"
+    },
+    "type": "ai",
+    "name": "ParcsAgent",
+    "id": "lc_run--01a17413-8b8a-7527-b718-a54d35cde2e1",
+    "tool_calls": [
+     {
+      "name": "eval",
+      "args": {
+       "code": "{\n  const call = async (fn, args) => {\n    const r = JSON.parse((await fn(args))[0].text);\n    if (!r.ok) throw new Error(JSON.stringify(r.error));\n    return r;\n  };\n  const run = async (args) => {\n    let r = await call(tools.runLayer, { waitSeconds: 200, ...args });\n    while (r.status === 'Running' || r.status === 'Queued')\n      r = await call(tools.waitLayer, { layerId: r.layerId, waitSeconds: 200 });\n    if (r.status !== 'Completed') throw new Error('layer ' + args.layerKey + ' status ' + r.status + ' ' + JSON.stringify(r.error));\n    return r;\n  };\n  const info = await call(tools.getClusterInfo, {});\n  const W = info.output.maxParallelism;\n  const src = String.raw`using System; using System.Collections.Generic; using System.Linq; using System.Text.Json; using System.Threading; using System.Threading.Tasks; using Parcs.Agent.Runtime;\npublic class R { public long count { get; set; } public double lo { get; set; } public double hi { get; set; } public double mid { get; set; } }\npublic class Step : IAgentComputation {\n  public Task<AgentLayerResult> ExecuteAsync(AgentLayerInput input, CancellationToken ct) {\n    long M = long.Parse(input.Parameters[\"M\"]); long K = long.Parse(input.Parameters[\"K\"]);\n    double lo = 0, hi = 1, mid = 0.5;\n    if (!input.Parameters.ContainsKey(\"first\")) {\n      var prev = input.GetPreviousOutputs();\n      long c = 0; R p = null;\n      foreach (var s in prev) { if (s == null) continue; var r = JsonSerializer.Deserialize<R>(s); c += r.count; p = r; }\n      lo = p.lo; hi = p.hi;\n      if (c >= K) hi = p.mid; else lo = p.mid;\n      mid = (lo + hi) / 2;\n    }\n    if (input.Parameters.ContainsKey(\"final\"))\n      return Task.FromResult(AgentLayerResult.Ok(JsonSerializer.Serialize(new R { count = 0, lo = lo, hi = hi, mid = (lo + hi) / 2 })));\n    long cnt = 0;\n    for (long i = input.WorkerIndex + 1; i <= M; i += input.TotalWorkers) {\n      ulong z = (ulong)i * 0x9E3779B97F4A7C15UL;\n      z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9UL;\n      z = (z ^ (z >> 27)) * 0x94D049BB133111EBUL;\n      z = z ^ (z >> 31);\n      double v = (double)(z % 2147483647UL) / 2147483647.0;\n      if (v <= mid) cnt++;\n    }\n    return Task.FromResult(AgentLayerResult.Ok(JsonSerializer.Serialize(new R { count = cnt, lo = lo, hi = hi, mid = mid })));\n  }\n}`;\n  const { sessionId } = await call(tools.createSession, { sourceCode: src });\n  const P = { M: '16777216', K: '5000000' };\n  let prevId = null;\n  let last = null;\n  for (let j = 1; j <= 32; j++) {\n    const params = j === 1 ? { ...P, first: '1' } : P;\n    const args = { sessionId, entryPoint: 'Step', parallelism: W, layerKey: 'step-' + j, parameters: params };\n    if (prevId) args.previousLayerIds = [prevId];\n    last = await run(args);\n    prevId = last.layerId;\n  }\n  const fin = await run({ sessionId, entryPoint: 'Step', parallelism: 1, layerKey: 'final', parameters: { ...P, final: '1' }, previousLayerIds: [prevId] });\n  console.log({ W, layers: 33, out: fin.output });\n  return { mid: fin.output.mid, str: fin.output.mid.toPrecision(17) };\n}"
+      },
+      "id": "toolu_01M2AA1oQFdM34ATJsf2XPuh",
+      "type": "tool_call"
+     }
+    ],
+    "invalid_tool_calls": [],
+    "usage_metadata": {
+     "input_tokens": 9558,
+     "output_tokens": 4499,
+     "total_tokens": 14057,
+     "input_token_details": {
+      "audio": 0,
+      "cache_creation": 0,
+      "cache_read": 0
+     },
+     "output_token_details": {
+      "audio": 0,
+      "reasoning": 3040
+     }
+    }
+   }
+  },
+  {
+   "type": "tool",
+   "data": {
+    "content": "<error type=\"SyntaxError\">source parse error in &lt;eval&gt;: A 'return' statement can only be used within a function body.</error>",
+    "additional_kwargs": {},
+    "response_metadata": {},
+    "type": "tool",
+    "name": "eval",
+    "id": "38faa1d7-1876-4f59-be1c-33f76b8ba132",
+    "tool_call_id": "toolu_01M2AA1oQFdM34ATJsf2XPuh",
+    "artifact": null,
+    "status": "success"
+   }
+  },
+  {
+   "type": "ai",
+   "data": {
+    "content": "",
+    "additional_kwargs": {},
+    "response_metadata": {
+     "finish_reason": "tool_callstool_calls",
+     "model_name": "anthropic/claude-haiku-5.5anthropic/claude-haiku-5.5",
+     "service_tier": "default",
+     "model_provider": "openai"
+    },
+    "type": "ai",
+    "name": "ParcsAgent",
+    "id": "lc_run--01a17413-d813-7203-b467-1da0f2ff8f80",
+    "tool_calls": [
+     {
+      "name": "eval",
+      "args": {
+       "code": "{\n  const call = async (fn, args) => {\n    const r = JSON.parse((await fn(args))[0].text);\n    if (!r.ok) throw new Error(JSON.stringify(r.error));\n    return r;\n  };\n  const run = async (args) => {\n    let r = await call(tools.runLayer, { waitSeconds: 200, ...args });\n    while (r.status === 'Running' || r.status === 'Queued')\n      r = await call(tools.waitLayer, { layerId: r.layerId, waitSeconds: 200 });\n    if (r.status !== 'Completed') throw new Error('layer ' + args.layerKey + ' status ' + r.status + ' ' + JSON.stringify(r.error));\n    return r;\n  };\n  const info = await call(tools.getClusterInfo, {});\n  const W = info.output.maxParallelism;\n  const src = String.raw`using System; using System.Collections.Generic; using System.Linq; using System.Text.Json; using System.Threading; using System.Threading.Tasks; using Parcs.Agent.Runtime;\npublic class R { public long count { get; set; } public double lo { get; set; } public double hi { get; set; } public double mid { get; set; } }\npublic class Step : IAgentComputation {\n  public Task<AgentLayerResult> ExecuteAsync(AgentLayerInput input, CancellationToken ct) {\n    long M = long.Parse(input.Parameters[\"M\"]); long K = long.Parse(input.Parameters[\"K\"]);\n    double lo = 0, hi = 1, mid = 0.5;\n    if (!input.Parameters.ContainsKey(\"first\")) {\n      var prev = input.GetPreviousOutputs();\n      long c = 0; R p = null;\n      foreach (var s in prev) { if (s == null) continue; var r = JsonSerializer.Deserialize<R>(s); c += r.count; p = r; }\n      lo = p.lo; hi = p.hi;\n      if (c >= K) hi = p.mid; else lo = p.mid;\n      mid = (lo + hi) / 2;\n    }\n    if (input.Parameters.ContainsKey(\"final\"))\n      return Task.FromResult(AgentLayerResult.Ok(JsonSerializer.Serialize(new R { count = 0, lo = lo, hi = hi, mid = (lo + hi) / 2 })));\n    long cnt = 0;\n    for (long i = input.WorkerIndex + 1; i <= M; i += input.TotalWorkers) {\n      ulong z = (ulong)i * 0x9E3779B97F4A7C15UL;\n      z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9UL;\n      z = (z ^ (z >> 27)) * 0x94D049BB133111EBUL;\n      z = z ^ (z >> 31);\n      double v = (double)(z % 2147483647UL) / 2147483647.0;\n      if (v <= mid) cnt++;\n    }\n    return Task.FromResult(AgentLayerResult.Ok(JsonSerializer.Serialize(new R { count = cnt, lo = lo, hi = hi, mid = mid })));\n  }\n}`;\n  const { sessionId } = await call(tools.createSession, { sourceCode: src });\n  const P = { M: '16777216', K: '5000000' };\n  let prevId = null;\n  let last = null;\n  for (let j = 1; j <= 32; j++) {\n    const params = j === 1 ? { ...P, first: '1' } : P;\n    const args = { sessionId, entryPoint: 'Step', parallelism: W, layerKey: 'step-' + j, parameters: params };\n    if (prevId) args.previousLayerIds = [prevId];\n    last = await run(args);\n    prevId = last.layerId;\n  }\n  const fin = await run({ sessionId, entryPoint: 'Step', parallelism: 1, layerKey: 'final', parameters: { ...P, final: '1' }, previousLayerIds: [prevId] });\n  ({ W, layers: 33, out: fin.output, str: fin.output.mid.toPrecision(17) });\n}"
+      },
+      "id": "toolu_01Lt1uLdRrNRfG9fQFGAsws9",
+      "type": "tool_call"
+     }
+    ],
+    "invalid_tool_calls": [],
+    "usage_metadata": {
+     "input_tokens": 11067,
+     "output_tokens": 1886,
+     "total_tokens": 12953,
+     "input_token_details": {
+      "audio": 0,
+      "cache_creation": 0,
+      "cache_read": 0
+     },
+     "output_token_details": {
+      "audio": 0,
+      "reasoning": 444
+     }
+    }
+   }
+  },
+  {
+   "type": "tool",
+   "data": {
+    "content": "<result>{W: 4, layers: 33, out: {count: 0, lo: 0.2980832071043551, hi: 0.29808320733718574, mid: 0.2980832072207704}, str: \"0.29808320722077042\"}</result>",
+    "additional_kwargs": {},
+    "response_metadata": {},
+    "type": "tool",
+    "name": "eval",
+    "id": "faa959f8-ebad-42d9-8223-12da4ae40b69",
+    "tool_call_id": "toolu_01Lt1uLdRrNRfG9fQFGAsws9",
+    "artifact": null,
+    "status": "success"
+   }
+  },
+  {
+   "type": "ai",
+   "data": {
+    "content": "The midpoint after 32 bisection steps is **0.29808320722077042**, from the final layer's output (lo = 0.2980832071043551, hi = 0.29808320733718574).\n\nI ran 33 layers as specified: 32 step layers plus one final layer with parallelism 1. The cluster's `maxParallelism` was 4, so each step layer used 4 workers, each counting its share of i = 1..M. Step j \u2265 2 listed step j\u22121 in `previousLayerIds`, and each worker summed the counts and applied the bisection update from the previous layer's output. The final layer applied the step-32 update and output (lo + hi) / 2.\n\nANSWER: 0.29808320722077042",
+    "additional_kwargs": {},
+    "response_metadata": {
+     "finish_reason": "stopstop",
+     "model_name": "anthropic/claude-haiku-5.5anthropic/claude-haiku-5.5",
+     "service_tier": "default",
+     "model_provider": "openai"
+    },
+    "type": "ai",
+    "name": "ParcsAgent",
+    "id": "lc_run--01a17415-d924-770d-b895-73613ee6c393",
+    "tool_calls": [],
+    "invalid_tool_calls": [],
+    "usage_metadata": {
+     "input_tokens": 12592,
+     "output_tokens": 547,
+     "total_tokens": 13139,
+     "input_token_details": {
+      "audio": 0,
+      "cache_creation": 0,
+      "cache_read": 0
+     },
+     "output_token_details": {
+      "audio": 0,
+      "reasoning": 315
+     }
+    }
+   }
+  }
+ ],
+ "tool_calls": [
+  {
+   "name": "get_cluster_info",
+   "args": {},
+   "t_start": 1792948827.6410944,
+   "t_end": 1792948828.2188997,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "output": {
+     "scalingMode": "static",
+     "workerNodeCount": 1,
+     "currentCapacity": 4,
+     "maxParallelism": 4,
+     "daemonCpuRequestMillicores": 250,
+     "capacitySource": "dns",
+     "freeWorkers": 4,
+     "runningLayers": 0,
+     "queuedLayers": 0
+    }
+   }
+  },
+  {
+   "name": "create_session",
+   "args": {
+    "sourceCode": "using System; using System.Collections.Generic; using System.Linq; using System.Text.Json; using System.Threading; using System.Threading.Tasks; using Parcs.Agent.Runtime;\npublic class R { public long count { get; set; } public double lo { get; set; } public double hi { get; set; } public double mid { get; set; } }\npublic class Step : IAgentComputation {\n  public Task<AgentLayerResult> ExecuteAsync(AgentLayerInput input, CancellationToken ct) {\n    long M = long.Parse(input.Parameters[\"M\"]); long K = long.Parse(input.Parameters[\"K\"]);\n    double lo = 0, hi = 1, mid = 0.5;\n    if (!input.Parameters.ContainsKey(\"first\")) {\n      var prev = input.GetPreviousOutputs();\n      long c = 0; R p = null;\n      foreach (var s in prev) { if (s == null) continue; var r = JsonSerializer.Deserialize<R>(s); c += r.count; p = r; }\n      lo = p.lo; hi = p.hi;\n      if (c >= K) hi = p.mid; else lo = p.mid;\n      mid = (lo + hi) / 2;\n    }\n    if (input.Parameters.ContainsKey(\"final\"))\n      return Task.FromResult(AgentLayerResult.Ok(JsonSerializer.Serialize(new R { count = 0, lo = lo, hi = hi, mid = (lo + hi) / 2 })));\n    long cnt = 0;\n    for (long i = input.WorkerIndex + 1; i <= M; i += input.TotalWorkers) {\n      ulong z = (ulong)i * 0x9E3779B97F4A7C15UL;\n      z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9UL;\n      z = (z ^ (z >> 27)) * 0x94D049BB133111EBUL;\n      z = z ^ (z >> 31);\n      double v = (double)(z % 2147483647UL) / 2147483647.0;\n      if (v <= mid) cnt++;\n    }\n    return Task.FromResult(AgentLayerResult.Ok(JsonSerializer.Serialize(new R { count = cnt, lo = lo, hi = hi, mid = mid })));\n  }\n}\n// run 9a519e7c707c452bb6bd9b02f1f67be2\n"
+   },
+   "t_start": 1792948828.2224035,
+   "t_end": 1792948828.8258617,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Created",
+    "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+    "output": {
+     "entryPoints": [
+      "Step"
+     ]
+    }
+   }
+  },
+  {
+   "name": "run_layer",
+   "args": {
+    "waitSeconds": 200,
+    "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+    "entryPoint": "Step",
+    "parallelism": 4,
+    "layerKey": "step-1",
+    "parameters": {
+     "M": "16777216",
+     "K": "5000000",
+     "first": "1"
+    }
+   },
+   "t_start": 1792948828.8313692,
+   "t_end": 1792948832.5349684,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+    "layerId": "eaaab0144fed4054b00be3d7e213a132",
+    "layerKey": "step-1",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Step",
+     "parallelism": 4,
+     "previousLayerIds": [],
+     "successCount": 4,
+     "failureCount": 0,
+     "queuedSeconds": 0.0278291,
+     "elapsedSeconds": 3.1453111,
+     "submittedAt": "2026-10-25T17:20:28.7013191+00:00",
+     "startedAt": "2026-10-25T17:20:28.7291482+00:00",
+     "completedAt": "2026-10-25T17:20:31.8744593+00:00",
+     "jobId": 1098
+    }
+   }
+  },
+  {
+   "name": "run_layer",
+   "args": {
+    "waitSeconds": 200,
+    "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+    "entryPoint": "Step",
+    "parallelism": 4,
+    "layerKey": "step-2",
+    "parameters": {
+     "M": "16777216",
+     "K": "5000000"
+    },
+    "previousLayerIds": [
+     "eaaab0144fed4054b00be3d7e213a132"
+    ]
+   },
+   "t_start": 1792948832.540969,
+   "t_end": 1792948836.248957,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+    "layerId": "09bb5ab618b34f10801165c02038c86e",
+    "layerKey": "step-2",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Step",
+     "parallelism": 4,
+     "previousLayerIds": [
+      "eaaab0144fed4054b00be3d7e213a132"
+     ],
+     "successCount": 4,
+     "failureCount": 0,
+     "queuedSeconds": 0.0240982,
+     "elapsedSeconds": 3.1544327,
+     "submittedAt": "2026-10-25T17:20:32.4111398+00:00",
+     "startedAt": "2026-10-25T17:20:32.435238+00:00",
+     "completedAt": "2026-10-25T17:20:35.5896707+00:00",
+     "jobId": 1099
+    }
+   }
+  },
+  {
+   "name": "run_layer",
+   "args": {
+    "waitSeconds": 200,
+    "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+    "entryPoint": "Step",
+    "parallelism": 4,
+    "layerKey": "step-3",
+    "parameters": {
+     "M": "16777216",
+     "K": "5000000"
+    },
+    "previousLayerIds": [
+     "09bb5ab618b34f10801165c02038c86e"
+    ]
+   },
+   "t_start": 1792948836.2549565,
+   "t_end": 1792948839.9522324,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+    "layerId": "b29035a48e914284926720ca2805b78c",
+    "layerKey": "step-3",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Step",
+     "parallelism": 4,
+     "previousLayerIds": [
+      "09bb5ab618b34f10801165c02038c86e"
+     ],
+     "successCount": 4,
+     "failureCount": 0,
+     "queuedSeconds": 0.0212497,
+     "elapsedSeconds": 3.1438797,
+     "submittedAt": "2026-10-25T17:20:36.1227594+00:00",
+     "startedAt": "2026-10-25T17:20:36.1440091+00:00",
+     "completedAt": "2026-10-25T17:20:39.2878888+00:00",
+     "jobId": 1100
+    }
+   }
+  },
+  {
+   "name": "run_layer",
+   "args": {
+    "waitSeconds": 200,
+    "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+    "entryPoint": "Step",
+    "parallelism": 4,
+    "layerKey": "step-4",
+    "parameters": {
+     "M": "16777216",
+     "K": "5000000"
+    },
+    "previousLayerIds": [
+     "b29035a48e914284926720ca2805b78c"
+    ]
+   },
+   "t_start": 1792948839.9583936,
+   "t_end": 1792948843.649911,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+    "layerId": "3e8d5e9c9fb6498d8db72a7931fb1f04",
+    "layerKey": "step-4",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Step",
+     "parallelism": 4,
+     "previousLayerIds": [
+      "b29035a48e914284926720ca2805b78c"
+     ],
+     "successCount": 4,
+     "failureCount": 0,
+     "queuedSeconds": 0.0243731,
+     "elapsedSeconds": 3.1317349,
+     "submittedAt": "2026-10-25T17:20:39.82903+00:00",
+     "startedAt": "2026-10-25T17:20:39.8534031+00:00",
+     "completedAt": "2026-10-25T17:20:42.985138+00:00",
+     "jobId": 1101
+    }
+   }
+  },
+  {
+   "name": "run_layer",
+   "args": {
+    "waitSeconds": 200,
+    "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+    "entryPoint": "Step",
+    "parallelism": 4,
+    "layerKey": "step-5",
+    "parameters": {
+     "M": "16777216",
+     "K": "5000000"
+    },
+    "previousLayerIds": [
+     "3e8d5e9c9fb6498d8db72a7931fb1f04"
+    ]
+   },
+   "t_start": 1792948843.655912,
+   "t_end": 1792948847.3689158,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+    "layerId": "0b6d610ad2e14e4f8faebf59ba3e43e5",
+    "layerKey": "step-5",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Step",
+     "parallelism": 4,
+     "previousLayerIds": [
+      "3e8d5e9c9fb6498d8db72a7931fb1f04"
+     ],
+     "successCount": 4,
+     "failureCount": 0,
+     "queuedSeconds": 0.0217815,
+     "elapsedSeconds": 3.1379347,
+     "submittedAt": "2026-10-25T17:20:43.5431053+00:00",
+     "startedAt": "2026-10-25T17:20:43.5648868+00:00",
+     "completedAt": "2026-10-25T17:20:46.7028215+00:00",
+     "jobId": 1102
+    }
+   }
+  },
+  {
+   "name": "run_layer",
+   "args": {
+    "waitSeconds": 200,
+    "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+    "entryPoint": "Step",
+    "parallelism": 4,
+    "layerKey": "step-6",
+    "parameters": {
+     "M": "16777216",
+     "K": "5000000"
+    },
+    "previousLayerIds": [
+     "0b6d610ad2e14e4f8faebf59ba3e43e5"
+    ]
+   },
+   "t_start": 1792948847.3749144,
+   "t_end": 1792948851.0759463,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+    "layerId": "dc5ee28897674fbb9b43c19cdf70f7cf",
+    "layerKey": "step-6",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Step",
+     "parallelism": 4,
+     "previousLayerIds": [
+      "0b6d610ad2e14e4f8faebf59ba3e43e5"
+     ],
+     "successCount": 4,
+     "failureCount": 0,
+     "queuedSeconds": 0.0219455,
+     "elapsedSeconds": 3.1448603,
+     "submittedAt": "2026-10-25T17:20:47.2470307+00:00",
+     "startedAt": "2026-10-25T17:20:47.2689762+00:00",
+     "completedAt": "2026-10-25T17:20:50.4138365+00:00",
+     "jobId": 1103
+    }
+   }
+  },
+  {
+   "name": "run_layer",
+   "args": {
+    "waitSeconds": 200,
+    "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+    "entryPoint": "Step",
+    "parallelism": 4,
+    "layerKey": "step-7",
+    "parameters": {
+     "M": "16777216",
+     "K": "5000000"
+    },
+    "previousLayerIds": [
+     "dc5ee28897674fbb9b43c19cdf70f7cf"
+    ]
+   },
+   "t_start": 1792948851.0819466,
+   "t_end": 1792948854.7865367,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+    "layerId": "6cd5ed3230464a25b9bb31b4cbe9ac9f",
+    "layerKey": "step-7",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Step",
+     "parallelism": 4,
+     "previousLayerIds": [
+      "dc5ee28897674fbb9b43c19cdf70f7cf"
+     ],
+     "successCount": 4,
+     "failureCount": 0,
+     "queuedSeconds": 0.021537,
+     "elapsedSeconds": 3.1485001,
+     "submittedAt": "2026-10-25T17:20:50.9535152+00:00",
+     "startedAt": "2026-10-25T17:20:50.9750522+00:00",
+     "completedAt": "2026-10-25T17:20:54.1235523+00:00",
+     "jobId": 1104
+    }
+   }
+  },
+  {
+   "name": "run_layer",
+   "args": {
+    "waitSeconds": 200,
+    "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+    "entryPoint": "Step",
+    "parallelism": 4,
+    "layerKey": "step-8",
+    "parameters": {
+     "M": "16777216",
+     "K": "5000000"
+    },
+    "previousLayerIds": [
+     "6cd5ed3230464a25b9bb31b4cbe9ac9f"
+    ]
+   },
+   "t_start": 1792948854.7925377,
+   "t_end": 1792948858.4948788,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+    "layerId": "5ccd02d7aad344b481a74eac2ce083cd",
+    "layerKey": "step-8",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Step",
+     "parallelism": 4,
+     "previousLayerIds": [
+      "6cd5ed3230464a25b9bb31b4cbe9ac9f"
+     ],
+     "successCount": 4,
+     "failureCount": 0,
+     "queuedSeconds": 0.0243097,
+     "elapsedSeconds": 3.1445646,
+     "submittedAt": "2026-10-25T17:20:54.6668987+00:00",
+     "startedAt": "2026-10-25T17:20:54.6912084+00:00",
+     "completedAt": "2026-10-25T17:20:57.835773+00:00",
+     "jobId": 1105
+    }
+   }
+  },
+  {
+   "name": "run_layer",
+   "args": {
+    "waitSeconds": 200,
+    "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+    "entryPoint": "Step",
+    "parallelism": 4,
+    "layerKey": "step-9",
+    "parameters": {
+     "M": "16777216",
+     "K": "5000000"
+    },
+    "previousLayerIds": [
+     "5ccd02d7aad344b481a74eac2ce083cd"
+    ]
+   },
+   "t_start": 1792948858.5008786,
+   "t_end": 1792948862.1952143,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+    "layerId": "d848b13deeb2408e83a4e713a64fd23a",
+    "layerKey": "step-9",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Step",
+     "parallelism": 4,
+     "previousLayerIds": [
+      "5ccd02d7aad344b481a74eac2ce083cd"
+     ],
+     "successCount": 4,
+     "failureCount": 0,
+     "queuedSeconds": 0.0216247,
+     "elapsedSeconds": 3.1402833,
+     "submittedAt": "2026-10-25T17:20:58.3708951+00:00",
+     "startedAt": "2026-10-25T17:20:58.3925198+00:00",
+     "completedAt": "2026-10-25T17:21:01.5328031+00:00",
+     "jobId": 1106
+    }
+   }
+  },
+  {
+   "name": "run_layer",
+   "args": {
+    "waitSeconds": 200,
+    "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+    "entryPoint": "Step",
+    "parallelism": 4,
+    "layerKey": "step-10",
+    "parameters": {
+     "M": "16777216",
+     "K": "5000000"
+    },
+    "previousLayerIds": [
+     "d848b13deeb2408e83a4e713a64fd23a"
+    ]
+   },
+   "t_start": 1792948862.2007189,
+   "t_end": 1792948865.9098203,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+    "layerId": "446e409008a64fd7ad3957fd097a0f66",
+    "layerKey": "step-10",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Step",
+     "parallelism": 4,
+     "previousLayerIds": [
+      "d848b13deeb2408e83a4e713a64fd23a"
+     ],
+     "successCount": 4,
+     "failureCount": 0,
+     "queuedSeconds": 0.0227228,
+     "elapsedSeconds": 3.1488411,
+     "submittedAt": "2026-10-25T17:21:02.0799994+00:00",
+     "startedAt": "2026-10-25T17:21:02.1027222+00:00",
+     "completedAt": "2026-10-25T17:21:05.2515633+00:00",
+     "jobId": 1107
+    }
+   }
+  },
+  {
+   "name": "run_layer",
+   "args": {
+    "waitSeconds": 200,
+    "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+    "entryPoint": "Step",
+    "parallelism": 4,
+    "layerKey": "step-11",
+    "parameters": {
+     "M": "16777216",
+     "K": "5000000"
+    },
+    "previousLayerIds": [
+     "446e409008a64fd7ad3957fd097a0f66"
+    ]
+   },
+   "t_start": 1792948865.9158244,
+   "t_end": 1792948869.6138883,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+    "layerId": "38de394e7fc44d2c9475d8e4072a7754",
+    "layerKey": "step-11",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Step",
+     "parallelism": 4,
+     "previousLayerIds": [
+      "446e409008a64fd7ad3957fd097a0f66"
+     ],
+     "successCount": 4,
+     "failureCount": 0,
+     "queuedSeconds": 0.0221366,
+     "elapsedSeconds": 3.1359306,
+     "submittedAt": "2026-10-25T17:21:05.7876139+00:00",
+     "startedAt": "2026-10-25T17:21:05.8097505+00:00",
+     "completedAt": "2026-10-25T17:21:08.9456811+00:00",
+     "jobId": 1108
+    }
+   }
+  },
+  {
+   "name": "run_layer",
+   "args": {
+    "waitSeconds": 200,
+    "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+    "entryPoint": "Step",
+    "parallelism": 4,
+    "layerKey": "step-12",
+    "parameters": {
+     "M": "16777216",
+     "K": "5000000"
+    },
+    "previousLayerIds": [
+     "38de394e7fc44d2c9475d8e4072a7754"
+    ]
+   },
+   "t_start": 1792948869.6198967,
+   "t_end": 1792948873.3216379,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+    "layerId": "f2bcc44c917e42f0827187b1011c829f",
+    "layerKey": "step-12",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Step",
+     "parallelism": 4,
+     "previousLayerIds": [
+      "38de394e7fc44d2c9475d8e4072a7754"
+     ],
+     "successCount": 4,
+     "failureCount": 0,
+     "queuedSeconds": 0.0229102,
+     "elapsedSeconds": 3.1436563,
+     "submittedAt": "2026-10-25T17:21:09.4881235+00:00",
+     "startedAt": "2026-10-25T17:21:09.5110337+00:00",
+     "completedAt": "2026-10-25T17:21:12.65469+00:00",
+     "jobId": 1109
+    }
+   }
+  },
+  {
+   "name": "run_layer",
+   "args": {
+    "waitSeconds": 200,
+    "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+    "entryPoint": "Step",
+    "parallelism": 4,
+    "layerKey": "step-13",
+    "parameters": {
+     "M": "16777216",
+     "K": "5000000"
+    },
+    "previousLayerIds": [
+     "f2bcc44c917e42f0827187b1011c829f"
+    ]
+   },
+   "t_start": 1792948873.3271396,
+   "t_end": 1792948877.0147202,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+    "layerId": "79a018ad88be46da98530ed80b8475a3",
+    "layerKey": "step-13",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Step",
+     "parallelism": 4,
+     "previousLayerIds": [
+      "f2bcc44c917e42f0827187b1011c829f"
+     ],
+     "successCount": 4,
+     "failureCount": 0,
+     "queuedSeconds": 0.0225021,
+     "elapsedSeconds": 3.1344747,
+     "submittedAt": "2026-10-25T17:21:13.1977211+00:00",
+     "startedAt": "2026-10-25T17:21:13.2202232+00:00",
+     "completedAt": "2026-10-25T17:21:16.3546979+00:00",
+     "jobId": 1110
+    }
+   }
+  },
+  {
+   "name": "run_layer",
+   "args": {
+    "waitSeconds": 200,
+    "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+    "entryPoint": "Step",
+    "parallelism": 4,
+    "layerKey": "step-14",
+    "parameters": {
+     "M": "16777216",
+     "K": "5000000"
+    },
+    "previousLayerIds": [
+     "79a018ad88be46da98530ed80b8475a3"
+    ]
+   },
+   "t_start": 1792948877.0207205,
+   "t_end": 1792948880.7120411,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+    "layerId": "74edd92697ff48fcb45cc062d9ee5d9b",
+    "layerKey": "step-14",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Step",
+     "parallelism": 4,
+     "previousLayerIds": [
+      "79a018ad88be46da98530ed80b8475a3"
+     ],
+     "successCount": 4,
+     "failureCount": 0,
+     "queuedSeconds": 0.0244178,
+     "elapsedSeconds": 3.1371345,
+     "submittedAt": "2026-10-25T17:21:16.891415+00:00",
+     "startedAt": "2026-10-25T17:21:16.9158328+00:00",
+     "completedAt": "2026-10-25T17:21:20.0529673+00:00",
+     "jobId": 1111
+    }
+   }
+  },
+  {
+   "name": "run_layer",
+   "args": {
+    "waitSeconds": 200,
+    "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+    "entryPoint": "Step",
+    "parallelism": 4,
+    "layerKey": "step-15",
+    "parameters": {
+     "M": "16777216",
+     "K": "5000000"
+    },
+    "previousLayerIds": [
+     "74edd92697ff48fcb45cc062d9ee5d9b"
+    ]
+   },
+   "t_start": 1792948880.7180502,
+   "t_end": 1792948884.4615936,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+    "layerId": "0e47e560048f413a9427179080892acd",
+    "layerKey": "step-15",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Step",
+     "parallelism": 4,
+     "previousLayerIds": [
+      "74edd92697ff48fcb45cc062d9ee5d9b"
+     ],
+     "successCount": 4,
+     "failureCount": 0,
+     "queuedSeconds": 0.0220525,
+     "elapsedSeconds": 3.1647106,
+     "submittedAt": "2026-10-25T17:21:20.6073935+00:00",
+     "startedAt": "2026-10-25T17:21:20.629446+00:00",
+     "completedAt": "2026-10-25T17:21:23.7941566+00:00",
+     "jobId": 1112
+    }
+   }
+  },
+  {
+   "name": "run_layer",
+   "args": {
+    "waitSeconds": 200,
+    "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+    "entryPoint": "Step",
+    "parallelism": 4,
+    "layerKey": "step-16",
+    "parameters": {
+     "M": "16777216",
+     "K": "5000000"
+    },
+    "previousLayerIds": [
+     "0e47e560048f413a9427179080892acd"
+    ]
+   },
+   "t_start": 1792948884.4675937,
+   "t_end": 1792948888.1884043,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+    "layerId": "6985453aae3144e693804851187797e5",
+    "layerKey": "step-16",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Step",
+     "parallelism": 4,
+     "previousLayerIds": [
+      "0e47e560048f413a9427179080892acd"
+     ],
+     "successCount": 4,
+     "failureCount": 0,
+     "queuedSeconds": 0.0225299,
+     "elapsedSeconds": 3.133302,
+     "submittedAt": "2026-10-25T17:21:24.3560115+00:00",
+     "startedAt": "2026-10-25T17:21:24.3785414+00:00",
+     "completedAt": "2026-10-25T17:21:27.5118434+00:00",
+     "jobId": 1113
+    }
+   }
+  },
+  {
+   "name": "run_layer",
+   "args": {
+    "waitSeconds": 200,
+    "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+    "entryPoint": "Step",
+    "parallelism": 4,
+    "layerKey": "step-17",
+    "parameters": {
+     "M": "16777216",
+     "K": "5000000"
+    },
+    "previousLayerIds": [
+     "6985453aae3144e693804851187797e5"
+    ]
+   },
+   "t_start": 1792948888.1944091,
+   "t_end": 1792948891.9681294,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+    "layerId": "b4b5acc21efb4f7e816347e4cf464404",
+    "layerKey": "step-17",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Step",
+     "parallelism": 4,
+     "previousLayerIds": [
+      "6985453aae3144e693804851187797e5"
+     ],
+     "successCount": 4,
+     "failureCount": 0,
+     "queuedSeconds": 0.0244858,
+     "elapsedSeconds": 3.1361681,
+     "submittedAt": "2026-10-25T17:21:28.1500784+00:00",
+     "startedAt": "2026-10-25T17:21:28.1745642+00:00",
+     "completedAt": "2026-10-25T17:21:31.3107323+00:00",
+     "jobId": 1114
+    }
+   }
+  },
+  {
+   "name": "run_layer",
+   "args": {
+    "waitSeconds": 200,
+    "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+    "entryPoint": "Step",
+    "parallelism": 4,
+    "layerKey": "step-18",
+    "parameters": {
+     "M": "16777216",
+     "K": "5000000"
+    },
+    "previousLayerIds": [
+     "b4b5acc21efb4f7e816347e4cf464404"
+    ]
+   },
+   "t_start": 1792948891.9736297,
+   "t_end": 1792948895.6643708,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+    "layerId": "157df87105d44887a46d72aad7266764",
+    "layerKey": "step-18",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Step",
+     "parallelism": 4,
+     "previousLayerIds": [
+      "b4b5acc21efb4f7e816347e4cf464404"
+     ],
+     "successCount": 4,
+     "failureCount": 0,
+     "queuedSeconds": 0.0215071,
+     "elapsedSeconds": 3.1326092,
+     "submittedAt": "2026-10-25T17:21:31.8457376+00:00",
+     "startedAt": "2026-10-25T17:21:31.8672447+00:00",
+     "completedAt": "2026-10-25T17:21:34.9998539+00:00",
+     "jobId": 1115
+    }
+   }
+  },
+  {
+   "name": "run_layer",
+   "args": {
+    "waitSeconds": 200,
+    "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+    "entryPoint": "Step",
+    "parallelism": 4,
+    "layerKey": "step-19",
+    "parameters": {
+     "M": "16777216",
+     "K": "5000000"
+    },
+    "previousLayerIds": [
+     "157df87105d44887a46d72aad7266764"
+    ]
+   },
+   "t_start": 1792948895.6708708,
+   "t_end": 1792948899.3776896,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+    "layerId": "1345f8b007f744ca9ccd0b28846bb3db",
+    "layerKey": "step-19",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Step",
+     "parallelism": 4,
+     "previousLayerIds": [
+      "157df87105d44887a46d72aad7266764"
+     ],
+     "successCount": 4,
+     "failureCount": 0,
+     "queuedSeconds": 0.0213652,
+     "elapsedSeconds": 3.1440451,
+     "submittedAt": "2026-10-25T17:21:35.5459516+00:00",
+     "startedAt": "2026-10-25T17:21:35.5673168+00:00",
+     "completedAt": "2026-10-25T17:21:38.7113619+00:00",
+     "jobId": 1116
+    }
+   }
+  },
+  {
+   "name": "run_layer",
+   "args": {
+    "waitSeconds": 200,
+    "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+    "entryPoint": "Step",
+    "parallelism": 4,
+    "layerKey": "step-20",
+    "parameters": {
+     "M": "16777216",
+     "K": "5000000"
+    },
+    "previousLayerIds": [
+     "1345f8b007f744ca9ccd0b28846bb3db"
+    ]
+   },
+   "t_start": 1792948899.3838854,
+   "t_end": 1792948903.0942912,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+    "layerId": "276c2b8d1e2d486a95d3c5e8df8b32e6",
+    "layerKey": "step-20",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Step",
+     "parallelism": 4,
+     "previousLayerIds": [
+      "1345f8b007f744ca9ccd0b28846bb3db"
+     ],
+     "successCount": 4,
+     "failureCount": 0,
+     "queuedSeconds": 0.0230114,
+     "elapsedSeconds": 3.1435078,
+     "submittedAt": "2026-10-25T17:21:39.2637354+00:00",
+     "startedAt": "2026-10-25T17:21:39.2867468+00:00",
+     "completedAt": "2026-10-25T17:21:42.4302546+00:00",
+     "jobId": 1117
+    }
+   }
+  },
+  {
+   "name": "run_layer",
+   "args": {
+    "waitSeconds": 200,
+    "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+    "entryPoint": "Step",
+    "parallelism": 4,
+    "layerKey": "step-21",
+    "parameters": {
+     "M": "16777216",
+     "K": "5000000"
+    },
+    "previousLayerIds": [
+     "276c2b8d1e2d486a95d3c5e8df8b32e6"
+    ]
+   },
+   "t_start": 1792948903.0997918,
+   "t_end": 1792948906.7910323,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+    "layerId": "f929470b6b904100980d7c017efcd16a",
+    "layerKey": "step-21",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Step",
+     "parallelism": 4,
+     "previousLayerIds": [
+      "276c2b8d1e2d486a95d3c5e8df8b32e6"
+     ],
+     "successCount": 4,
+     "failureCount": 0,
+     "queuedSeconds": 0.0222861,
+     "elapsedSeconds": 3.1402114,
+     "submittedAt": "2026-10-25T17:21:42.9701075+00:00",
+     "startedAt": "2026-10-25T17:21:42.9923936+00:00",
+     "completedAt": "2026-10-25T17:21:46.132605+00:00",
+     "jobId": 1118
+    }
+   }
+  },
+  {
+   "name": "run_layer",
+   "args": {
+    "waitSeconds": 200,
+    "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+    "entryPoint": "Step",
+    "parallelism": 4,
+    "layerKey": "step-22",
+    "parameters": {
+     "M": "16777216",
+     "K": "5000000"
+    },
+    "previousLayerIds": [
+     "f929470b6b904100980d7c017efcd16a"
+    ]
+   },
+   "t_start": 1792948906.7975473,
+   "t_end": 1792948910.4974027,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+    "layerId": "ecbea908deff425bb46b643012c5628c",
+    "layerKey": "step-22",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Step",
+     "parallelism": 4,
+     "previousLayerIds": [
+      "f929470b6b904100980d7c017efcd16a"
+     ],
+     "successCount": 4,
+     "failureCount": 0,
+     "queuedSeconds": 0.0231013,
+     "elapsedSeconds": 3.1411493,
+     "submittedAt": "2026-10-25T17:21:46.6701117+00:00",
+     "startedAt": "2026-10-25T17:21:46.693213+00:00",
+     "completedAt": "2026-10-25T17:21:49.8343623+00:00",
+     "jobId": 1119
+    }
+   }
+  },
+  {
+   "name": "run_layer",
+   "args": {
+    "waitSeconds": 200,
+    "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+    "entryPoint": "Step",
+    "parallelism": 4,
+    "layerKey": "step-23",
+    "parameters": {
+     "M": "16777216",
+     "K": "5000000"
+    },
+    "previousLayerIds": [
+     "ecbea908deff425bb46b643012c5628c"
+    ]
+   },
+   "t_start": 1792948910.503904,
+   "t_end": 1792948914.2190402,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+    "layerId": "56608e3813104aba832081168ae224e9",
+    "layerKey": "step-23",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Step",
+     "parallelism": 4,
+     "previousLayerIds": [
+      "ecbea908deff425bb46b643012c5628c"
+     ],
+     "successCount": 4,
+     "failureCount": 0,
+     "queuedSeconds": 0.0224984,
+     "elapsedSeconds": 3.1455861,
+     "submittedAt": "2026-10-25T17:21:50.3869869+00:00",
+     "startedAt": "2026-10-25T17:21:50.4094853+00:00",
+     "completedAt": "2026-10-25T17:21:53.5550714+00:00",
+     "jobId": 1120
+    }
+   }
+  },
+  {
+   "name": "run_layer",
+   "args": {
+    "waitSeconds": 200,
+    "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+    "entryPoint": "Step",
+    "parallelism": 4,
+    "layerKey": "step-24",
+    "parameters": {
+     "M": "16777216",
+     "K": "5000000"
+    },
+    "previousLayerIds": [
+     "56608e3813104aba832081168ae224e9"
+    ]
+   },
+   "t_start": 1792948914.2255518,
+   "t_end": 1792948917.9147115,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+    "layerId": "d665c0ca6595477088647af14f785852",
+    "layerKey": "step-24",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Step",
+     "parallelism": 4,
+     "previousLayerIds": [
+      "56608e3813104aba832081168ae224e9"
+     ],
+     "successCount": 4,
+     "failureCount": 0,
+     "queuedSeconds": 0.0206876,
+     "elapsedSeconds": 3.1306151,
+     "submittedAt": "2026-10-25T17:21:54.1022644+00:00",
+     "startedAt": "2026-10-25T17:21:54.122952+00:00",
+     "completedAt": "2026-10-25T17:21:57.2535671+00:00",
+     "jobId": 1121
+    }
+   }
+  },
+  {
+   "name": "run_layer",
+   "args": {
+    "waitSeconds": 200,
+    "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+    "entryPoint": "Step",
+    "parallelism": 4,
+    "layerKey": "step-25",
+    "parameters": {
+     "M": "16777216",
+     "K": "5000000"
+    },
+    "previousLayerIds": [
+     "d665c0ca6595477088647af14f785852"
+    ]
+   },
+   "t_start": 1792948917.9207118,
+   "t_end": 1792948921.621071,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+    "layerId": "713b419c67a444cbb17d7ebfdd126201",
+    "layerKey": "step-25",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Step",
+     "parallelism": 4,
+     "previousLayerIds": [
+      "d665c0ca6595477088647af14f785852"
+     ],
+     "successCount": 4,
+     "failureCount": 0,
+     "queuedSeconds": 0.0234218,
+     "elapsedSeconds": 3.1382031,
+     "submittedAt": "2026-10-25T17:21:57.8006022+00:00",
+     "startedAt": "2026-10-25T17:21:57.824024+00:00",
+     "completedAt": "2026-10-25T17:22:00.9622271+00:00",
+     "jobId": 1122
+    }
+   }
+  },
+  {
+   "name": "run_layer",
+   "args": {
+    "waitSeconds": 200,
+    "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+    "entryPoint": "Step",
+    "parallelism": 4,
+    "layerKey": "step-26",
+    "parameters": {
+     "M": "16777216",
+     "K": "5000000"
+    },
+    "previousLayerIds": [
+     "713b419c67a444cbb17d7ebfdd126201"
+    ]
+   },
+   "t_start": 1792948921.627152,
+   "t_end": 1792948925.333951,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+    "layerId": "f32334605ac94800acef7ed2f701db1b",
+    "layerKey": "step-26",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Step",
+     "parallelism": 4,
+     "previousLayerIds": [
+      "713b419c67a444cbb17d7ebfdd126201"
+     ],
+     "successCount": 4,
+     "failureCount": 0,
+     "queuedSeconds": 0.0230494,
+     "elapsedSeconds": 3.1504772,
+     "submittedAt": "2026-10-25T17:22:01.4987935+00:00",
+     "startedAt": "2026-10-25T17:22:01.5218429+00:00",
+     "completedAt": "2026-10-25T17:22:04.6723201+00:00",
+     "jobId": 1123
+    }
+   }
+  },
+  {
+   "name": "run_layer",
+   "args": {
+    "waitSeconds": 200,
+    "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+    "entryPoint": "Step",
+    "parallelism": 4,
+    "layerKey": "step-27",
+    "parameters": {
+     "M": "16777216",
+     "K": "5000000"
+    },
+    "previousLayerIds": [
+     "f32334605ac94800acef7ed2f701db1b"
+    ]
+   },
+   "t_start": 1792948925.3399503,
+   "t_end": 1792948929.0289793,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+    "layerId": "b0de76fe1efe4016860a55c6a7624501",
+    "layerKey": "step-27",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Step",
+     "parallelism": 4,
+     "previousLayerIds": [
+      "f32334605ac94800acef7ed2f701db1b"
+     ],
+     "successCount": 4,
+     "failureCount": 0,
+     "queuedSeconds": 0.023861,
+     "elapsedSeconds": 3.1375788,
+     "submittedAt": "2026-10-25T17:22:05.2085169+00:00",
+     "startedAt": "2026-10-25T17:22:05.2323779+00:00",
+     "completedAt": "2026-10-25T17:22:08.3699567+00:00",
+     "jobId": 1124
+    }
+   }
+  },
+  {
+   "name": "run_layer",
+   "args": {
+    "waitSeconds": 200,
+    "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+    "entryPoint": "Step",
+    "parallelism": 4,
+    "layerKey": "step-28",
+    "parameters": {
+     "M": "16777216",
+     "K": "5000000"
+    },
+    "previousLayerIds": [
+     "b0de76fe1efe4016860a55c6a7624501"
+    ]
+   },
+   "t_start": 1792948929.035479,
+   "t_end": 1792948932.7425268,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+    "layerId": "f388197fde3041f9a192ff96a063e5dd",
+    "layerKey": "step-28",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Step",
+     "parallelism": 4,
+     "previousLayerIds": [
+      "b0de76fe1efe4016860a55c6a7624501"
+     ],
+     "successCount": 4,
+     "failureCount": 0,
+     "queuedSeconds": 0.0248063,
+     "elapsedSeconds": 3.1485016,
+     "submittedAt": "2026-10-25T17:22:08.9105522+00:00",
+     "startedAt": "2026-10-25T17:22:08.9353585+00:00",
+     "completedAt": "2026-10-25T17:22:12.0838601+00:00",
+     "jobId": 1125
+    }
+   }
+  },
+  {
+   "name": "run_layer",
+   "args": {
+    "waitSeconds": 200,
+    "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+    "entryPoint": "Step",
+    "parallelism": 4,
+    "layerKey": "step-29",
+    "parameters": {
+     "M": "16777216",
+     "K": "5000000"
+    },
+    "previousLayerIds": [
+     "f388197fde3041f9a192ff96a063e5dd"
+    ]
+   },
+   "t_start": 1792948932.7483628,
+   "t_end": 1792948936.4410768,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+    "layerId": "a9af78cff8ae4155965cc48672ccf678",
+    "layerKey": "step-29",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Step",
+     "parallelism": 4,
+     "previousLayerIds": [
+      "f388197fde3041f9a192ff96a063e5dd"
+     ],
+     "successCount": 4,
+     "failureCount": 0,
+     "queuedSeconds": 0.02314,
+     "elapsedSeconds": 3.1366914,
+     "submittedAt": "2026-10-25T17:22:12.6205986+00:00",
+     "startedAt": "2026-10-25T17:22:12.6437386+00:00",
+     "completedAt": "2026-10-25T17:22:15.78043+00:00",
+     "jobId": 1126
+    }
+   }
+  },
+  {
+   "name": "run_layer",
+   "args": {
+    "waitSeconds": 200,
+    "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+    "entryPoint": "Step",
+    "parallelism": 4,
+    "layerKey": "step-30",
+    "parameters": {
+     "M": "16777216",
+     "K": "5000000"
+    },
+    "previousLayerIds": [
+     "a9af78cff8ae4155965cc48672ccf678"
+    ]
+   },
+   "t_start": 1792948936.4470768,
+   "t_end": 1792948940.1500926,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+    "layerId": "4c61699a7deb410b83f9d63f859b56fb",
+    "layerKey": "step-30",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Step",
+     "parallelism": 4,
+     "previousLayerIds": [
+      "a9af78cff8ae4155965cc48672ccf678"
+     ],
+     "successCount": 4,
+     "failureCount": 0,
+     "queuedSeconds": 0.0204066,
+     "elapsedSeconds": 3.1411066,
+     "submittedAt": "2026-10-25T17:22:16.329746+00:00",
+     "startedAt": "2026-10-25T17:22:16.3501526+00:00",
+     "completedAt": "2026-10-25T17:22:19.4912592+00:00",
+     "jobId": 1127
+    }
+   }
+  },
+  {
+   "name": "run_layer",
+   "args": {
+    "waitSeconds": 200,
+    "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+    "entryPoint": "Step",
+    "parallelism": 4,
+    "layerKey": "step-31",
+    "parameters": {
+     "M": "16777216",
+     "K": "5000000"
+    },
+    "previousLayerIds": [
+     "4c61699a7deb410b83f9d63f859b56fb"
+    ]
+   },
+   "t_start": 1792948940.1560948,
+   "t_end": 1792948943.8570187,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+    "layerId": "d7dababf178c4f588f2382277d165859",
+    "layerKey": "step-31",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Step",
+     "parallelism": 4,
+     "previousLayerIds": [
+      "4c61699a7deb410b83f9d63f859b56fb"
+     ],
+     "successCount": 4,
+     "failureCount": 0,
+     "queuedSeconds": 0.0241071,
+     "elapsedSeconds": 3.1412291,
+     "submittedAt": "2026-10-25T17:22:20.0269182+00:00",
+     "startedAt": "2026-10-25T17:22:20.0510253+00:00",
+     "completedAt": "2026-10-25T17:22:23.1922544+00:00",
+     "jobId": 1128
+    }
+   }
+  },
+  {
+   "name": "run_layer",
+   "args": {
+    "waitSeconds": 200,
+    "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+    "entryPoint": "Step",
+    "parallelism": 4,
+    "layerKey": "step-32",
+    "parameters": {
+     "M": "16777216",
+     "K": "5000000"
+    },
+    "previousLayerIds": [
+     "d7dababf178c4f588f2382277d165859"
+    ]
+   },
+   "t_start": 1792948943.863019,
+   "t_end": 1792948947.5773678,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+    "layerId": "d961edb2b535453990e6a7e0eea47696",
+    "layerKey": "step-32",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Step",
+     "parallelism": 4,
+     "previousLayerIds": [
+      "d7dababf178c4f588f2382277d165859"
+     ],
+     "successCount": 4,
+     "failureCount": 0,
+     "queuedSeconds": 0.0223524,
+     "elapsedSeconds": 3.1496266,
+     "submittedAt": "2026-10-25T17:22:23.7405726+00:00",
+     "startedAt": "2026-10-25T17:22:23.762925+00:00",
+     "completedAt": "2026-10-25T17:22:26.9125516+00:00",
+     "jobId": 1129
+    }
+   }
+  },
+  {
+   "name": "run_layer",
+   "args": {
+    "waitSeconds": 200,
+    "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+    "entryPoint": "Step",
+    "parallelism": 1,
+    "layerKey": "final",
+    "parameters": {
+     "M": "16777216",
+     "K": "5000000",
+     "final": "1"
+    },
+    "previousLayerIds": [
+     "d961edb2b535453990e6a7e0eea47696"
+    ]
+   },
+   "t_start": 1792948947.58343,
+   "t_end": 1792948951.324472,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+    "layerId": "4041f26c2c6a4bd0b6a05bc1e5ab35c8",
+    "layerKey": "final",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Step",
+     "parallelism": 1,
+     "previousLayerIds": [
+      "d961edb2b535453990e6a7e0eea47696"
+     ],
+     "successCount": 1,
+     "failureCount": 0,
+     "queuedSeconds": 0.0226956,
+     "elapsedSeconds": 3.1296978,
+     "submittedAt": "2026-10-25T17:22:27.4588778+00:00",
+     "startedAt": "2026-10-25T17:22:27.4815734+00:00",
+     "completedAt": "2026-10-25T17:22:30.6112712+00:00",
+     "jobId": 1130
+    },
+    "output": {
+     "count": 0,
+     "lo": 0.2980832071043551,
+     "hi": 0.29808320733718574,
+     "mid": 0.2980832072207704
+    }
+   }
+  }
+ ],
+ "model_calls": [
+  {
+   "t_start": 1792948800.3933992,
+   "t_end": 1792948819.9814599
+  },
+  {
+   "t_start": 1792948819.9864595,
+   "t_end": 1792948827.6366916
+  },
+  {
+   "t_start": 1792948951.3324728,
+   "t_end": 1792948955.418453
+  }
+ ],
+ "layers": [
+  {
+   "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+   "layerId": "eaaab0144fed4054b00be3d7e213a132",
+   "layerKey": "step-1",
+   "status": "Completed",
+   "entryPoint": "Step",
+   "parallelism": 4,
+   "previousLayerIds": [],
+   "submittedAt": "2026-10-25T17:20:28.7013191+00:00",
+   "completedAt": "2026-10-25T17:20:31.8744593+00:00"
+  },
+  {
+   "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+   "layerId": "09bb5ab618b34f10801165c02038c86e",
+   "layerKey": "step-2",
+   "status": "Completed",
+   "entryPoint": "Step",
+   "parallelism": 4,
+   "previousLayerIds": [
+    "eaaab0144fed4054b00be3d7e213a132"
+   ],
+   "submittedAt": "2026-10-25T17:20:32.4111398+00:00",
+   "completedAt": "2026-10-25T17:20:35.5896707+00:00"
+  },
+  {
+   "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+   "layerId": "b29035a48e914284926720ca2805b78c",
+   "layerKey": "step-3",
+   "status": "Completed",
+   "entryPoint": "Step",
+   "parallelism": 4,
+   "previousLayerIds": [
+    "09bb5ab618b34f10801165c02038c86e"
+   ],
+   "submittedAt": "2026-10-25T17:20:36.1227594+00:00",
+   "completedAt": "2026-10-25T17:20:39.2878888+00:00"
+  },
+  {
+   "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+   "layerId": "3e8d5e9c9fb6498d8db72a7931fb1f04",
+   "layerKey": "step-4",
+   "status": "Completed",
+   "entryPoint": "Step",
+   "parallelism": 4,
+   "previousLayerIds": [
+    "b29035a48e914284926720ca2805b78c"
+   ],
+   "submittedAt": "2026-10-25T17:20:39.82903+00:00",
+   "completedAt": "2026-10-25T17:20:42.985138+00:00"
+  },
+  {
+   "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+   "layerId": "0b6d610ad2e14e4f8faebf59ba3e43e5",
+   "layerKey": "step-5",
+   "status": "Completed",
+   "entryPoint": "Step",
+   "parallelism": 4,
+   "previousLayerIds": [
+    "3e8d5e9c9fb6498d8db72a7931fb1f04"
+   ],
+   "submittedAt": "2026-10-25T17:20:43.5431053+00:00",
+   "completedAt": "2026-10-25T17:20:46.7028215+00:00"
+  },
+  {
+   "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+   "layerId": "dc5ee28897674fbb9b43c19cdf70f7cf",
+   "layerKey": "step-6",
+   "status": "Completed",
+   "entryPoint": "Step",
+   "parallelism": 4,
+   "previousLayerIds": [
+    "0b6d610ad2e14e4f8faebf59ba3e43e5"
+   ],
+   "submittedAt": "2026-10-25T17:20:47.2470307+00:00",
+   "completedAt": "2026-10-25T17:20:50.4138365+00:00"
+  },
+  {
+   "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+   "layerId": "6cd5ed3230464a25b9bb31b4cbe9ac9f",
+   "layerKey": "step-7",
+   "status": "Completed",
+   "entryPoint": "Step",
+   "parallelism": 4,
+   "previousLayerIds": [
+    "dc5ee28897674fbb9b43c19cdf70f7cf"
+   ],
+   "submittedAt": "2026-10-25T17:20:50.9535152+00:00",
+   "completedAt": "2026-10-25T17:20:54.1235523+00:00"
+  },
+  {
+   "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+   "layerId": "5ccd02d7aad344b481a74eac2ce083cd",
+   "layerKey": "step-8",
+   "status": "Completed",
+   "entryPoint": "Step",
+   "parallelism": 4,
+   "previousLayerIds": [
+    "6cd5ed3230464a25b9bb31b4cbe9ac9f"
+   ],
+   "submittedAt": "2026-10-25T17:20:54.6668987+00:00",
+   "completedAt": "2026-10-25T17:20:57.835773+00:00"
+  },
+  {
+   "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+   "layerId": "d848b13deeb2408e83a4e713a64fd23a",
+   "layerKey": "step-9",
+   "status": "Completed",
+   "entryPoint": "Step",
+   "parallelism": 4,
+   "previousLayerIds": [
+    "5ccd02d7aad344b481a74eac2ce083cd"
+   ],
+   "submittedAt": "2026-10-25T17:20:58.3708951+00:00",
+   "completedAt": "2026-10-25T17:21:01.5328031+00:00"
+  },
+  {
+   "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+   "layerId": "446e409008a64fd7ad3957fd097a0f66",
+   "layerKey": "step-10",
+   "status": "Completed",
+   "entryPoint": "Step",
+   "parallelism": 4,
+   "previousLayerIds": [
+    "d848b13deeb2408e83a4e713a64fd23a"
+   ],
+   "submittedAt": "2026-10-25T17:21:02.0799994+00:00",
+   "completedAt": "2026-10-25T17:21:05.2515633+00:00"
+  },
+  {
+   "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+   "layerId": "38de394e7fc44d2c9475d8e4072a7754",
+   "layerKey": "step-11",
+   "status": "Completed",
+   "entryPoint": "Step",
+   "parallelism": 4,
+   "previousLayerIds": [
+    "446e409008a64fd7ad3957fd097a0f66"
+   ],
+   "submittedAt": "2026-10-25T17:21:05.7876139+00:00",
+   "completedAt": "2026-10-25T17:21:08.9456811+00:00"
+  },
+  {
+   "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+   "layerId": "f2bcc44c917e42f0827187b1011c829f",
+   "layerKey": "step-12",
+   "status": "Completed",
+   "entryPoint": "Step",
+   "parallelism": 4,
+   "previousLayerIds": [
+    "38de394e7fc44d2c9475d8e4072a7754"
+   ],
+   "submittedAt": "2026-10-25T17:21:09.4881235+00:00",
+   "completedAt": "2026-10-25T17:21:12.65469+00:00"
+  },
+  {
+   "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+   "layerId": "79a018ad88be46da98530ed80b8475a3",
+   "layerKey": "step-13",
+   "status": "Completed",
+   "entryPoint": "Step",
+   "parallelism": 4,
+   "previousLayerIds": [
+    "f2bcc44c917e42f0827187b1011c829f"
+   ],
+   "submittedAt": "2026-10-25T17:21:13.1977211+00:00",
+   "completedAt": "2026-10-25T17:21:16.3546979+00:00"
+  },
+  {
+   "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+   "layerId": "74edd92697ff48fcb45cc062d9ee5d9b",
+   "layerKey": "step-14",
+   "status": "Completed",
+   "entryPoint": "Step",
+   "parallelism": 4,
+   "previousLayerIds": [
+    "79a018ad88be46da98530ed80b8475a3"
+   ],
+   "submittedAt": "2026-10-25T17:21:16.891415+00:00",
+   "completedAt": "2026-10-25T17:21:20.0529673+00:00"
+  },
+  {
+   "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+   "layerId": "0e47e560048f413a9427179080892acd",
+   "layerKey": "step-15",
+   "status": "Completed",
+   "entryPoint": "Step",
+   "parallelism": 4,
+   "previousLayerIds": [
+    "74edd92697ff48fcb45cc062d9ee5d9b"
+   ],
+   "submittedAt": "2026-10-25T17:21:20.6073935+00:00",
+   "completedAt": "2026-10-25T17:21:23.7941566+00:00"
+  },
+  {
+   "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+   "layerId": "6985453aae3144e693804851187797e5",
+   "layerKey": "step-16",
+   "status": "Completed",
+   "entryPoint": "Step",
+   "parallelism": 4,
+   "previousLayerIds": [
+    "0e47e560048f413a9427179080892acd"
+   ],
+   "submittedAt": "2026-10-25T17:21:24.3560115+00:00",
+   "completedAt": "2026-10-25T17:21:27.5118434+00:00"
+  },
+  {
+   "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+   "layerId": "b4b5acc21efb4f7e816347e4cf464404",
+   "layerKey": "step-17",
+   "status": "Completed",
+   "entryPoint": "Step",
+   "parallelism": 4,
+   "previousLayerIds": [
+    "6985453aae3144e693804851187797e5"
+   ],
+   "submittedAt": "2026-10-25T17:21:28.1500784+00:00",
+   "completedAt": "2026-10-25T17:21:31.3107323+00:00"
+  },
+  {
+   "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+   "layerId": "157df87105d44887a46d72aad7266764",
+   "layerKey": "step-18",
+   "status": "Completed",
+   "entryPoint": "Step",
+   "parallelism": 4,
+   "previousLayerIds": [
+    "b4b5acc21efb4f7e816347e4cf464404"
+   ],
+   "submittedAt": "2026-10-25T17:21:31.8457376+00:00",
+   "completedAt": "2026-10-25T17:21:34.9998539+00:00"
+  },
+  {
+   "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+   "layerId": "1345f8b007f744ca9ccd0b28846bb3db",
+   "layerKey": "step-19",
+   "status": "Completed",
+   "entryPoint": "Step",
+   "parallelism": 4,
+   "previousLayerIds": [
+    "157df87105d44887a46d72aad7266764"
+   ],
+   "submittedAt": "2026-10-25T17:21:35.5459516+00:00",
+   "completedAt": "2026-10-25T17:21:38.7113619+00:00"
+  },
+  {
+   "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+   "layerId": "276c2b8d1e2d486a95d3c5e8df8b32e6",
+   "layerKey": "step-20",
+   "status": "Completed",
+   "entryPoint": "Step",
+   "parallelism": 4,
+   "previousLayerIds": [
+    "1345f8b007f744ca9ccd0b28846bb3db"
+   ],
+   "submittedAt": "2026-10-25T17:21:39.2637354+00:00",
+   "completedAt": "2026-10-25T17:21:42.4302546+00:00"
+  },
+  {
+   "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+   "layerId": "f929470b6b904100980d7c017efcd16a",
+   "layerKey": "step-21",
+   "status": "Completed",
+   "entryPoint": "Step",
+   "parallelism": 4,
+   "previousLayerIds": [
+    "276c2b8d1e2d486a95d3c5e8df8b32e6"
+   ],
+   "submittedAt": "2026-10-25T17:21:42.9701075+00:00",
+   "completedAt": "2026-10-25T17:21:46.132605+00:00"
+  },
+  {
+   "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+   "layerId": "ecbea908deff425bb46b643012c5628c",
+   "layerKey": "step-22",
+   "status": "Completed",
+   "entryPoint": "Step",
+   "parallelism": 4,
+   "previousLayerIds": [
+    "f929470b6b904100980d7c017efcd16a"
+   ],
+   "submittedAt": "2026-10-25T17:21:46.6701117+00:00",
+   "completedAt": "2026-10-25T17:21:49.8343623+00:00"
+  },
+  {
+   "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+   "layerId": "56608e3813104aba832081168ae224e9",
+   "layerKey": "step-23",
+   "status": "Completed",
+   "entryPoint": "Step",
+   "parallelism": 4,
+   "previousLayerIds": [
+    "ecbea908deff425bb46b643012c5628c"
+   ],
+   "submittedAt": "2026-10-25T17:21:50.3869869+00:00",
+   "completedAt": "2026-10-25T17:21:53.5550714+00:00"
+  },
+  {
+   "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+   "layerId": "d665c0ca6595477088647af14f785852",
+   "layerKey": "step-24",
+   "status": "Completed",
+   "entryPoint": "Step",
+   "parallelism": 4,
+   "previousLayerIds": [
+    "56608e3813104aba832081168ae224e9"
+   ],
+   "submittedAt": "2026-10-25T17:21:54.1022644+00:00",
+   "completedAt": "2026-10-25T17:21:57.2535671+00:00"
+  },
+  {
+   "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+   "layerId": "713b419c67a444cbb17d7ebfdd126201",
+   "layerKey": "step-25",
+   "status": "Completed",
+   "entryPoint": "Step",
+   "parallelism": 4,
+   "previousLayerIds": [
+    "d665c0ca6595477088647af14f785852"
+   ],
+   "submittedAt": "2026-10-25T17:21:57.8006022+00:00",
+   "completedAt": "2026-10-25T17:22:00.9622271+00:00"
+  },
+  {
+   "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+   "layerId": "f32334605ac94800acef7ed2f701db1b",
+   "layerKey": "step-26",
+   "status": "Completed",
+   "entryPoint": "Step",
+   "parallelism": 4,
+   "previousLayerIds": [
+    "713b419c67a444cbb17d7ebfdd126201"
+   ],
+   "submittedAt": "2026-10-25T17:22:01.4987935+00:00",
+   "completedAt": "2026-10-25T17:22:04.6723201+00:00"
+  },
+  {
+   "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+   "layerId": "b0de76fe1efe4016860a55c6a7624501",
+   "layerKey": "step-27",
+   "status": "Completed",
+   "entryPoint": "Step",
+   "parallelism": 4,
+   "previousLayerIds": [
+    "f32334605ac94800acef7ed2f701db1b"
+   ],
+   "submittedAt": "2026-10-25T17:22:05.2085169+00:00",
+   "completedAt": "2026-10-25T17:22:08.3699567+00:00"
+  },
+  {
+   "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+   "layerId": "f388197fde3041f9a192ff96a063e5dd",
+   "layerKey": "step-28",
+   "status": "Completed",
+   "entryPoint": "Step",
+   "parallelism": 4,
+   "previousLayerIds": [
+    "b0de76fe1efe4016860a55c6a7624501"
+   ],
+   "submittedAt": "2026-10-25T17:22:08.9105522+00:00",
+   "completedAt": "2026-10-25T17:22:12.0838601+00:00"
+  },
+  {
+   "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+   "layerId": "a9af78cff8ae4155965cc48672ccf678",
+   "layerKey": "step-29",
+   "status": "Completed",
+   "entryPoint": "Step",
+   "parallelism": 4,
+   "previousLayerIds": [
+    "f388197fde3041f9a192ff96a063e5dd"
+   ],
+   "submittedAt": "2026-10-25T17:22:12.6205986+00:00",
+   "completedAt": "2026-10-25T17:22:15.78043+00:00"
+  },
+  {
+   "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+   "layerId": "4c61699a7deb410b83f9d63f859b56fb",
+   "layerKey": "step-30",
+   "status": "Completed",
+   "entryPoint": "Step",
+   "parallelism": 4,
+   "previousLayerIds": [
+    "a9af78cff8ae4155965cc48672ccf678"
+   ],
+   "submittedAt": "2026-10-25T17:22:16.329746+00:00",
+   "completedAt": "2026-10-25T17:22:19.4912592+00:00"
+  },
+  {
+   "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+   "layerId": "d7dababf178c4f588f2382277d165859",
+   "layerKey": "step-31",
+   "status": "Completed",
+   "entryPoint": "Step",
+   "parallelism": 4,
+   "previousLayerIds": [
+    "4c61699a7deb410b83f9d63f859b56fb"
+   ],
+   "submittedAt": "2026-10-25T17:22:20.0269182+00:00",
+   "completedAt": "2026-10-25T17:22:23.1922544+00:00"
+  },
+  {
+   "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+   "layerId": "d961edb2b535453990e6a7e0eea47696",
+   "layerKey": "step-32",
+   "status": "Completed",
+   "entryPoint": "Step",
+   "parallelism": 4,
+   "previousLayerIds": [
+    "d7dababf178c4f588f2382277d165859"
+   ],
+   "submittedAt": "2026-10-25T17:22:23.7405726+00:00",
+   "completedAt": "2026-10-25T17:22:26.9125516+00:00"
+  },
+  {
+   "sessionId": "55fe1c59c3f143759cecc415354ee7f6",
+   "layerId": "4041f26c2c6a4bd0b6a05bc1e5ab35c8",
+   "layerKey": "final",
+   "status": "Completed",
+   "entryPoint": "Step",
+   "parallelism": 1,
+   "previousLayerIds": [
+    "d961edb2b535453990e6a7e0eea47696"
+   ],
+   "submittedAt": "2026-10-25T17:22:27.4588778+00:00",
+   "completedAt": "2026-10-25T17:22:30.6112712+00:00"
+  }
+ ],
+ "cancelled": [],
+ "termination": "answer",
+ "error": null,
+ "grade": {
+  "answer": 0.2980832072207704,
+  "truth": 0.2980832072207704,
+  "tolerance": 1.4551915228366852e-11,
+  "abs_error": 0.0,
+  "correct": true,
+  "protocol_ok": true,
+  "protocol_reasons": [],
+  "layers_completed": 33,
+  "layers_extra": 0,
+  "layers_other": 0,
+  "final_output": {
+   "count": 0,
+   "lo": 0.2980832071043551,
+   "hi": 0.29808320733718574,
+   "mid": 0.2980832072207704
+  },
+  "plan_layer_ids": [
+   "09bb5ab618b34f10801165c02038c86e",
+   "0b6d610ad2e14e4f8faebf59ba3e43e5",
+   "0e47e560048f413a9427179080892acd",
+   "1345f8b007f744ca9ccd0b28846bb3db",
+   "157df87105d44887a46d72aad7266764",
+   "276c2b8d1e2d486a95d3c5e8df8b32e6",
+   "38de394e7fc44d2c9475d8e4072a7754",
+   "3e8d5e9c9fb6498d8db72a7931fb1f04",
+   "4041f26c2c6a4bd0b6a05bc1e5ab35c8",
+   "446e409008a64fd7ad3957fd097a0f66",
+   "4c61699a7deb410b83f9d63f859b56fb",
+   "56608e3813104aba832081168ae224e9",
+   "5ccd02d7aad344b481a74eac2ce083cd",
+   "6985453aae3144e693804851187797e5",
+   "6cd5ed3230464a25b9bb31b4cbe9ac9f",
+   "713b419c67a444cbb17d7ebfdd126201",
+   "74edd92697ff48fcb45cc062d9ee5d9b",
+   "79a018ad88be46da98530ed80b8475a3",
+   "a9af78cff8ae4155965cc48672ccf678",
+   "b0de76fe1efe4016860a55c6a7624501",
+   "b29035a48e914284926720ca2805b78c",
+   "b4b5acc21efb4f7e816347e4cf464404",
+   "d665c0ca6595477088647af14f785852",
+   "d7dababf178c4f588f2382277d165859",
+   "d848b13deeb2408e83a4e713a64fd23a",
+   "d961edb2b535453990e6a7e0eea47696",
+   "dc5ee28897674fbb9b43c19cdf70f7cf",
+   "eaaab0144fed4054b00be3d7e213a132",
+   "ecbea908deff425bb46b643012c5628c",
+   "f2bcc44c917e42f0827187b1011c829f",
+   "f32334605ac94800acef7ed2f701db1b",
+   "f388197fde3041f9a192ff96a063e5dd",
+   "f929470b6b904100980d7c017efcd16a"
+  ],
+  "success": true
+ }
+}

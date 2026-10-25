@@ -1,0 +1,69 @@
+{
+  "hash": "d7bd8aa0d575",
+  "manifest": {
+    "git": {
+      "sha": "7d8e2c8d01d0dc98ff2a3315a118b2b51257147d",
+      "dirty_tracked": false
+    },
+    "code_sha256": "51250ece492faa3037542ec4add999fe72eff50db5d83449d702611db97503dc",
+    "packages": {
+      "parcs-agent": "0.4.1",
+      "eval-utils": "0.1.0",
+      "langchain": "1.4.7",
+      "langchain-core": "1.7.0",
+      "langgraph": "1.2.17",
+      "langchain-mcp-adapters": "0.3.2",
+      "langchain-quickjs": "0.3.9",
+      "quickjs-rs": "0.2.6",
+      "langchain-openai": "1.7.2",
+      "langchain-anthropic": "1.7.6",
+      "langchain-google-genai": "4.4.2",
+      "langchain-google-vertexai": "3.2.5",
+      "mcp": "1.30.0"
+    },
+    "prompts_sha256": "63fed327a2108d2a62fb38a091aa05a3805a28df8ba1f4725f6b3d1c34f736d9",
+    "models": [
+      {
+        "id": "gpt6luna",
+        "provider": "openai",
+        "model_name": "openai/gpt-6-luna",
+        "temperature": 0.0,
+        "base_url": "https://openrouter.ai/api/v1",
+        "openrouter_provider": "openai",
+        "reasoning_effort": "default"
+      }
+    ],
+    "ptc_options": {
+      "timeout": 30.0,
+      "max_ptc_calls": 256,
+      "max_result_chars": 4000
+    },
+    "recursion_limit": 600,
+    "wall_budget_seconds": 600.0,
+    "pool": {
+      "scalingMode": "static",
+      "workerNodeCount": 1,
+      "currentCapacity": 4,
+      "maxParallelism": 4,
+      "daemonCpuRequestMillicores": 250
+    },
+    "tasks_sha256": {
+      "f1-n32": "6dfa94654a84f2ff2bf328800c88242f9a807007740aa65db7a6133406e2bea8",
+      "f2-n32": "33a1c85932a73774e5671dc438b2a6c65b0d356c7784f3d636dd127161af6d6c"
+    },
+    "plan": {
+      "families": [
+        "f1",
+        "f2"
+      ],
+      "n_grid": [
+        32
+      ],
+      "arms": [
+        "ptc"
+      ],
+      "reps": 1,
+      "seed": 20261025
+    }
+  }
+}

@@ -1,0 +1,1371 @@
+[
+ {
+  "id": "01a1731f-7b95-71d1-8bcf-90fcd0013eb0",
+  "parent_run_id": "01a1731f-7b94-71b0-a528-ac3e9d87b1a5",
+  "parent_run_ids": [
+   "01a1731e-79ba-77d2-8203-7118be9b9520",
+   "01a1731f-7b93-7a02-a524-6ddc6112a4fa",
+   "01a1731f-7b93-7073-9590-a31aa357ed6a",
+   "01a1731f-7b94-71b0-a528-ac3e9d87b1a5"
+  ],
+  "run_type": "llm",
+  "name": "ChatOpenAI",
+  "start_time": "2026-10-25 12:53:25.525065+00:00",
+  "end_time": "2026-10-25 12:53:27.345975+00:00",
+  "total_cost": 0.0003726,
+  "error": null,
+  "outputs": {
+   "generations": [
+    [
+     {
+      "message": {
+       "kwargs": {
+        "content": "Computed successfully using 20 shards of 100,000 random 50-dimensional vectors each, with seed `WorkerIndex \u00d7 1000 + 42`.\n\nGlobal covariance results:\n\n```json\n{\n  \"Top3\": [\n    0.08453170045134932,\n    0.08438727833266817,\n    0.08426045992816508\n  ],\n  \"Trace\": 4.166493949081949\n}\n```",
+        "tool_calls": [],
+        "usage_metadata": {
+         "input_token_details": {
+          "audio": 0,
+          "cache_read": 8740
+         },
+         "input_tokens": 9135,
+         "output_token_details": {
+          "audio": 0,
+          "reasoning": 0
+         },
+         "output_tokens": 99,
+         "total_tokens": 9234
+        }
+       }
+      }
+     }
+    ]
+   ]
+  }
+ },
+ {
+  "id": "01a1731f-7b94-71b0-a528-ac3e9d87b1a5",
+  "parent_run_id": "01a1731f-7b93-7073-9590-a31aa357ed6a",
+  "parent_run_ids": [
+   "01a1731e-79ba-77d2-8203-7118be9b9520",
+   "01a1731f-7b93-7a02-a524-6ddc6112a4fa",
+   "01a1731f-7b93-7073-9590-a31aa357ed6a"
+  ],
+  "run_type": "chain",
+  "name": "ParcsToolCallingMiddleware.awrap_model_call",
+  "start_time": "2026-10-25 12:53:25.524064+00:00",
+  "end_time": "2026-10-25 12:53:27.346475+00:00",
+  "total_cost": 0.0003726,
+  "error": null
+ },
+ {
+  "id": "01a1731f-7b93-7073-9590-a31aa357ed6a",
+  "parent_run_id": "01a1731f-7b93-7a02-a524-6ddc6112a4fa",
+  "parent_run_ids": [
+   "01a1731e-79ba-77d2-8203-7118be9b9520",
+   "01a1731f-7b93-7a02-a524-6ddc6112a4fa"
+  ],
+  "run_type": "chain",
+  "name": "ThreadNonceMiddleware.awrap_model_call",
+  "start_time": "2026-10-25 12:53:25.523564+00:00",
+  "end_time": "2026-10-25 12:53:27.346975+00:00",
+  "total_cost": 0.0003726,
+  "error": null
+ },
+ {
+  "id": "01a1731f-7b93-7a02-a524-6ddc6112a4fa",
+  "parent_run_id": "01a1731e-79ba-77d2-8203-7118be9b9520",
+  "parent_run_ids": [
+   "01a1731e-79ba-77d2-8203-7118be9b9520"
+  ],
+  "run_type": "chain",
+  "name": "model",
+  "start_time": "2026-10-25 12:53:25.523064+00:00",
+  "end_time": "2026-10-25 12:53:27.346975+00:00",
+  "total_cost": 0.0003726,
+  "error": null
+ },
+ {
+  "id": "01a1731f-6ca1-7281-9f15-f75a14cd7e85",
+  "parent_run_id": "01a1731f-6ca1-76a0-8d8d-c59f1b4b9b9e",
+  "parent_run_ids": [
+   "01a1731e-79ba-77d2-8203-7118be9b9520",
+   "01a1731f-6ca0-7a73-b906-a05cd2a249d7",
+   "01a1731f-6ca1-76a0-8d8d-c59f1b4b9b9e"
+  ],
+  "run_type": "tool",
+  "name": "run_layer",
+  "start_time": "2026-10-25 12:53:21.697056+00:00",
+  "end_time": "2026-10-25 12:53:25.521063+00:00",
+  "total_cost": null,
+  "error": null,
+  "inputs": {
+   "channelTimeoutSeconds": null,
+   "customData": null,
+   "entryPoint": "MergeEigen",
+   "failFast": true,
+   "inherit": "all",
+   "layerKey": "merge-eigen-v1",
+   "parallelism": 1,
+   "parameters": null,
+   "previousLayerIds": [
+    "c7781eb51b91447182337f854b6d9d69"
+   ],
+   "sessionId": "3611ad4aad0843d7975c562f4dc88473",
+   "topology": null,
+   "topologyEdges": null,
+   "view": "summary",
+   "waitSeconds": 200,
+   "workerInputs": [
+    null
+   ]
+  },
+  "outputs": {
+   "output": {
+    "additional_kwargs": {},
+    "artifact": {
+     "structured_content": {
+      "layer": {
+       "completedAt": "2026-10-25T12:53:24.821852+00:00",
+       "elapsedSeconds": 3.2341599,
+       "entryPoint": "MergeEigen",
+       "failureCount": 0,
+       "jobId": 168,
+       "parallelism": 1,
+       "previousLayerIds": [
+        "c7781eb51b91447182337f854b6d9d69"
+       ],
+       "queuedSeconds": 0.0217473,
+       "startedAt": "2026-10-25T12:53:21.5876921+00:00",
+       "submittedAt": "2026-10-25T12:53:21.5659448+00:00",
+       "successCount": 1
+      },
+      "layerId": "cbe7f4b502294eb9b46e14d6a6f3822d",
+      "layerKey": "merge-eigen-v1",
+      "ok": true,
+      "output": {
+       "Top3": [
+        0.08453170045134932,
+        0.08438727833266817,
+        0.08426045992816508
+       ],
+       "Trace": 4.166493949081949
+      },
+      "reused": false,
+      "sessionId": "3611ad4aad0843d7975c562f4dc88473",
+      "status": "Completed"
+     }
+    },
+    "content": [
+     {
+      "id": "lc_df7a5fe4-1781-488f-b449-c7313f93d7b7",
+      "text": "{\"ok\":true,\"status\":\"Completed\",\"sessionId\":\"3611ad4aad0843d7975c562f4dc88473\",\"layerId\":\"cbe7f4b502294eb9b46e14d6a6f3822d\",\"layerKey\":\"merge-eigen-v1\",\"reused\":false,\"layer\":{\"entryPoint\":\"MergeEigen\",\"parallelism\":1,\"previousLayerIds\":[\"c7781eb51b91447182337f854b6d9d69\"],\"successCount\":1,\"failureCount\":0,\"queuedSeconds\":0.0217473,\"elapsedSeconds\":3.2341599,\"submittedAt\":\"2026-10-25T12:53:21.5659448+00:00\",\"startedAt\":\"2026-10-25T12:53:21.5876921+00:00\",\"completedAt\":\"2026-10-25T12:53:24.821852+00:00\",\"jobId\":168},\"output\":{\"Top3\":[0.08453170045134932,0.08438727833266817,0.08426045992816508],\"Trace\":4.166493949081949}}",
+      "type": "text"
+     }
+    ],
+    "name": "run_layer",
+    "response_metadata": {},
+    "status": "success",
+    "tool_call_id": "call_Z4LF2nAuzKiuYmWtwfDUJ1Qc",
+    "type": "tool"
+   }
+  }
+ },
+ {
+  "id": "01a1731f-6ca1-76a0-8d8d-c59f1b4b9b9e",
+  "parent_run_id": "01a1731f-6ca0-7a73-b906-a05cd2a249d7",
+  "parent_run_ids": [
+   "01a1731e-79ba-77d2-8203-7118be9b9520",
+   "01a1731f-6ca0-7a73-b906-a05cd2a249d7"
+  ],
+  "run_type": "chain",
+  "name": "ToolRetryMiddleware.awrap_tool_call",
+  "start_time": "2026-10-25 12:53:21.697056+00:00",
+  "end_time": "2026-10-25 12:53:25.521564+00:00",
+  "total_cost": null,
+  "error": null
+ },
+ {
+  "id": "01a1731f-6ca0-7a73-b906-a05cd2a249d7",
+  "parent_run_id": "01a1731e-79ba-77d2-8203-7118be9b9520",
+  "parent_run_ids": [
+   "01a1731e-79ba-77d2-8203-7118be9b9520"
+  ],
+  "run_type": "chain",
+  "name": "tools",
+  "start_time": "2026-10-25 12:53:21.696557+00:00",
+  "end_time": "2026-10-25 12:53:25.522067+00:00",
+  "total_cost": null,
+  "error": null
+ },
+ {
+  "id": "01a1731f-6557-7883-a600-5970370bda15",
+  "parent_run_id": "01a1731f-6555-7301-989d-aa217f5721ec",
+  "parent_run_ids": [
+   "01a1731e-79ba-77d2-8203-7118be9b9520",
+   "01a1731f-6556-73d0-bef3-14cf0801fd19",
+   "01a1731f-6555-7301-989d-aa217f5721ec"
+  ],
+  "run_type": "chain",
+  "name": "ParcsToolCallingMiddleware.awrap_model_call",
+  "start_time": "2026-10-25 12:53:19.831425+00:00",
+  "end_time": "2026-10-25 12:53:21.694560+00:00",
+  "total_cost": 0.00039236,
+  "error": null
+ },
+ {
+  "id": "01a1731f-6558-7413-95d0-e28052c27eb7",
+  "parent_run_id": "01a1731f-6557-7883-a600-5970370bda15",
+  "parent_run_ids": [
+   "01a1731e-79ba-77d2-8203-7118be9b9520",
+   "01a1731f-6556-73d0-bef3-14cf0801fd19",
+   "01a1731f-6555-7301-989d-aa217f5721ec",
+   "01a1731f-6557-7883-a600-5970370bda15"
+  ],
+  "run_type": "llm",
+  "name": "ChatOpenAI",
+  "start_time": "2026-10-25 12:53:19.831425+00:00",
+  "end_time": "2026-10-25 12:53:21.694058+00:00",
+  "total_cost": 0.00039236,
+  "error": null,
+  "outputs": {
+   "generations": [
+    [
+     {
+      "message": {
+       "kwargs": {
+        "content": "",
+        "tool_calls": [
+         {
+          "name": "run_layer"
+         }
+        ],
+        "usage_metadata": {
+         "input_token_details": {
+          "audio": 0,
+          "cache_read": 8388
+         },
+         "input_tokens": 8743,
+         "output_token_details": {
+          "audio": 0,
+          "reasoning": 0
+         },
+         "output_tokens": 128,
+         "total_tokens": 8871
+        }
+       }
+      }
+     }
+    ]
+   ]
+  }
+ },
+ {
+  "id": "01a1731f-6556-73d0-bef3-14cf0801fd19",
+  "parent_run_id": "01a1731e-79ba-77d2-8203-7118be9b9520",
+  "parent_run_ids": [
+   "01a1731e-79ba-77d2-8203-7118be9b9520"
+  ],
+  "run_type": "chain",
+  "name": "model",
+  "start_time": "2026-10-25 12:53:19.829991+00:00",
+  "end_time": "2026-10-25 12:53:21.695556+00:00",
+  "total_cost": 0.00039236,
+  "error": null
+ },
+ {
+  "id": "01a1731f-6555-7301-989d-aa217f5721ec",
+  "parent_run_id": "01a1731f-6556-73d0-bef3-14cf0801fd19",
+  "parent_run_ids": [
+   "01a1731e-79ba-77d2-8203-7118be9b9520",
+   "01a1731f-6556-73d0-bef3-14cf0801fd19"
+  ],
+  "run_type": "chain",
+  "name": "ThreadNonceMiddleware.awrap_model_call",
+  "start_time": "2026-10-25 12:53:19.829991+00:00",
+  "end_time": "2026-10-25 12:53:21.695057+00:00",
+  "total_cost": 0.00039236,
+  "error": null
+ },
+ {
+  "id": "01a1731f-55db-7183-9600-2624720ab540",
+  "parent_run_id": "01a1731f-55db-7a71-9dd6-171dafd897e8",
+  "parent_run_ids": [
+   "01a1731e-79ba-77d2-8203-7118be9b9520",
+   "01a1731f-55db-7a71-9dd6-171dafd897e8"
+  ],
+  "run_type": "chain",
+  "name": "ToolRetryMiddleware.awrap_tool_call",
+  "start_time": "2026-10-25 12:53:15.867928+00:00",
+  "end_time": "2026-10-25 12:53:19.828488+00:00",
+  "total_cost": null,
+  "error": null
+ },
+ {
+  "id": "01a1731f-55dc-7db2-8c8c-48ec966ef2ed",
+  "parent_run_id": "01a1731f-55db-7183-9600-2624720ab540",
+  "parent_run_ids": [
+   "01a1731e-79ba-77d2-8203-7118be9b9520",
+   "01a1731f-55db-7a71-9dd6-171dafd897e8",
+   "01a1731f-55db-7183-9600-2624720ab540"
+  ],
+  "run_type": "tool",
+  "name": "run_layer",
+  "start_time": "2026-10-25 12:53:15.867928+00:00",
+  "end_time": "2026-10-25 12:53:19.827986+00:00",
+  "total_cost": null,
+  "error": null,
+  "inputs": {
+   "channelTimeoutSeconds": null,
+   "customData": null,
+   "entryPoint": "PerWorkerCovariance",
+   "failFast": true,
+   "inherit": "all",
+   "layerKey": "covariance-v2",
+   "parallelism": 4,
+   "parameters": null,
+   "previousLayerIds": [
+    "213574f445fc4d5d9e6c058dbff138dd"
+   ],
+   "sessionId": "3611ad4aad0843d7975c562f4dc88473",
+   "topology": null,
+   "topologyEdges": null,
+   "view": "summary",
+   "waitSeconds": 200,
+   "workerInputs": [
+    null,
+    null,
+    null,
+    null
+   ]
+  },
+  "outputs": {
+   "output": {
+    "additional_kwargs": {},
+    "artifact": {
+     "structured_content": {
+      "layer": {
+       "completedAt": "2026-10-25T12:53:19.0666166+00:00",
+       "elapsedSeconds": 3.3026329,
+       "entryPoint": "PerWorkerCovariance",
+       "failureCount": 0,
+       "jobId": 167,
+       "parallelism": 4,
+       "previousLayerIds": [
+        "213574f445fc4d5d9e6c058dbff138dd"
+       ],
+       "queuedSeconds": 0.0231918,
+       "startedAt": "2026-10-25T12:53:15.7639837+00:00",
+       "submittedAt": "2026-10-25T12:53:15.7407919+00:00",
+       "successCount": 4
+      },
+      "layerId": "c7781eb51b91447182337f854b6d9d69",
+      "layerKey": "covariance-v2",
+      "ok": true,
+      "reused": false,
+      "sessionId": "3611ad4aad0843d7975c562f4dc88473",
+      "status": "Completed"
+     }
+    },
+    "content": [
+     {
+      "id": "lc_773cfaea-9d74-4370-a6d7-be143c3958e2",
+      "text": "{\"ok\":true,\"status\":\"Completed\",\"sessionId\":\"3611ad4aad0843d7975c562f4dc88473\",\"layerId\":\"c7781eb51b91447182337f854b6d9d69\",\"layerKey\":\"covariance-v2\",\"reused\":false,\"layer\":{\"entryPoint\":\"PerWorkerCovariance\",\"parallelism\":4,\"previousLayerIds\":[\"213574f445fc4d5d9e6c058dbff138dd\"],\"successCount\":4,\"failureCount\":0,\"queuedSeconds\":0.0231918,\"elapsedSeconds\":3.3026329,\"submittedAt\":\"2026-10-25T12:53:15.7407919+00:00\",\"startedAt\":\"2026-10-25T12:53:15.7639837+00:00\",\"completedAt\":\"2026-10-25T12:53:19.0666166+00:00\",\"jobId\":167}}",
+      "type": "text"
+     }
+    ],
+    "name": "run_layer",
+    "response_metadata": {},
+    "status": "success",
+    "tool_call_id": "call_3HLIzawo1oTglaPWHELbq8SH",
+    "type": "tool"
+   }
+  }
+ },
+ {
+  "id": "01a1731f-55db-7a71-9dd6-171dafd897e8",
+  "parent_run_id": "01a1731e-79ba-77d2-8203-7118be9b9520",
+  "parent_run_ids": [
+   "01a1731e-79ba-77d2-8203-7118be9b9520"
+  ],
+  "run_type": "chain",
+  "name": "tools",
+  "start_time": "2026-10-25 12:53:15.867428+00:00",
+  "end_time": "2026-10-25 12:53:19.828992+00:00",
+  "total_cost": null,
+  "error": null
+ },
+ {
+  "id": "01a1731f-4a11-7e02-95f2-f82e349e4f57",
+  "parent_run_id": "01a1731f-4a10-7cc3-bd9c-211c56adb6e6",
+  "parent_run_ids": [
+   "01a1731e-79ba-77d2-8203-7118be9b9520",
+   "01a1731f-4a0f-7173-8ac0-0f4c2ca49e71",
+   "01a1731f-4a0f-7291-9cd7-548208c244c2",
+   "01a1731f-4a10-7cc3-bd9c-211c56adb6e6"
+  ],
+  "run_type": "llm",
+  "name": "ChatOpenAI",
+  "start_time": "2026-10-25 12:53:12.849177+00:00",
+  "end_time": "2026-10-25 12:53:15.864928+00:00",
+  "total_cost": 0.00050868,
+  "error": null,
+  "outputs": {
+   "generations": [
+    [
+     {
+      "message": {
+       "kwargs": {
+        "content": "",
+        "tool_calls": [
+         {
+          "name": "run_layer"
+         }
+        ],
+        "usage_metadata": {
+         "input_token_details": {
+          "audio": 0,
+          "cache_read": 7984
+         },
+         "input_tokens": 8391,
+         "output_token_details": {
+          "audio": 0,
+          "reasoning": 89
+         },
+         "output_tokens": 223,
+         "total_tokens": 8614
+        }
+       }
+      }
+     }
+    ]
+   ]
+  }
+ },
+ {
+  "id": "01a1731f-4a10-7cc3-bd9c-211c56adb6e6",
+  "parent_run_id": "01a1731f-4a0f-7291-9cd7-548208c244c2",
+  "parent_run_ids": [
+   "01a1731e-79ba-77d2-8203-7118be9b9520",
+   "01a1731f-4a0f-7173-8ac0-0f4c2ca49e71",
+   "01a1731f-4a0f-7291-9cd7-548208c244c2"
+  ],
+  "run_type": "chain",
+  "name": "ParcsToolCallingMiddleware.awrap_model_call",
+  "start_time": "2026-10-25 12:53:12.848178+00:00",
+  "end_time": "2026-10-25 12:53:15.865428+00:00",
+  "total_cost": 0.00050868,
+  "error": null
+ },
+ {
+  "id": "01a1731f-4a0f-7291-9cd7-548208c244c2",
+  "parent_run_id": "01a1731f-4a0f-7173-8ac0-0f4c2ca49e71",
+  "parent_run_ids": [
+   "01a1731e-79ba-77d2-8203-7118be9b9520",
+   "01a1731f-4a0f-7173-8ac0-0f4c2ca49e71"
+  ],
+  "run_type": "chain",
+  "name": "ThreadNonceMiddleware.awrap_model_call",
+  "start_time": "2026-10-25 12:53:12.847181+00:00",
+  "end_time": "2026-10-25 12:53:15.865929+00:00",
+  "total_cost": 0.00050868,
+  "error": null
+ },
+ {
+  "id": "01a1731f-4a0f-7173-8ac0-0f4c2ca49e71",
+  "parent_run_id": "01a1731e-79ba-77d2-8203-7118be9b9520",
+  "parent_run_ids": [
+   "01a1731e-79ba-77d2-8203-7118be9b9520"
+  ],
+  "run_type": "chain",
+  "name": "model",
+  "start_time": "2026-10-25 12:53:12.846677+00:00",
+  "end_time": "2026-10-25 12:53:15.866428+00:00",
+  "total_cost": 0.00050868,
+  "error": null
+ },
+ {
+  "id": "01a1731f-3b75-7e23-97c6-2a6801d36cb3",
+  "parent_run_id": "01a1731f-3b74-7f72-8fec-2335b29dd8e3",
+  "parent_run_ids": [
+   "01a1731e-79ba-77d2-8203-7118be9b9520",
+   "01a1731f-3b74-77b1-9ed2-1a468eb459de",
+   "01a1731f-3b74-7f72-8fec-2335b29dd8e3"
+  ],
+  "run_type": "tool",
+  "name": "run_layer",
+  "start_time": "2026-10-25 12:53:09.109282+00:00",
+  "end_time": "2026-10-25 12:53:12.843687+00:00",
+  "total_cost": null,
+  "error": null,
+  "inputs": {
+   "channelTimeoutSeconds": null,
+   "customData": null,
+   "entryPoint": "PerWorkerCovariance",
+   "failFast": true,
+   "inherit": "byIndex",
+   "layerKey": "covariance-v1",
+   "parallelism": 4,
+   "parameters": null,
+   "previousLayerIds": [
+    "213574f445fc4d5d9e6c058dbff138dd"
+   ],
+   "sessionId": "3611ad4aad0843d7975c562f4dc88473",
+   "topology": null,
+   "topologyEdges": null,
+   "view": "summary",
+   "waitSeconds": 200,
+   "workerInputs": [
+    null,
+    null,
+    null,
+    null
+   ]
+  },
+  "outputs": {
+   "output": {
+    "additional_kwargs": {},
+    "content": [
+     {
+      "id": "lc_bc627b28-03f4-4802-b22e-c446cda7df7c",
+      "text": "{\"ok\":false,\"status\":\"Failed\",\"sessionId\":\"3611ad4aad0843d7975c562f4dc88473\",\"layerId\":\"0bb86420b0584496979e6800be9385e7\",\"layerKey\":\"covariance-v1\",\"reused\":false,\"layer\":{\"entryPoint\":\"PerWorkerCovariance\",\"parallelism\":4,\"previousLayerIds\":[\"213574f445fc4d5d9e6c058dbff138dd\"],\"inherit\":\"byIndex\",\"queuedSeconds\":0.0219051,\"elapsedSeconds\":3.2595133,\"submittedAt\":\"2026-10-25T12:53:08.9767433+00:00\",\"startedAt\":\"2026-10-25T12:53:08.9986484+00:00\",\"completedAt\":\"2026-10-25T12:53:12.2581617+00:00\",\"jobId\":166},\"error\":{\"code\":\"worker_error\",\"message\":\"Job 166 Failed: Worker 0 failed (failFast): missing stats\",\"retryable\":false,\"layerId\":\"0bb86420b0584496979e6800be9385e7\",\"failedWorkers\":[0]}}",
+      "type": "text"
+     }
+    ],
+    "name": "run_layer",
+    "response_metadata": {},
+    "status": "error",
+    "tool_call_id": "call_o3Z8e1WntPmlAyxN7O9xR0hh",
+    "type": "tool"
+   }
+  }
+ },
+ {
+  "id": "01a1731f-3b74-7f72-8fec-2335b29dd8e3",
+  "parent_run_id": "01a1731f-3b74-77b1-9ed2-1a468eb459de",
+  "parent_run_ids": [
+   "01a1731e-79ba-77d2-8203-7118be9b9520",
+   "01a1731f-3b74-77b1-9ed2-1a468eb459de"
+  ],
+  "run_type": "chain",
+  "name": "ToolRetryMiddleware.awrap_tool_call",
+  "start_time": "2026-10-25 12:53:09.108784+00:00",
+  "end_time": "2026-10-25 12:53:12.844178+00:00",
+  "total_cost": null,
+  "error": null
+ },
+ {
+  "id": "01a1731f-3b74-77b1-9ed2-1a468eb459de",
+  "parent_run_id": "01a1731e-79ba-77d2-8203-7118be9b9520",
+  "parent_run_ids": [
+   "01a1731e-79ba-77d2-8203-7118be9b9520"
+  ],
+  "run_type": "chain",
+  "name": "tools",
+  "start_time": "2026-10-25 12:53:09.108281+00:00",
+  "end_time": "2026-10-25 12:53:12.844678+00:00",
+  "total_cost": null,
+  "error": null
+ },
+ {
+  "id": "01a1731f-2bc2-7a71-9694-a4003b7d75be",
+  "parent_run_id": "01a1731f-2bc1-7d33-8ade-2774ef4d4d13",
+  "parent_run_ids": [
+   "01a1731e-79ba-77d2-8203-7118be9b9520",
+   "01a1731f-2bbf-7d12-8aea-b0273daf27b8",
+   "01a1731f-2bc0-7303-8f38-a7fa8111087a",
+   "01a1731f-2bc1-7d33-8ade-2774ef4d4d13"
+  ],
+  "run_type": "llm",
+  "name": "ChatOpenAI",
+  "start_time": "2026-10-25 12:53:05.089790+00:00",
+  "end_time": "2026-10-25 12:53:09.106290+00:00",
+  "total_cost": 0.00037622,
+  "error": null,
+  "outputs": {
+   "generations": [
+    [
+     {
+      "message": {
+       "kwargs": {
+        "content": "",
+        "tool_calls": [
+         {
+          "name": "run_layer"
+         }
+        ],
+        "usage_metadata": {
+         "input_token_details": {
+          "audio": 0,
+          "cache_read": 7671
+         },
+         "input_tokens": 7987,
+         "output_token_details": {
+          "audio": 0,
+          "reasoning": 0
+         },
+         "output_tokens": 133,
+         "total_tokens": 8120
+        }
+       }
+      }
+     }
+    ]
+   ]
+  }
+ },
+ {
+  "id": "01a1731f-2bc1-7d33-8ade-2774ef4d4d13",
+  "parent_run_id": "01a1731f-2bc0-7303-8f38-a7fa8111087a",
+  "parent_run_ids": [
+   "01a1731e-79ba-77d2-8203-7118be9b9520",
+   "01a1731f-2bbf-7d12-8aea-b0273daf27b8",
+   "01a1731f-2bc0-7303-8f38-a7fa8111087a"
+  ],
+  "run_type": "chain",
+  "name": "ParcsToolCallingMiddleware.awrap_model_call",
+  "start_time": "2026-10-25 12:53:05.089291+00:00",
+  "end_time": "2026-10-25 12:53:09.106781+00:00",
+  "total_cost": 0.00037622,
+  "error": null
+ },
+ {
+  "id": "01a1731f-2bc0-7303-8f38-a7fa8111087a",
+  "parent_run_id": "01a1731f-2bbf-7d12-8aea-b0273daf27b8",
+  "parent_run_ids": [
+   "01a1731e-79ba-77d2-8203-7118be9b9520",
+   "01a1731f-2bbf-7d12-8aea-b0273daf27b8"
+  ],
+  "run_type": "chain",
+  "name": "ThreadNonceMiddleware.awrap_model_call",
+  "start_time": "2026-10-25 12:53:05.088291+00:00",
+  "end_time": "2026-10-25 12:53:09.107285+00:00",
+  "total_cost": 0.00037622,
+  "error": null
+ },
+ {
+  "id": "01a1731f-2bbf-7d12-8aea-b0273daf27b8",
+  "parent_run_id": "01a1731e-79ba-77d2-8203-7118be9b9520",
+  "parent_run_ids": [
+   "01a1731e-79ba-77d2-8203-7118be9b9520"
+  ],
+  "run_type": "chain",
+  "name": "model",
+  "start_time": "2026-10-25 12:53:05.087791+00:00",
+  "end_time": "2026-10-25 12:53:09.107285+00:00",
+  "total_cost": 0.00037622,
+  "error": null
+ },
+ {
+  "id": "01a1731f-1c6d-7073-8367-ef55f8e69b79",
+  "parent_run_id": "01a1731f-1c6c-7160-ab13-531ecb271a7b",
+  "parent_run_ids": [
+   "01a1731e-79ba-77d2-8203-7118be9b9520",
+   "01a1731f-1c6c-7c30-bfa3-5e5c2f718d0e",
+   "01a1731f-1c6c-7160-ab13-531ecb271a7b"
+  ],
+  "run_type": "tool",
+  "name": "run_layer",
+  "start_time": "2026-10-25 12:53:01.164991+00:00",
+  "end_time": "2026-10-25 12:53:05.085791+00:00",
+  "total_cost": null,
+  "error": null,
+  "inputs": {
+   "channelTimeoutSeconds": null,
+   "customData": null,
+   "entryPoint": "GenerateVectors",
+   "failFast": true,
+   "inherit": null,
+   "layerKey": "generate-vectors-v1",
+   "parallelism": 4,
+   "parameters": null,
+   "previousLayerIds": null,
+   "sessionId": "3611ad4aad0843d7975c562f4dc88473",
+   "topology": null,
+   "topologyEdges": null,
+   "view": "summary",
+   "waitSeconds": 200,
+   "workerInputs": [
+    null,
+    null,
+    null,
+    null
+   ]
+  },
+  "outputs": {
+   "output": {
+    "additional_kwargs": {},
+    "artifact": {
+     "structured_content": {
+      "layer": {
+       "completedAt": "2026-10-25T12:53:04.3632268+00:00",
+       "elapsedSeconds": 3.2886884,
+       "entryPoint": "GenerateVectors",
+       "failureCount": 0,
+       "jobId": 165,
+       "parallelism": 4,
+       "previousLayerIds": [],
+       "queuedSeconds": 0.0262397,
+       "startedAt": "2026-10-25T12:53:01.0745384+00:00",
+       "submittedAt": "2026-10-25T12:53:01.0482987+00:00",
+       "successCount": 4
+      },
+      "layerId": "213574f445fc4d5d9e6c058dbff138dd",
+      "layerKey": "generate-vectors-v1",
+      "ok": true,
+      "reused": false,
+      "sessionId": "3611ad4aad0843d7975c562f4dc88473",
+      "status": "Completed"
+     }
+    },
+    "content": [
+     {
+      "id": "lc_aae3f140-fe35-44f7-9c0f-e52e851d4b64",
+      "text": "{\"ok\":true,\"status\":\"Completed\",\"sessionId\":\"3611ad4aad0843d7975c562f4dc88473\",\"layerId\":\"213574f445fc4d5d9e6c058dbff138dd\",\"layerKey\":\"generate-vectors-v1\",\"reused\":false,\"layer\":{\"entryPoint\":\"GenerateVectors\",\"parallelism\":4,\"previousLayerIds\":[],\"successCount\":4,\"failureCount\":0,\"queuedSeconds\":0.0262397,\"elapsedSeconds\":3.2886884,\"submittedAt\":\"2026-10-25T12:53:01.0482987+00:00\",\"startedAt\":\"2026-10-25T12:53:01.0745384+00:00\",\"completedAt\":\"2026-10-25T12:53:04.3632268+00:00\",\"jobId\":165}}",
+      "type": "text"
+     }
+    ],
+    "name": "run_layer",
+    "response_metadata": {},
+    "status": "success",
+    "tool_call_id": "call_atyfr2NP0j9dyhGwvTw5GW38",
+    "type": "tool"
+   }
+  }
+ },
+ {
+  "id": "01a1731f-1c6c-7160-ab13-531ecb271a7b",
+  "parent_run_id": "01a1731f-1c6c-7c30-bfa3-5e5c2f718d0e",
+  "parent_run_ids": [
+   "01a1731e-79ba-77d2-8203-7118be9b9520",
+   "01a1731f-1c6c-7c30-bfa3-5e5c2f718d0e"
+  ],
+  "run_type": "chain",
+  "name": "ToolRetryMiddleware.awrap_tool_call",
+  "start_time": "2026-10-25 12:53:01.164492+00:00",
+  "end_time": "2026-10-25 12:53:05.086294+00:00",
+  "total_cost": null,
+  "error": null
+ },
+ {
+  "id": "01a1731f-1c6c-7c30-bfa3-5e5c2f718d0e",
+  "parent_run_id": "01a1731e-79ba-77d2-8203-7118be9b9520",
+  "parent_run_ids": [
+   "01a1731e-79ba-77d2-8203-7118be9b9520"
+  ],
+  "run_type": "chain",
+  "name": "tools",
+  "start_time": "2026-10-25 12:53:01.163994+00:00",
+  "end_time": "2026-10-25 12:53:05.086790+00:00",
+  "total_cost": null,
+  "error": null
+ },
+ {
+  "id": "01a1731f-0e89-7930-8335-ab9345c52044",
+  "parent_run_id": "01a1731f-0e88-7af2-bb0d-13bc8e2860f5",
+  "parent_run_ids": [
+   "01a1731e-79ba-77d2-8203-7118be9b9520",
+   "01a1731f-0e87-7531-9fdd-f9c8e8a378bb",
+   "01a1731f-0e87-72e0-9623-f1a4fa46ac0b",
+   "01a1731f-0e88-7af2-bb0d-13bc8e2860f5"
+  ],
+  "run_type": "llm",
+  "name": "ChatOpenAI",
+  "start_time": "2026-10-25 12:52:57.609224+00:00",
+  "end_time": "2026-10-25 12:53:01.161993+00:00",
+  "total_cost": 0.00063792,
+  "error": null,
+  "outputs": {
+   "generations": [
+    [
+     {
+      "message": {
+       "kwargs": {
+        "content": "",
+        "tool_calls": [
+         {
+          "name": "run_layer"
+         }
+        ],
+        "usage_metadata": {
+         "input_token_details": {
+          "audio": 0,
+          "cache_read": 6496
+         },
+         "input_tokens": 7674,
+         "output_token_details": {
+          "audio": 0,
+          "reasoning": 112
+         },
+         "output_tokens": 227,
+         "total_tokens": 7901
+        }
+       }
+      }
+     }
+    ]
+   ]
+  }
+ },
+ {
+  "id": "01a1731f-0e88-7af2-bb0d-13bc8e2860f5",
+  "parent_run_id": "01a1731f-0e87-72e0-9623-f1a4fa46ac0b",
+  "parent_run_ids": [
+   "01a1731e-79ba-77d2-8203-7118be9b9520",
+   "01a1731f-0e87-7531-9fdd-f9c8e8a378bb",
+   "01a1731f-0e87-72e0-9623-f1a4fa46ac0b"
+  ],
+  "run_type": "chain",
+  "name": "ParcsToolCallingMiddleware.awrap_model_call",
+  "start_time": "2026-10-25 12:52:57.608224+00:00",
+  "end_time": "2026-10-25 12:53:01.162492+00:00",
+  "total_cost": 0.00063792,
+  "error": null
+ },
+ {
+  "id": "01a1731f-0e87-72e0-9623-f1a4fa46ac0b",
+  "parent_run_id": "01a1731f-0e87-7531-9fdd-f9c8e8a378bb",
+  "parent_run_ids": [
+   "01a1731e-79ba-77d2-8203-7118be9b9520",
+   "01a1731f-0e87-7531-9fdd-f9c8e8a378bb"
+  ],
+  "run_type": "chain",
+  "name": "ThreadNonceMiddleware.awrap_model_call",
+  "start_time": "2026-10-25 12:52:57.607724+00:00",
+  "end_time": "2026-10-25 12:53:01.162492+00:00",
+  "total_cost": 0.00063792,
+  "error": null
+ },
+ {
+  "id": "01a1731f-0e87-7531-9fdd-f9c8e8a378bb",
+  "parent_run_id": "01a1731e-79ba-77d2-8203-7118be9b9520",
+  "parent_run_ids": [
+   "01a1731e-79ba-77d2-8203-7118be9b9520"
+  ],
+  "run_type": "chain",
+  "name": "model",
+  "start_time": "2026-10-25 12:52:57.607225+00:00",
+  "end_time": "2026-10-25 12:53:01.162993+00:00",
+  "total_cost": 0.00063792,
+  "error": null
+ },
+ {
+  "id": "01a1731f-0bef-7582-ad95-27a9837110e0",
+  "parent_run_id": "01a1731f-0bee-7320-a7eb-0c4520f2dc42",
+  "parent_run_ids": [
+   "01a1731e-79ba-77d2-8203-7118be9b9520",
+   "01a1731f-0bee-7530-bf28-5318e2603c26",
+   "01a1731f-0bee-7320-a7eb-0c4520f2dc42"
+  ],
+  "run_type": "tool",
+  "name": "create_session",
+  "start_time": "2026-10-25 12:52:56.943139+00:00",
+  "end_time": "2026-10-25 12:52:57.605224+00:00",
+  "total_cost": null,
+  "error": null,
+  "inputs": {
+   "sourceCode": "<3320 chars>"
+  },
+  "outputs": {
+   "output": {
+    "additional_kwargs": {},
+    "artifact": {
+     "structured_content": {
+      "ok": true,
+      "output": {
+       "entryPoints": [
+        "GenerateVectors",
+        "MergeEigen",
+        "PerWorkerCovariance"
+       ]
+      },
+      "sessionId": "3611ad4aad0843d7975c562f4dc88473",
+      "status": "Created"
+     }
+    },
+    "content": [
+     {
+      "id": "lc_24df1e60-3a90-4452-b298-4f5ae71df4ac",
+      "text": "{\"ok\":true,\"status\":\"Created\",\"sessionId\":\"3611ad4aad0843d7975c562f4dc88473\",\"output\":{\"entryPoints\":[\"GenerateVectors\",\"MergeEigen\",\"PerWorkerCovariance\"]}}",
+      "type": "text"
+     }
+    ],
+    "name": "create_session",
+    "response_metadata": {},
+    "status": "success",
+    "tool_call_id": "call_FTRqZjRIThepT46Tt2lgvw35",
+    "type": "tool"
+   }
+  }
+ },
+ {
+  "id": "01a1731f-0bee-7320-a7eb-0c4520f2dc42",
+  "parent_run_id": "01a1731f-0bee-7530-bf28-5318e2603c26",
+  "parent_run_ids": [
+   "01a1731e-79ba-77d2-8203-7118be9b9520",
+   "01a1731f-0bee-7530-bf28-5318e2603c26"
+  ],
+  "run_type": "chain",
+  "name": "ToolRetryMiddleware.awrap_tool_call",
+  "start_time": "2026-10-25 12:52:56.942640+00:00",
+  "end_time": "2026-10-25 12:52:57.605724+00:00",
+  "total_cost": null,
+  "error": null
+ },
+ {
+  "id": "01a1731f-0bee-7530-bf28-5318e2603c26",
+  "parent_run_id": "01a1731e-79ba-77d2-8203-7118be9b9520",
+  "parent_run_ids": [
+   "01a1731e-79ba-77d2-8203-7118be9b9520"
+  ],
+  "run_type": "chain",
+  "name": "tools",
+  "start_time": "2026-10-25 12:52:56.942140+00:00",
+  "end_time": "2026-10-25 12:52:57.606225+00:00",
+  "total_cost": null,
+  "error": null
+ },
+ {
+  "id": "01a1731e-e099-7660-876e-8065513c59db",
+  "parent_run_id": "01a1731e-e098-7ba0-acb5-b85406353566",
+  "parent_run_ids": [
+   "01a1731e-79ba-77d2-8203-7118be9b9520",
+   "01a1731e-e097-7d11-86b1-8a9230591033",
+   "01a1731e-e097-7b73-aa87-8774ce166f06",
+   "01a1731e-e098-7ba0-acb5-b85406353566"
+  ],
+  "run_type": "llm",
+  "name": "ChatOpenAI",
+  "start_time": "2026-10-25 12:52:45.848615+00:00",
+  "end_time": "2026-10-25 12:52:56.940140+00:00",
+  "total_cost": 0.00200036,
+  "error": null,
+  "outputs": {
+   "generations": [
+    [
+     {
+      "message": {
+       "kwargs": {
+        "content": "",
+        "tool_calls": [
+         {
+          "name": "create_session"
+         }
+        ],
+        "usage_metadata": {
+         "input_token_details": {
+          "audio": 0,
+          "cache_read": 4948
+         },
+         "input_tokens": 6499,
+         "output_token_details": {
+          "audio": 0,
+          "reasoning": 207
+         },
+         "output_tokens": 1326,
+         "total_tokens": 7825
+        }
+       }
+      }
+     }
+    ]
+   ]
+  }
+ },
+ {
+  "id": "01a1731e-e098-7ba0-acb5-b85406353566",
+  "parent_run_id": "01a1731e-e097-7b73-aa87-8774ce166f06",
+  "parent_run_ids": [
+   "01a1731e-79ba-77d2-8203-7118be9b9520",
+   "01a1731e-e097-7d11-86b1-8a9230591033",
+   "01a1731e-e097-7b73-aa87-8774ce166f06"
+  ],
+  "run_type": "chain",
+  "name": "ParcsToolCallingMiddleware.awrap_model_call",
+  "start_time": "2026-10-25 12:52:45.848115+00:00",
+  "end_time": "2026-10-25 12:52:56.940640+00:00",
+  "total_cost": 0.00200036,
+  "error": null
+ },
+ {
+  "id": "01a1731e-e097-7b73-aa87-8774ce166f06",
+  "parent_run_id": "01a1731e-e097-7d11-86b1-8a9230591033",
+  "parent_run_ids": [
+   "01a1731e-79ba-77d2-8203-7118be9b9520",
+   "01a1731e-e097-7d11-86b1-8a9230591033"
+  ],
+  "run_type": "chain",
+  "name": "ThreadNonceMiddleware.awrap_model_call",
+  "start_time": "2026-10-25 12:52:45.847115+00:00",
+  "end_time": "2026-10-25 12:52:56.941141+00:00",
+  "total_cost": 0.00200036,
+  "error": null
+ },
+ {
+  "id": "01a1731e-e097-7d11-86b1-8a9230591033",
+  "parent_run_id": "01a1731e-79ba-77d2-8203-7118be9b9520",
+  "parent_run_ids": [
+   "01a1731e-79ba-77d2-8203-7118be9b9520"
+  ],
+  "run_type": "chain",
+  "name": "model",
+  "start_time": "2026-10-25 12:52:45.846616+00:00",
+  "end_time": "2026-10-25 12:52:56.941141+00:00",
+  "total_cost": 0.00200036,
+  "error": null
+ },
+ {
+  "id": "01a1731e-ddc1-7412-b216-3bedce965d81",
+  "parent_run_id": "01a1731e-ddc1-7062-b8be-14be2486d4a5",
+  "parent_run_ids": [
+   "01a1731e-79ba-77d2-8203-7118be9b9520",
+   "01a1731e-ddc0-77e3-842d-faaa9be430be",
+   "01a1731e-ddc1-7062-b8be-14be2486d4a5"
+  ],
+  "run_type": "tool",
+  "name": "create_session",
+  "start_time": "2026-10-25 12:52:45.121682+00:00",
+  "end_time": "2026-10-25 12:52:45.845115+00:00",
+  "total_cost": null,
+  "error": null,
+  "inputs": {
+   "sourceCode": "<4691 chars>"
+  },
+  "outputs": {
+   "output": {
+    "additional_kwargs": {},
+    "artifact": {
+     "structured_content": {
+      "ok": true,
+      "output": {
+       "entryPoints": [
+        "GenerateVectors",
+        "MergeEigen",
+        "PerWorkerCovariance"
+       ]
+      },
+      "sessionId": "5a7b7be0f8d84ae69b43e893a8fa4223",
+      "status": "Created"
+     }
+    },
+    "content": [
+     {
+      "id": "lc_7b630525-29c0-49c8-8785-341a4ee98108",
+      "text": "{\"ok\":true,\"status\":\"Created\",\"sessionId\":\"5a7b7be0f8d84ae69b43e893a8fa4223\",\"output\":{\"entryPoints\":[\"GenerateVectors\",\"MergeEigen\",\"PerWorkerCovariance\"]}}",
+      "type": "text"
+     }
+    ],
+    "name": "create_session",
+    "response_metadata": {},
+    "status": "success",
+    "tool_call_id": "call_EgGXpkTKUrVqibbtNiVkkItf",
+    "type": "tool"
+   }
+  }
+ },
+ {
+  "id": "01a1731e-ddc1-7062-b8be-14be2486d4a5",
+  "parent_run_id": "01a1731e-ddc0-77e3-842d-faaa9be430be",
+  "parent_run_ids": [
+   "01a1731e-79ba-77d2-8203-7118be9b9520",
+   "01a1731e-ddc0-77e3-842d-faaa9be430be"
+  ],
+  "run_type": "chain",
+  "name": "ToolRetryMiddleware.awrap_tool_call",
+  "start_time": "2026-10-25 12:52:45.121180+00:00",
+  "end_time": "2026-10-25 12:52:45.845615+00:00",
+  "total_cost": null,
+  "error": null
+ },
+ {
+  "id": "01a1731e-ddc0-77e3-842d-faaa9be430be",
+  "parent_run_id": "01a1731e-79ba-77d2-8203-7118be9b9520",
+  "parent_run_ids": [
+   "01a1731e-79ba-77d2-8203-7118be9b9520"
+  ],
+  "run_type": "chain",
+  "name": "tools",
+  "start_time": "2026-10-25 12:52:45.120682+00:00",
+  "end_time": "2026-10-25 12:52:45.846115+00:00",
+  "total_cost": null,
+  "error": null
+ },
+ {
+  "id": "01a1731e-9174-7501-9644-a647e89d196b",
+  "parent_run_id": "01a1731e-9173-7552-97bf-00169c77032c",
+  "parent_run_ids": [
+   "01a1731e-79ba-77d2-8203-7118be9b9520",
+   "01a1731e-9172-7173-b955-10ea58441697",
+   "01a1731e-9172-7022-87d9-000b2beb735c",
+   "01a1731e-9173-7552-97bf-00169c77032c"
+  ],
+  "run_type": "llm",
+  "name": "ChatOpenAI",
+  "start_time": "2026-10-25 12:52:25.588207+00:00",
+  "end_time": "2026-10-25 12:52:45.118179+00:00",
+  "total_cost": 0.00255344,
+  "error": null,
+  "outputs": {
+   "generations": [
+    [
+     {
+      "message": {
+       "kwargs": {
+        "content": "",
+        "tool_calls": [
+         {
+          "name": "create_session"
+         }
+        ],
+        "usage_metadata": {
+         "input_token_details": {
+          "audio": 0,
+          "cache_read": 4862
+         },
+         "input_tokens": 4951,
+         "output_token_details": {
+          "audio": 0,
+          "reasoning": 545
+         },
+         "output_tokens": 2032,
+         "total_tokens": 6983
+        }
+       }
+      }
+     }
+    ]
+   ]
+  }
+ },
+ {
+  "id": "01a1731e-9173-7552-97bf-00169c77032c",
+  "parent_run_id": "01a1731e-9172-7022-87d9-000b2beb735c",
+  "parent_run_ids": [
+   "01a1731e-79ba-77d2-8203-7118be9b9520",
+   "01a1731e-9172-7173-b955-10ea58441697",
+   "01a1731e-9172-7022-87d9-000b2beb735c"
+  ],
+  "run_type": "chain",
+  "name": "ParcsToolCallingMiddleware.awrap_model_call",
+  "start_time": "2026-10-25 12:52:25.587207+00:00",
+  "end_time": "2026-10-25 12:52:45.118679+00:00",
+  "total_cost": 0.00255344,
+  "error": null
+ },
+ {
+  "id": "01a1731e-9172-7022-87d9-000b2beb735c",
+  "parent_run_id": "01a1731e-9172-7173-b955-10ea58441697",
+  "parent_run_ids": [
+   "01a1731e-79ba-77d2-8203-7118be9b9520",
+   "01a1731e-9172-7173-b955-10ea58441697"
+  ],
+  "run_type": "chain",
+  "name": "ThreadNonceMiddleware.awrap_model_call",
+  "start_time": "2026-10-25 12:52:25.586707+00:00",
+  "end_time": "2026-10-25 12:52:45.119180+00:00",
+  "total_cost": 0.00255344,
+  "error": null
+ },
+ {
+  "id": "01a1731e-9172-7173-b955-10ea58441697",
+  "parent_run_id": "01a1731e-79ba-77d2-8203-7118be9b9520",
+  "parent_run_ids": [
+   "01a1731e-79ba-77d2-8203-7118be9b9520"
+  ],
+  "run_type": "chain",
+  "name": "model",
+  "start_time": "2026-10-25 12:52:25.586207+00:00",
+  "end_time": "2026-10-25 12:52:45.119679+00:00",
+  "total_cost": 0.00255344,
+  "error": null
+ },
+ {
+  "id": "01a1731e-8f3c-7f12-9198-6592bbbc7f93",
+  "parent_run_id": "01a1731e-8f3b-7e23-b40d-7ffbb937de7d",
+  "parent_run_ids": [
+   "01a1731e-79ba-77d2-8203-7118be9b9520",
+   "01a1731e-8f3b-7572-adb8-8d60924c8816",
+   "01a1731e-8f3b-7e23-b40d-7ffbb937de7d"
+  ],
+  "run_type": "tool",
+  "name": "get_cluster_info",
+  "start_time": "2026-10-25 12:52:25.019918+00:00",
+  "end_time": "2026-10-25 12:52:25.583207+00:00",
+  "total_cost": null,
+  "error": null,
+  "inputs": {},
+  "outputs": {
+   "output": {
+    "additional_kwargs": {},
+    "artifact": {
+     "structured_content": {
+      "ok": true,
+      "output": {
+       "capacitySource": "dns",
+       "currentCapacity": 4,
+       "daemonCpuRequestMillicores": 250,
+       "freeWorkers": 4,
+       "maxParallelism": 4,
+       "queuedLayers": 0,
+       "runningLayers": 0,
+       "scalingMode": "static",
+       "workerNodeCount": 1
+      }
+     }
+    },
+    "content": [
+     {
+      "id": "lc_761f5dc6-a846-4e4d-9c22-d3f6ad9b4920",
+      "text": "{\"ok\":true,\"output\":{\"scalingMode\":\"static\",\"workerNodeCount\":1,\"currentCapacity\":4,\"maxParallelism\":4,\"daemonCpuRequestMillicores\":250,\"capacitySource\":\"dns\",\"freeWorkers\":4,\"runningLayers\":0,\"queuedLayers\":0}}",
+      "type": "text"
+     }
+    ],
+    "name": "get_cluster_info",
+    "response_metadata": {},
+    "status": "success",
+    "tool_call_id": "call_7zf4FuUPSvO7srNqJ7i5MFtA",
+    "type": "tool"
+   }
+  }
+ },
+ {
+  "id": "01a1731e-8f3b-7e23-b40d-7ffbb937de7d",
+  "parent_run_id": "01a1731e-8f3b-7572-adb8-8d60924c8816",
+  "parent_run_ids": [
+   "01a1731e-79ba-77d2-8203-7118be9b9520",
+   "01a1731e-8f3b-7572-adb8-8d60924c8816"
+  ],
+  "run_type": "chain",
+  "name": "ToolRetryMiddleware.awrap_tool_call",
+  "start_time": "2026-10-25 12:52:25.019419+00:00",
+  "end_time": "2026-10-25 12:52:25.583707+00:00",
+  "total_cost": null,
+  "error": null
+ },
+ {
+  "id": "01a1731e-8f3b-7572-adb8-8d60924c8816",
+  "parent_run_id": "01a1731e-79ba-77d2-8203-7118be9b9520",
+  "parent_run_ids": [
+   "01a1731e-79ba-77d2-8203-7118be9b9520"
+  ],
+  "run_type": "chain",
+  "name": "tools",
+  "start_time": "2026-10-25 12:52:25.018920+00:00",
+  "end_time": "2026-10-25 12:52:25.584208+00:00",
+  "total_cost": null,
+  "error": null
+ },
+ {
+  "id": "01a1731e-7a2a-7d33-a7b7-f37038454b61",
+  "parent_run_id": "01a1731e-7a28-7d02-9408-09b7769345b4",
+  "parent_run_ids": [
+   "01a1731e-79ba-77d2-8203-7118be9b9520",
+   "01a1731e-79e8-7de1-a409-3118263fa0b1",
+   "01a1731e-7a27-7271-9637-9dbb9ebc2b08",
+   "01a1731e-7a28-7d02-9408-09b7769345b4"
+  ],
+  "run_type": "llm",
+  "name": "ChatOpenAI",
+  "start_time": "2026-10-25 12:52:19.625640+00:00",
+  "end_time": "2026-10-25 12:52:25.016427+00:00",
+  "total_cost": 0.0012658,
+  "error": null,
+  "outputs": {
+   "generations": [
+    [
+     {
+      "message": {
+       "kwargs": {
+        "content": "",
+        "tool_calls": [
+         {
+          "name": "get_cluster_info"
+         }
+        ],
+        "usage_metadata": {
+         "input_token_details": {
+          "audio": 0,
+          "cache_read": 0
+         },
+         "input_tokens": 4865,
+         "output_token_details": {
+          "audio": 0,
+          "reasoning": 227
+         },
+         "output_tokens": 244,
+         "total_tokens": 5109
+        }
+       }
+      }
+     }
+    ]
+   ]
+  }
+ },
+ {
+  "id": "01a1731e-7a28-7d02-9408-09b7769345b4",
+  "parent_run_id": "01a1731e-7a27-7271-9637-9dbb9ebc2b08",
+  "parent_run_ids": [
+   "01a1731e-79ba-77d2-8203-7118be9b9520",
+   "01a1731e-79e8-7de1-a409-3118263fa0b1",
+   "01a1731e-7a27-7271-9637-9dbb9ebc2b08"
+  ],
+  "run_type": "chain",
+  "name": "ParcsToolCallingMiddleware.awrap_model_call",
+  "start_time": "2026-10-25 12:52:19.624139+00:00",
+  "end_time": "2026-10-25 12:52:25.017420+00:00",
+  "total_cost": 0.0012658,
+  "error": null
+ },
+ {
+  "id": "01a1731e-7a27-7271-9637-9dbb9ebc2b08",
+  "parent_run_id": "01a1731e-79e8-7de1-a409-3118263fa0b1",
+  "parent_run_ids": [
+   "01a1731e-79ba-77d2-8203-7118be9b9520",
+   "01a1731e-79e8-7de1-a409-3118263fa0b1"
+  ],
+  "run_type": "chain",
+  "name": "ThreadNonceMiddleware.awrap_model_call",
+  "start_time": "2026-10-25 12:52:19.623139+00:00",
+  "end_time": "2026-10-25 12:52:25.017420+00:00",
+  "total_cost": 0.0012658,
+  "error": null
+ },
+ {
+  "id": "01a1731e-79e8-7de1-a409-3118263fa0b1",
+  "parent_run_id": "01a1731e-79ba-77d2-8203-7118be9b9520",
+  "parent_run_ids": [
+   "01a1731e-79ba-77d2-8203-7118be9b9520"
+  ],
+  "run_type": "chain",
+  "name": "model",
+  "start_time": "2026-10-25 12:52:19.560137+00:00",
+  "end_time": "2026-10-25 12:52:25.017919+00:00",
+  "total_cost": 0.0012658,
+  "error": null
+ },
+ {
+  "id": "01a1731e-79ba-77d2-8203-7118be9b9520",
+  "parent_run_id": null,
+  "parent_run_ids": [],
+  "run_type": "chain",
+  "name": "ParcsAgent",
+  "start_time": "2026-10-25 12:52:19.514094+00:00",
+  "end_time": "2026-10-25 12:53:27.370717+00:00",
+  "total_cost": 0.00810738,
+  "error": null,
+  "extra": {
+   "metadata": {
+    "LANGSMITH__ENDPOINT": "https://api.smith.langchain.com",
+    "LANGSMITH__PROJECT": "parcs-agent-benchmark",
+    "LANGSMITH__TRACING_V2": "true",
+    "lc_agent_name": "ParcsAgent",
+    "ls_integration": "langchain_create_agent",
+    "ls_run_depth": 0,
+    "mode": "tool_calling",
+    "model": "openai/gpt-5.6-luna",
+    "revision_id": "7d8e2c8",
+    "thread_id": "5010a171-c5a8-4345-ae44-2275f65c96e4"
+   }
+  }
+ }
+]

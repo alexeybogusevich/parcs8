@@ -1,0 +1,3540 @@
+{
+ "cell": {
+  "family": "f1",
+  "n": 32,
+  "arm": "ptc",
+  "model": "gpt6luna",
+  "rep": 1,
+  "run_id": "f1-n32-ptc-gpt6luna-r1"
+ },
+ "task": "Compute I = \u222b from 0 to 8 of f(x) dx on the PARCS cluster, where\n\n    f(x) = exp(-x / 4) * cos(x + 0.5 * sin(2 * x))\n\nFollow this layer plan exactly; it is part of the task:\n\n1. Split [0, 8] into N = 32 equal subintervals [a_k, b_k] with a_k = 8 * k / 32 and\n   b_k = 8 * (k + 1) / 32, for k = 0, 1, ..., 31.\n2. Run every subinterval as its own layer with parallelism 1: 32 subinterval layers in total.\n   Do not compute several subintervals in one layer.\n3. Each subinterval layer integrates f over its [a_k, b_k] with composite Simpson's rule using\n   10000 panels (accurate to about 1e-12).\n4. Then run one reduce layer with parallelism 1 whose previousLayerIds lists all 32 subinterval\n   layers. It adds up their results and outputs I. The reduce layer has 32 parents: read parent j\n   with input.GetPreviousOutputs(j) for j = 0, 1, ..., 31 (GetPreviousOutputs() alone reads\n   only the first parent).\n\nThe run uses exactly 33 layers. Report I from the reduce layer's output with at least\n12 significant digits. End your answer with a line of the form\n\nANSWER: <number>\n",
+ "config": {
+  "configurable": {
+   "thread_id": "60916bb2-f375-441f-bf7a-89b62a2cc4f6"
+  },
+  "recursion_limit": 600,
+  "run_name": "f1-n32-ptc-gpt6luna-r1",
+  "tags": [
+   "f1",
+   "n32",
+   "ptc",
+   "gpt6luna"
+  ],
+  "metadata": {
+   "family": "f1",
+   "n": 32,
+   "arm": "ptc",
+   "model": "gpt6luna",
+   "rep": 1,
+   "run_id": "f1-n32-ptc-gpt6luna-r1",
+   "model_name": "openai/gpt-6-luna",
+   "manifest": "d7bd8aa0d575"
+  }
+ },
+ "trace_id": "59cfd63e-0ac0-4883-8c16-21f80ef48547",
+ "cluster_info": {
+  "scalingMode": "static",
+  "workerNodeCount": 1,
+  "currentCapacity": 4,
+  "maxParallelism": 4,
+  "daemonCpuRequestMillicores": 250,
+  "capacitySource": "dns",
+  "freeWorkers": 4,
+  "runningLayers": 0,
+  "queuedLayers": 0
+ },
+ "messages": [
+  {
+   "type": "human",
+   "data": {
+    "content": "Compute I = \u222b from 0 to 8 of f(x) dx on the PARCS cluster, where\n\n    f(x) = exp(-x / 4) * cos(x + 0.5 * sin(2 * x))\n\nFollow this layer plan exactly; it is part of the task:\n\n1. Split [0, 8] into N = 32 equal subintervals [a_k, b_k] with a_k = 8 * k / 32 and\n   b_k = 8 * (k + 1) / 32, for k = 0, 1, ..., 31.\n2. Run every subinterval as its own layer with parallelism 1: 32 subinterval layers in total.\n   Do not compute several subintervals in one layer.\n3. Each subinterval layer integrates f over its [a_k, b_k] with composite Simpson's rule using\n   10000 panels (accurate to about 1e-12).\n4. Then run one reduce layer with parallelism 1 whose previousLayerIds lists all 32 subinterval\n   layers. It adds up their results and outputs I. The reduce layer has 32 parents: read parent j\n   with input.GetPreviousOutputs(j) for j = 0, 1, ..., 31 (GetPreviousOutputs() alone reads\n   only the first parent).\n\nThe run uses exactly 33 layers. Report I from the reduce layer's output with at least\n12 significant digits. End your answer with a line of the form\n\nANSWER: <number>\n",
+    "additional_kwargs": {},
+    "response_metadata": {},
+    "type": "human",
+    "name": null,
+    "id": "de6a5708-d2f7-4a62-881e-f4c5b32d7f1b"
+   }
+  },
+  {
+   "type": "ai",
+   "data": {
+    "content": "",
+    "additional_kwargs": {},
+    "response_metadata": {
+     "finish_reason": "tool_callstool_calls",
+     "model_name": "openai/gpt-6-lunaopenai/gpt-6-luna",
+     "service_tier": "default",
+     "model_provider": "openai"
+    },
+    "type": "ai",
+    "name": "ParcsAgent",
+    "id": "lc_run--01a1743f-e33a-70c4-b23d-642911ecb952",
+    "tool_calls": [
+     {
+      "name": "eval",
+      "args": {
+       "code": "{\n  const call = async (fn, args) => {\n    const raw = await fn(args);\n    const r = Array.isArray(raw) ? JSON.parse(raw[0].text) : raw;\n    if (!r.ok) throw new Error(JSON.stringify(r.error));\n    return r;\n  };\n  const run = async (args) => {\n    let r = await call(tools.runLayer, { waitSeconds: 200, ...args });\n    while (r.status === 'Running' || r.status === 'Queued')\n      r = await call(tools.waitLayer, { layerId: r.layerId, waitSeconds: 200 });\n    return r;\n  };\n  const info = await call(tools.getClusterInfo, {});\n  const src = String.raw`using System; using System.Collections.Generic; using System.Linq; using System.Text.Json; using System.Threading; using System.Threading.Tasks; using Parcs.Agent.Runtime;\npublic class Part { public double Value { get; set; } }\npublic class Integrate : IAgentComputation { public Task<AgentLayerResult> ExecuteAsync(AgentLayerInput input, CancellationToken ct) { int k = int.Parse(input.Parameters["
+      },
+      "id": "call_gNdZicpuSvWOd0kY4HTXiCoz",
+      "type": "tool_call"
+     }
+    ],
+    "invalid_tool_calls": [],
+    "usage_metadata": {
+     "input_tokens": 5663,
+     "output_tokens": 1039,
+     "total_tokens": 6702,
+     "input_token_details": {
+      "audio": 0,
+      "cache_creation": 5660,
+      "cache_read": 0
+     },
+     "output_token_details": {
+      "audio": 0,
+      "reasoning": 753
+     }
+    }
+   }
+  },
+  {
+   "type": "tool",
+   "data": {
+    "content": "<error type=\"SyntaxError\">source parse error in &lt;eval&gt;: Unterminated string</error>",
+    "additional_kwargs": {},
+    "response_metadata": {},
+    "type": "tool",
+    "name": "eval",
+    "id": "436118aa-9098-475d-a44d-ac4671867041",
+    "tool_call_id": "call_gNdZicpuSvWOd0kY4HTXiCoz",
+    "artifact": null,
+    "status": "success"
+   }
+  },
+  {
+   "type": "ai",
+   "data": {
+    "content": "",
+    "additional_kwargs": {},
+    "response_metadata": {
+     "finish_reason": "tool_callstool_calls",
+     "model_name": "openai/gpt-6-lunaopenai/gpt-6-luna",
+     "service_tier": "default",
+     "model_provider": "openai"
+    },
+    "type": "ai",
+    "name": "ParcsAgent",
+    "id": "lc_run--01a17440-0b6d-771a-b230-ac306cecb0a1",
+    "tool_calls": [
+     {
+      "name": "eval",
+      "args": {
+       "code": "{"
+      },
+      "id": "call_ZpfW6kyfugoF1q1W4FmCZMir",
+      "type": "tool_call"
+     }
+    ],
+    "invalid_tool_calls": [],
+    "usage_metadata": {
+     "input_tokens": 5980,
+     "output_tokens": 312,
+     "total_tokens": 6292,
+     "input_token_details": {
+      "audio": 0,
+      "cache_creation": 317,
+      "cache_read": 5660
+     },
+     "output_token_details": {
+      "audio": 0,
+      "reasoning": 287
+     }
+    }
+   }
+  },
+  {
+   "type": "tool",
+   "data": {
+    "content": "<error type=\"SyntaxError\">source parse error in &lt;eval&gt;: Expected `}` but found `EOF`</error>",
+    "additional_kwargs": {},
+    "response_metadata": {},
+    "type": "tool",
+    "name": "eval",
+    "id": "0dc62566-3629-435c-9d86-48f5d8ea6c60",
+    "tool_call_id": "call_ZpfW6kyfugoF1q1W4FmCZMir",
+    "artifact": null,
+    "status": "success"
+   }
+  },
+  {
+   "type": "ai",
+   "data": {
+    "content": "",
+    "additional_kwargs": {},
+    "response_metadata": {
+     "finish_reason": "tool_callstool_calls",
+     "model_name": "openai/gpt-6-lunaopenai/gpt-6-luna",
+     "service_tier": "default",
+     "model_provider": "openai"
+    },
+    "type": "ai",
+    "name": "ParcsAgent",
+    "id": "lc_run--01a17440-1f9b-771f-86f9-dd366a2d64e2",
+    "tool_calls": [
+     {
+      "name": "eval",
+      "args": {
+       "code": "{\n  const call = async (fn, args) => {\n    const raw = await fn(args);\n    const r = Array.isArray(raw) ? JSON.parse(raw[0].text) : raw;\n    if (!r.ok) throw new Error(JSON.stringify(r.error));\n    return r;\n  };\n  const wait = async (id) => {\n    let r = await call(tools.waitLayer, { layerId: id, waitSeconds: 15 });\n    while (r.status === 'Running' || r.status === 'Queued') r = await call(tools.waitLayer, { layerId: id, waitSeconds: 15 });\n    return r;\n  };\n  const info = await call(tools.getClusterInfo, {});\n  const src = String.raw`using System; using System.Text.Json; using System.Threading; using System.Threading.Tasks; using Parcs.Agent.Runtime;\npublic class Part { public double Value { get; set; } }\npublic class Integrate : IAgentComputation { public Task<AgentLayerResult> ExecuteAsync(AgentLayerInput input, CancellationToken ct) { int k = int.Parse(input.Parameters[\"k\"]); double a = 8.0*k/32, b = 8.0*(k+1)/32, h=(b-a)/10000.0, sum=Math.Exp(-a/4)*Math.Cos(a+0.5*Math.Sin(2*a))+Math.Exp(-b/4)*Math.Cos(b+0.5*Math.Sin(2*b)); for(int i=1;i<10000;i++){ double x=a+i*h; double f=Math.Exp(-x/4)*Math.Cos(x+0.5*Math.Sin(2*x)); sum+=(i%2==0?2.0:4.0)*f; } return Task.FromResult(AgentLayerResult.Ok(JsonSerializer.Serialize(new Part { Value=sum*h/3.0 }))); } }\npublic class Reduce : IAgentComputation { public Task<AgentLayerResult> ExecuteAsync(AgentLayerInput input, CancellationToken ct) { double total=0; for(int j=0;j<32;j++){ var xs=input.GetPreviousOutputs(j); foreach(var s in xs) if(s!=null) total+=JsonSerializer.Deserialize<Part>(s).Value; } return Task.FromResult(AgentLayerResult.Ok(JsonSerializer.Serialize(new Part { Value=total }))); } }`;\n  const session = await call(tools.createSession, { sourceCode: src });\n  const submitted = await Promise.all(Array.from({length:32}, (_,k) => call(tools.submitLayer, { sessionId: session.sessionId, entryPoint:'Integrate', parallelism:1, layerKey:'subinterval-'+k, parameters:{k:String(k)}, waitSeconds:0 })));\n  const parts = await Promise.all(submitted.map(r => wait(r.layerId)));\n  const bad = parts.filter(r => r.status !== 'Completed');\n  if (bad.length) throw new Error(JSON.stringify(bad.map(x=>({status:x.status,error:x.error,layer:x.layer}))));\n  const red = await call(tools.runLayer, { sessionId:session.sessionId, entryPoint:'Reduce', parallelism:1, layerKey:'reduce-final', previousLayerIds:submitted.map(r=>r.layerId), waitSeconds:15 });\n  let result=red;\n  while(result.status==='Running'||result.status==='Queued') result=await call(tools.waitLayer,{layerId:result.layerId,waitSeconds:15});\n  result.output;\n}"
+      },
+      "id": "call_9IkknVDFHoceSyzjZWJEFqME",
+      "type": "tool_call"
+     }
+    ],
+    "invalid_tool_calls": [],
+    "usage_metadata": {
+     "input_tokens": 6036,
+     "output_tokens": 1307,
+     "total_tokens": 7343,
+     "input_token_details": {
+      "audio": 0,
+      "cache_creation": 56,
+      "cache_read": 5977
+     },
+     "output_token_details": {
+      "audio": 0,
+      "reasoning": 516
+     }
+    }
+   }
+  },
+  {
+   "type": "tool",
+   "data": {
+    "content": "<error type=\"Error\">{\"code\":\"invalid_argument\",\"message\":\"submit_layer: unknown argument 'waitSeconds'. Its arguments are 'sessionId', 'parallelism', 'layerKey', 'entryPoint', 'previousLayerIds', 'customData', 'parameters', 'workerInputs', 'failFast', 'channelTimeoutSeconds', 'inherit', 'maxPoints', 'maxDepth', of which 'sessionId', 'parallelism' required.\",\"retryable\":false}\n    at call (eval_script:5:45)\n</error>",
+    "additional_kwargs": {},
+    "response_metadata": {},
+    "type": "tool",
+    "name": "eval",
+    "id": "ce8fcfbd-e306-4af4-85e1-36fff61d7851",
+    "tool_call_id": "call_9IkknVDFHoceSyzjZWJEFqME",
+    "artifact": null,
+    "status": "success"
+   }
+  },
+  {
+   "type": "ai",
+   "data": {
+    "content": "",
+    "additional_kwargs": {},
+    "response_metadata": {
+     "finish_reason": "tool_callstool_calls",
+     "model_name": "openai/gpt-6-lunaopenai/gpt-6-luna",
+     "service_tier": "default",
+     "model_provider": "openai"
+    },
+    "type": "ai",
+    "name": "ParcsAgent",
+    "id": "lc_run--01a17440-6a3c-733d-894a-11dce02a028b",
+    "tool_calls": [
+     {
+      "name": "eval",
+      "args": {
+       "code": "{\n  const call = async (fn, args) => {\n    const raw = await fn(args);\n    const r = Array.isArray(raw) ? JSON.parse(raw[0].text) : raw;\n    if (!r.ok) throw new Error(JSON.stringify(r.error));\n    return r;\n  };\n  const wait = async (id) => {\n    let r = await call(tools.waitLayer, { layerId: id, waitSeconds: 20 });\n    while (r.status === 'Running' || r.status === 'Queued') r = await call(tools.waitLayer, { layerId: id, waitSeconds: 20 });\n    return r;\n  };\n  const info = await call(tools.getClusterInfo, {});\n  const src = String.raw`using System; using System.Text.Json; using System.Threading; using System.Threading.Tasks; using Parcs.Agent.Runtime;\npublic class Part { public double Value { get; set; } }\npublic class Integrate : IAgentComputation { public Task<AgentLayerResult> ExecuteAsync(AgentLayerInput input, CancellationToken ct) { int k = int.Parse(input.Parameters[\"k\"]); double a = 8.0*k/32, b = 8.0*(k+1)/32, h=(b-a)/10000.0, sum=Math.Exp(-a/4)*Math.Cos(a+0.5*Math.Sin(2*a))+Math.Exp(-b/4)*Math.Cos(b+0.5*Math.Sin(2*b)); for(int i=1;i<10000;i++){ double x=a+i*h; double f=Math.Exp(-x/4)*Math.Cos(x+0.5*Math.Sin(2*x)); sum+=(i%2==0?2.0:4.0)*f; } return Task.FromResult(AgentLayerResult.Ok(JsonSerializer.Serialize(new Part { Value=sum*h/3.0 }))); } }\npublic class Reduce : IAgentComputation { public Task<AgentLayerResult> ExecuteAsync(AgentLayerInput input, CancellationToken ct) { double total=0; for(int j=0;j<32;j++){ var xs=input.GetPreviousOutputs(j); foreach(var s in xs) if(s!=null) total+=JsonSerializer.Deserialize<Part>(s).Value; } return Task.FromResult(AgentLayerResult.Ok(JsonSerializer.Serialize(new Part { Value=total }))); } }`;\n  const session = await call(tools.createSession, { sourceCode: src });\n  const submitted = await Promise.all(Array.from({length:32}, (_,k) => call(tools.submitLayer, { sessionId: session.sessionId, entryPoint:'Integrate', parallelism:1, layerKey:'subinterval-'+k, parameters:{k:String(k)} })));\n  const parts = await Promise.all(submitted.map(r => wait(r.layerId)));\n  const bad = parts.filter(r => r.status !== 'Completed');\n  if (bad.length) throw new Error(JSON.stringify(bad.map(x=>({status:x.status,error:x.error,layer:x.layer}))));\n  let result = await call(tools.runLayer, { sessionId:session.sessionId, entryPoint:'Reduce', parallelism:1, layerKey:'reduce-final', previousLayerIds:submitted.map(r=>r.layerId), waitSeconds:20 });\n  while(result.status==='Running'||result.status==='Queued') result=await call(tools.waitLayer,{layerId:result.layerId,waitSeconds:20});\n  result.output;\n}"
+      },
+      "id": "call_PYrOOknQz80Lc5bnO1PusgYM",
+      "type": "tool_call"
+     }
+    ],
+    "invalid_tool_calls": [],
+    "usage_metadata": {
+     "input_tokens": 6941,
+     "output_tokens": 901,
+     "total_tokens": 7842,
+     "input_token_details": {
+      "audio": 0,
+      "cache_creation": 905,
+      "cache_read": 6033
+     },
+     "output_token_details": {
+      "audio": 0,
+      "reasoning": 124
+     }
+    }
+   }
+  },
+  {
+   "type": "tool",
+   "data": {
+    "content": "<result>{Value: 0.25165212943066617}</result>",
+    "additional_kwargs": {},
+    "response_metadata": {},
+    "type": "tool",
+    "name": "eval",
+    "id": "3a446dcb-4bf1-4ef8-9872-1f9ff80bc293",
+    "tool_call_id": "call_PYrOOknQz80Lc5bnO1PusgYM",
+    "artifact": null,
+    "status": "success"
+   }
+  },
+  {
+   "type": "ai",
+   "data": {
+    "content": "The reduce layer returned \\(I = 0.25165212943066617\\).\n\nANSWER: 0.25165212943066617",
+    "additional_kwargs": {},
+    "response_metadata": {
+     "finish_reason": "stopstop",
+     "model_name": "openai/gpt-6-lunaopenai/gpt-6-luna",
+     "service_tier": "default",
+     "model_provider": "openai"
+    },
+    "type": "ai",
+    "name": "ParcsAgent",
+    "id": "lc_run--01a17441-17d5-7097-89b2-c9496c29c29d",
+    "tool_calls": [],
+    "invalid_tool_calls": [],
+    "usage_metadata": {
+     "input_tokens": 7743,
+     "output_tokens": 33,
+     "total_tokens": 7776,
+     "input_token_details": {
+      "audio": 0,
+      "cache_creation": 802,
+      "cache_read": 6938
+     },
+     "output_token_details": {
+      "audio": 0,
+      "reasoning": 0
+     }
+    }
+   }
+  }
+ ],
+ "tool_calls": [
+  {
+   "name": "get_cluster_info",
+   "args": {},
+   "t_start": 1792951733.6211336,
+   "t_end": 1792951734.273076,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "output": {
+     "scalingMode": "static",
+     "workerNodeCount": 1,
+     "currentCapacity": 4,
+     "maxParallelism": 4,
+     "daemonCpuRequestMillicores": 250,
+     "capacitySource": "dns",
+     "freeWorkers": 4,
+     "runningLayers": 0,
+     "queuedLayers": 0
+    }
+   }
+  },
+  {
+   "name": "create_session",
+   "args": {
+    "sourceCode": "using System; using System.Text.Json; using System.Threading; using System.Threading.Tasks; using Parcs.Agent.Runtime;\npublic class Part { public double Value { get; set; } }\npublic class Integrate : IAgentComputation { public Task<AgentLayerResult> ExecuteAsync(AgentLayerInput input, CancellationToken ct) { int k = int.Parse(input.Parameters[\"k\"]); double a = 8.0*k/32, b = 8.0*(k+1)/32, h=(b-a)/10000.0, sum=Math.Exp(-a/4)*Math.Cos(a+0.5*Math.Sin(2*a))+Math.Exp(-b/4)*Math.Cos(b+0.5*Math.Sin(2*b)); for(int i=1;i<10000;i++){ double x=a+i*h; double f=Math.Exp(-x/4)*Math.Cos(x+0.5*Math.Sin(2*x)); sum+=(i%2==0?2.0:4.0)*f; } return Task.FromResult(AgentLayerResult.Ok(JsonSerializer.Serialize(new Part { Value=sum*h/3.0 }))); } }\npublic class Reduce : IAgentComputation { public Task<AgentLayerResult> ExecuteAsync(AgentLayerInput input, CancellationToken ct) { double total=0; for(int j=0;j<32;j++){ var xs=input.GetPreviousOutputs(j); foreach(var s in xs) if(s!=null) total+=JsonSerializer.Deserialize<Part>(s).Value; } return Task.FromResult(AgentLayerResult.Ok(JsonSerializer.Serialize(new Part { Value=total }))); } }\n// run ab1f1ba8cdd947318e958a5768739f95\n"
+   },
+   "t_start": 1792951734.2775757,
+   "t_end": 1792951735.0426676,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Created",
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "output": {
+     "entryPoints": [
+      "Integrate",
+      "Reduce"
+     ]
+    }
+   }
+  },
+  {
+   "name": "submit_layer",
+   "args": {
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "entryPoint": "Integrate",
+    "parallelism": 1,
+    "layerKey": "subinterval-0",
+    "parameters": {
+     "k": "0"
+    },
+    "waitSeconds": 0
+   },
+   "t_start": 1792951735.1572077,
+   "t_end": 1792951740.9477956,
+   "is_error": true,
+   "envelope": {
+    "ok": false,
+    "error": {
+     "code": "invalid_argument",
+     "message": "submit_layer: unknown argument 'waitSeconds'. Its arguments are 'sessionId', 'parallelism', 'layerKey', 'entryPoint', 'previousLayerIds', 'customData', 'parameters', 'workerInputs', 'failFast', 'channelTimeoutSeconds', 'inherit', 'maxPoints', 'maxDepth', of which 'sessionId', 'parallelism' required.",
+     "retryable": false
+    }
+   }
+  },
+  {
+   "name": "submit_layer",
+   "args": {
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "entryPoint": "Integrate",
+    "parallelism": 1,
+    "layerKey": "subinterval-1",
+    "parameters": {
+     "k": "1"
+    },
+    "waitSeconds": 0
+   },
+   "t_start": 1792951735.3872204,
+   "t_end": 1792951740.950296,
+   "is_error": true,
+   "envelope": {
+    "ok": false,
+    "error": {
+     "code": "invalid_argument",
+     "message": "submit_layer: unknown argument 'waitSeconds'. Its arguments are 'sessionId', 'parallelism', 'layerKey', 'entryPoint', 'previousLayerIds', 'customData', 'parameters', 'workerInputs', 'failFast', 'channelTimeoutSeconds', 'inherit', 'maxPoints', 'maxDepth', of which 'sessionId', 'parallelism' required.",
+     "retryable": false
+    }
+   }
+  },
+  {
+   "name": "submit_layer",
+   "args": {
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "entryPoint": "Integrate",
+    "parallelism": 1,
+    "layerKey": "subinterval-2",
+    "parameters": {
+     "k": "2"
+    },
+    "waitSeconds": 0
+   },
+   "t_start": 1792951735.5973454,
+   "t_end": 1792951740.9547954,
+   "is_error": true,
+   "envelope": {
+    "ok": false,
+    "error": {
+     "code": "invalid_argument",
+     "message": "submit_layer: unknown argument 'waitSeconds'. Its arguments are 'sessionId', 'parallelism', 'layerKey', 'entryPoint', 'previousLayerIds', 'customData', 'parameters', 'workerInputs', 'failFast', 'channelTimeoutSeconds', 'inherit', 'maxPoints', 'maxDepth', of which 'sessionId', 'parallelism' required.",
+     "retryable": false
+    }
+   }
+  },
+  {
+   "name": "submit_layer",
+   "args": {
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "entryPoint": "Integrate",
+    "parallelism": 1,
+    "layerKey": "subinterval-4",
+    "parameters": {
+     "k": "4"
+    },
+    "waitSeconds": 0
+   },
+   "t_start": 1792951735.9961853,
+   "t_end": 1792951740.957296,
+   "exception": "CancelledError: "
+  },
+  {
+   "name": "submit_layer",
+   "args": {
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "entryPoint": "Integrate",
+    "parallelism": 1,
+    "layerKey": "subinterval-11",
+    "parameters": {
+     "k": "11"
+    },
+    "waitSeconds": 0
+   },
+   "t_start": 1792951737.1467574,
+   "t_end": 1792951740.9582968,
+   "exception": "CancelledError: "
+  },
+  {
+   "name": "submit_layer",
+   "args": {
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "entryPoint": "Integrate",
+    "parallelism": 1,
+    "layerKey": "subinterval-29",
+    "parameters": {
+     "k": "29"
+    },
+    "waitSeconds": 0
+   },
+   "t_start": 1792951740.219211,
+   "t_end": 1792951740.9582968,
+   "exception": "CancelledError: "
+  },
+  {
+   "name": "submit_layer",
+   "args": {
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "entryPoint": "Integrate",
+    "parallelism": 1,
+    "layerKey": "subinterval-14",
+    "parameters": {
+     "k": "14"
+    },
+    "waitSeconds": 0
+   },
+   "t_start": 1792951737.6415365,
+   "t_end": 1792951740.9597955,
+   "exception": "CancelledError: "
+  },
+  {
+   "name": "submit_layer",
+   "args": {
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "entryPoint": "Integrate",
+    "parallelism": 1,
+    "layerKey": "subinterval-3",
+    "parameters": {
+     "k": "3"
+    },
+    "waitSeconds": 0
+   },
+   "t_start": 1792951735.8143675,
+   "t_end": 1792951740.9597955,
+   "exception": "CancelledError: "
+  },
+  {
+   "name": "submit_layer",
+   "args": {
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "entryPoint": "Integrate",
+    "parallelism": 1,
+    "layerKey": "subinterval-20",
+    "parameters": {
+     "k": "20"
+    },
+    "waitSeconds": 0
+   },
+   "t_start": 1792951738.6837065,
+   "t_end": 1792951740.9602957,
+   "exception": "CancelledError: "
+  },
+  {
+   "name": "submit_layer",
+   "args": {
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "entryPoint": "Integrate",
+    "parallelism": 1,
+    "layerKey": "subinterval-5",
+    "parameters": {
+     "k": "5"
+    },
+    "waitSeconds": 0
+   },
+   "t_start": 1792951736.163231,
+   "t_end": 1792951740.9789171,
+   "exception": "CancelledError: "
+  },
+  {
+   "name": "submit_layer",
+   "args": {
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "entryPoint": "Integrate",
+    "parallelism": 1,
+    "layerKey": "subinterval-30",
+    "parameters": {
+     "k": "30"
+    },
+    "waitSeconds": 0
+   },
+   "t_start": 1792951740.3798406,
+   "t_end": 1792951740.9794166,
+   "exception": "CancelledError: "
+  },
+  {
+   "name": "submit_layer",
+   "args": {
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "entryPoint": "Integrate",
+    "parallelism": 1,
+    "layerKey": "subinterval-7",
+    "parameters": {
+     "k": "7"
+    },
+    "waitSeconds": 0
+   },
+   "t_start": 1792951736.4947727,
+   "t_end": 1792951740.9794166,
+   "exception": "CancelledError: "
+  },
+  {
+   "name": "submit_layer",
+   "args": {
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "entryPoint": "Integrate",
+    "parallelism": 1,
+    "layerKey": "subinterval-15",
+    "parameters": {
+     "k": "15"
+    },
+    "waitSeconds": 0
+   },
+   "t_start": 1792951737.803973,
+   "t_end": 1792951740.9814167,
+   "exception": "CancelledError: "
+  },
+  {
+   "name": "submit_layer",
+   "args": {
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "entryPoint": "Integrate",
+    "parallelism": 1,
+    "layerKey": "subinterval-31",
+    "parameters": {
+     "k": "31"
+    },
+    "waitSeconds": 0
+   },
+   "t_start": 1792951740.5428677,
+   "t_end": 1792951740.9824164,
+   "exception": "CancelledError: "
+  },
+  {
+   "name": "submit_layer",
+   "args": {
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "entryPoint": "Integrate",
+    "parallelism": 1,
+    "layerKey": "subinterval-22",
+    "parameters": {
+     "k": "22"
+    },
+    "waitSeconds": 0
+   },
+   "t_start": 1792951739.085409,
+   "t_end": 1792951740.9824164,
+   "exception": "CancelledError: "
+  },
+  {
+   "name": "submit_layer",
+   "args": {
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "entryPoint": "Integrate",
+    "parallelism": 1,
+    "layerKey": "subinterval-12",
+    "parameters": {
+     "k": "12"
+    },
+    "waitSeconds": 0
+   },
+   "t_start": 1792951737.3087213,
+   "t_end": 1792951740.982916,
+   "exception": "CancelledError: "
+  },
+  {
+   "name": "submit_layer",
+   "args": {
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "entryPoint": "Integrate",
+    "parallelism": 1,
+    "layerKey": "subinterval-23",
+    "parameters": {
+     "k": "23"
+    },
+    "waitSeconds": 0
+   },
+   "t_start": 1792951739.2484243,
+   "t_end": 1792951740.982916,
+   "exception": "CancelledError: "
+  },
+  {
+   "name": "submit_layer",
+   "args": {
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "entryPoint": "Integrate",
+    "parallelism": 1,
+    "layerKey": "subinterval-10",
+    "parameters": {
+     "k": "10"
+    },
+    "waitSeconds": 0
+   },
+   "t_start": 1792951736.9822283,
+   "t_end": 1792951740.982916,
+   "exception": "CancelledError: "
+  },
+  {
+   "name": "submit_layer",
+   "args": {
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "entryPoint": "Integrate",
+    "parallelism": 1,
+    "layerKey": "subinterval-6",
+    "parameters": {
+     "k": "6"
+    },
+    "waitSeconds": 0
+   },
+   "t_start": 1792951736.3247423,
+   "t_end": 1792951740.982916,
+   "exception": "CancelledError: "
+  },
+  {
+   "name": "submit_layer",
+   "args": {
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "entryPoint": "Integrate",
+    "parallelism": 1,
+    "layerKey": "subinterval-18",
+    "parameters": {
+     "k": "18"
+    },
+    "waitSeconds": 0
+   },
+   "t_start": 1792951738.3150291,
+   "t_end": 1792951740.9834163,
+   "exception": "CancelledError: "
+  },
+  {
+   "name": "submit_layer",
+   "args": {
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "entryPoint": "Integrate",
+    "parallelism": 1,
+    "layerKey": "subinterval-24",
+    "parameters": {
+     "k": "24"
+    },
+    "waitSeconds": 0
+   },
+   "t_start": 1792951739.408381,
+   "t_end": 1792951740.9834163,
+   "exception": "CancelledError: "
+  },
+  {
+   "name": "submit_layer",
+   "args": {
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "entryPoint": "Integrate",
+    "parallelism": 1,
+    "layerKey": "subinterval-13",
+    "parameters": {
+     "k": "13"
+    },
+    "waitSeconds": 0
+   },
+   "t_start": 1792951737.4690263,
+   "t_end": 1792951740.9834163,
+   "exception": "CancelledError: "
+  },
+  {
+   "name": "submit_layer",
+   "args": {
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "entryPoint": "Integrate",
+    "parallelism": 1,
+    "layerKey": "subinterval-21",
+    "parameters": {
+     "k": "21"
+    },
+    "waitSeconds": 0
+   },
+   "t_start": 1792951738.9201663,
+   "t_end": 1792951740.9834163,
+   "exception": "CancelledError: "
+  },
+  {
+   "name": "submit_layer",
+   "args": {
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "entryPoint": "Integrate",
+    "parallelism": 1,
+    "layerKey": "subinterval-25",
+    "parameters": {
+     "k": "25"
+    },
+    "waitSeconds": 0
+   },
+   "t_start": 1792951739.5700343,
+   "t_end": 1792951740.9839163,
+   "exception": "CancelledError: "
+  },
+  {
+   "name": "submit_layer",
+   "args": {
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "entryPoint": "Integrate",
+    "parallelism": 1,
+    "layerKey": "subinterval-9",
+    "parameters": {
+     "k": "9"
+    },
+    "waitSeconds": 0
+   },
+   "t_start": 1792951736.819307,
+   "t_end": 1792951740.9839163,
+   "exception": "CancelledError: "
+  },
+  {
+   "name": "submit_layer",
+   "args": {
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "entryPoint": "Integrate",
+    "parallelism": 1,
+    "layerKey": "subinterval-16",
+    "parameters": {
+     "k": "16"
+    },
+    "waitSeconds": 0
+   },
+   "t_start": 1792951737.9884884,
+   "t_end": 1792951740.9839163,
+   "exception": "CancelledError: "
+  },
+  {
+   "name": "submit_layer",
+   "args": {
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "entryPoint": "Integrate",
+    "parallelism": 1,
+    "layerKey": "subinterval-19",
+    "parameters": {
+     "k": "19"
+    },
+    "waitSeconds": 0
+   },
+   "t_start": 1792951738.4762325,
+   "t_end": 1792951740.9839163,
+   "exception": "CancelledError: "
+  },
+  {
+   "name": "submit_layer",
+   "args": {
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "entryPoint": "Integrate",
+    "parallelism": 1,
+    "layerKey": "subinterval-26",
+    "parameters": {
+     "k": "26"
+    },
+    "waitSeconds": 0
+   },
+   "t_start": 1792951739.7326407,
+   "t_end": 1792951740.9844162,
+   "exception": "CancelledError: "
+  },
+  {
+   "name": "submit_layer",
+   "args": {
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "entryPoint": "Integrate",
+    "parallelism": 1,
+    "layerKey": "subinterval-8",
+    "parameters": {
+     "k": "8"
+    },
+    "waitSeconds": 0
+   },
+   "t_start": 1792951736.6567874,
+   "t_end": 1792951740.9844162,
+   "exception": "CancelledError: "
+  },
+  {
+   "name": "submit_layer",
+   "args": {
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "entryPoint": "Integrate",
+    "parallelism": 1,
+    "layerKey": "subinterval-17",
+    "parameters": {
+     "k": "17"
+    },
+    "waitSeconds": 0
+   },
+   "t_start": 1792951738.152518,
+   "t_end": 1792951740.9844162,
+   "exception": "CancelledError: "
+  },
+  {
+   "name": "submit_layer",
+   "args": {
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "entryPoint": "Integrate",
+    "parallelism": 1,
+    "layerKey": "subinterval-27",
+    "parameters": {
+     "k": "27"
+    },
+    "waitSeconds": 0
+   },
+   "t_start": 1792951739.8936617,
+   "t_end": 1792951740.9844162,
+   "exception": "CancelledError: "
+  },
+  {
+   "name": "submit_layer",
+   "args": {
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "entryPoint": "Integrate",
+    "parallelism": 1,
+    "layerKey": "subinterval-28",
+    "parameters": {
+     "k": "28"
+    },
+    "waitSeconds": 0
+   },
+   "t_start": 1792951740.0551906,
+   "t_end": 1792951740.9844162,
+   "exception": "CancelledError: "
+  },
+  {
+   "name": "get_cluster_info",
+   "args": {},
+   "t_start": 1792951748.2017756,
+   "t_end": 1792951748.7710547,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "output": {
+     "scalingMode": "static",
+     "workerNodeCount": 1,
+     "currentCapacity": 4,
+     "maxParallelism": 4,
+     "daemonCpuRequestMillicores": 250,
+     "capacitySource": "dns",
+     "freeWorkers": 4,
+     "runningLayers": 0,
+     "queuedLayers": 0
+    }
+   }
+  },
+  {
+   "name": "create_session",
+   "args": {
+    "sourceCode": "using System; using System.Text.Json; using System.Threading; using System.Threading.Tasks; using Parcs.Agent.Runtime;\npublic class Part { public double Value { get; set; } }\npublic class Integrate : IAgentComputation { public Task<AgentLayerResult> ExecuteAsync(AgentLayerInput input, CancellationToken ct) { int k = int.Parse(input.Parameters[\"k\"]); double a = 8.0*k/32, b = 8.0*(k+1)/32, h=(b-a)/10000.0, sum=Math.Exp(-a/4)*Math.Cos(a+0.5*Math.Sin(2*a))+Math.Exp(-b/4)*Math.Cos(b+0.5*Math.Sin(2*b)); for(int i=1;i<10000;i++){ double x=a+i*h; double f=Math.Exp(-x/4)*Math.Cos(x+0.5*Math.Sin(2*x)); sum+=(i%2==0?2.0:4.0)*f; } return Task.FromResult(AgentLayerResult.Ok(JsonSerializer.Serialize(new Part { Value=sum*h/3.0 }))); } }\npublic class Reduce : IAgentComputation { public Task<AgentLayerResult> ExecuteAsync(AgentLayerInput input, CancellationToken ct) { double total=0; for(int j=0;j<32;j++){ var xs=input.GetPreviousOutputs(j); foreach(var s in xs) if(s!=null) total+=JsonSerializer.Deserialize<Part>(s).Value; } return Task.FromResult(AgentLayerResult.Ok(JsonSerializer.Serialize(new Part { Value=total }))); } }\n// run ab1f1ba8cdd947318e958a5768739f95\n"
+   },
+   "t_start": 1792951748.7740672,
+   "t_end": 1792951749.3381598,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Reused",
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "output": {
+     "entryPoints": [
+      "Integrate",
+      "Reduce"
+     ]
+    }
+   }
+  },
+  {
+   "name": "submit_layer",
+   "args": {
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "entryPoint": "Integrate",
+    "parallelism": 1,
+    "layerKey": "subinterval-0",
+    "parameters": {
+     "k": "0"
+    }
+   },
+   "t_start": 1792951749.429892,
+   "t_end": 1792951755.7586846,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Queued",
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "layerId": "5e4e06f3838847d68ec6a89ccc100e28",
+    "layerKey": "subinterval-0",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Integrate",
+     "parallelism": 1,
+     "previousLayerIds": [],
+     "queuedSeconds": 0.0301868,
+     "submittedAt": "2026-10-25T18:09:14.537432+00:00"
+    }
+   }
+  },
+  {
+   "name": "submit_layer",
+   "args": {
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "entryPoint": "Integrate",
+    "parallelism": 1,
+    "layerKey": "subinterval-6",
+    "parameters": {
+     "k": "6"
+    }
+   },
+   "t_start": 1792951750.4585793,
+   "t_end": 1792951755.8882148,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Queued",
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "layerId": "f6dd35b34d9d42498d99940325bc3ca1",
+    "layerKey": "subinterval-6",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Integrate",
+     "parallelism": 1,
+     "previousLayerIds": [],
+     "queuedSeconds": 0.0426663,
+     "submittedAt": "2026-10-25T18:09:14.6561473+00:00"
+    }
+   }
+  },
+  {
+   "name": "submit_layer",
+   "args": {
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "entryPoint": "Integrate",
+    "parallelism": 1,
+    "layerKey": "subinterval-4",
+    "parameters": {
+     "k": "4"
+    }
+   },
+   "t_start": 1792951750.109422,
+   "t_end": 1792951755.8882148,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Queued",
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "layerId": "147639f1439e4f61af83e13affa71c10",
+    "layerKey": "subinterval-4",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Integrate",
+     "parallelism": 1,
+     "previousLayerIds": [],
+     "queuedSeconds": 0.0447997,
+     "submittedAt": "2026-10-25T18:09:14.6341445+00:00"
+    }
+   }
+  },
+  {
+   "name": "submit_layer",
+   "args": {
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "entryPoint": "Integrate",
+    "parallelism": 1,
+    "layerKey": "subinterval-9",
+    "parameters": {
+     "k": "9"
+    }
+   },
+   "t_start": 1792951750.9591885,
+   "t_end": 1792951755.8882148,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Queued",
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "layerId": "47b2c16c9c324957b0299a43c4e892b7",
+    "layerKey": "subinterval-9",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Integrate",
+     "parallelism": 1,
+     "previousLayerIds": [],
+     "queuedSeconds": 0.0409437,
+     "submittedAt": "2026-10-25T18:09:14.6794205+00:00"
+    }
+   }
+  },
+  {
+   "name": "submit_layer",
+   "args": {
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "entryPoint": "Integrate",
+    "parallelism": 1,
+    "layerKey": "subinterval-2",
+    "parameters": {
+     "k": "2"
+    }
+   },
+   "t_start": 1792951749.7725294,
+   "t_end": 1792951755.8882148,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Queued",
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "layerId": "7dab453ef23d4e93a057f60dfe003021",
+    "layerKey": "subinterval-2",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Integrate",
+     "parallelism": 1,
+     "previousLayerIds": [],
+     "queuedSeconds": 0.0524602,
+     "submittedAt": "2026-10-25T18:09:14.5387684+00:00"
+    }
+   }
+  },
+  {
+   "name": "submit_layer",
+   "args": {
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "entryPoint": "Integrate",
+    "parallelism": 1,
+    "layerKey": "subinterval-8",
+    "parameters": {
+     "k": "8"
+    }
+   },
+   "t_start": 1792951750.794994,
+   "t_end": 1792951755.9702413,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Queued",
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "layerId": "b1491a0b70bb41d5ab6660341d59392a",
+    "layerKey": "subinterval-8",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Integrate",
+     "parallelism": 1,
+     "previousLayerIds": [],
+     "queuedSeconds": 0.0415924,
+     "submittedAt": "2026-10-25T18:09:14.5708092+00:00"
+    }
+   }
+  },
+  {
+   "name": "submit_layer",
+   "args": {
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "entryPoint": "Integrate",
+    "parallelism": 1,
+    "layerKey": "subinterval-3",
+    "parameters": {
+     "k": "3"
+    }
+   },
+   "t_start": 1792951749.942831,
+   "t_end": 1792951755.9702413,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Queued",
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "layerId": "c5aeb3cc28424e89b58da54b0656dde7",
+    "layerKey": "subinterval-3",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Integrate",
+     "parallelism": 1,
+     "previousLayerIds": [],
+     "queuedSeconds": 0.0419388,
+     "submittedAt": "2026-10-25T18:09:14.6136553+00:00"
+    }
+   }
+  },
+  {
+   "name": "submit_layer",
+   "args": {
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "entryPoint": "Integrate",
+    "parallelism": 1,
+    "layerKey": "subinterval-7",
+    "parameters": {
+     "k": "7"
+    }
+   },
+   "t_start": 1792951750.628183,
+   "t_end": 1792951755.9707413,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Queued",
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "layerId": "016a23508e4f4e6aa4653130697709eb",
+    "layerKey": "subinterval-7",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Integrate",
+     "parallelism": 1,
+     "previousLayerIds": [],
+     "queuedSeconds": 0.0401986,
+     "submittedAt": "2026-10-25T18:09:14.5927054+00:00"
+    }
+   }
+  },
+  {
+   "name": "submit_layer",
+   "args": {
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "entryPoint": "Integrate",
+    "parallelism": 1,
+    "layerKey": "subinterval-12",
+    "parameters": {
+     "k": "12"
+    }
+   },
+   "t_start": 1792951751.4664233,
+   "t_end": 1792951755.9707413,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Queued",
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "layerId": "4884dec2804948b7b7f459313085dcec",
+    "layerKey": "subinterval-12",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Integrate",
+     "parallelism": 1,
+     "previousLayerIds": [],
+     "queuedSeconds": 0.1549775,
+     "submittedAt": "2026-10-25T18:09:14.6992332+00:00"
+    }
+   }
+  },
+  {
+   "name": "submit_layer",
+   "args": {
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "entryPoint": "Integrate",
+    "parallelism": 1,
+    "layerKey": "subinterval-13",
+    "parameters": {
+     "k": "13"
+    }
+   },
+   "t_start": 1792951751.6354342,
+   "t_end": 1792951755.9707413,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Queued",
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "layerId": "609fefd472cd4725b4950d7dc13775f0",
+    "layerKey": "subinterval-13",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Integrate",
+     "parallelism": 1,
+     "previousLayerIds": [],
+     "queuedSeconds": 0.1314106,
+     "submittedAt": "2026-10-25T18:09:14.680125+00:00"
+    }
+   }
+  },
+  {
+   "name": "submit_layer",
+   "args": {
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "entryPoint": "Integrate",
+    "parallelism": 1,
+    "layerKey": "subinterval-5",
+    "parameters": {
+     "k": "5"
+    }
+   },
+   "t_start": 1792951750.2899976,
+   "t_end": 1792951755.9707413,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Queued",
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "layerId": "c9fe4c4402b549ed93e7636577a5a7ad",
+    "layerKey": "subinterval-5",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Integrate",
+     "parallelism": 1,
+     "previousLayerIds": [],
+     "queuedSeconds": 0.0873979,
+     "submittedAt": "2026-10-25T18:09:14.679571+00:00"
+    }
+   }
+  },
+  {
+   "name": "submit_layer",
+   "args": {
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "entryPoint": "Integrate",
+    "parallelism": 1,
+    "layerKey": "subinterval-10",
+    "parameters": {
+     "k": "10"
+    }
+   },
+   "t_start": 1792951751.1257572,
+   "t_end": 1792951755.9707413,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Queued",
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "layerId": "50db697dd8b74cf29697df36623fa53e",
+    "layerKey": "subinterval-10",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Integrate",
+     "parallelism": 1,
+     "previousLayerIds": [],
+     "queuedSeconds": 0.0664595,
+     "submittedAt": "2026-10-25T18:09:14.6794208+00:00"
+    }
+   }
+  },
+  {
+   "name": "submit_layer",
+   "args": {
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "entryPoint": "Integrate",
+    "parallelism": 1,
+    "layerKey": "subinterval-11",
+    "parameters": {
+     "k": "11"
+    }
+   },
+   "t_start": 1792951751.2923555,
+   "t_end": 1792951755.9707413,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Queued",
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "layerId": "cd8f98af85b74f0d99739ab9224a3566",
+    "layerKey": "subinterval-11",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Integrate",
+     "parallelism": 1,
+     "previousLayerIds": [],
+     "queuedSeconds": 0.1555171,
+     "submittedAt": "2026-10-25T18:09:14.7208811+00:00"
+    }
+   }
+  },
+  {
+   "name": "submit_layer",
+   "args": {
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "entryPoint": "Integrate",
+    "parallelism": 1,
+    "layerKey": "subinterval-15",
+    "parameters": {
+     "k": "15"
+    }
+   },
+   "t_start": 1792951751.9604805,
+   "t_end": 1792951755.973741,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Queued",
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "layerId": "0f0456c2d4b24c919b395bb2ed466ae0",
+    "layerKey": "subinterval-15",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Integrate",
+     "parallelism": 1,
+     "previousLayerIds": [],
+     "queuedSeconds": 0.1080934,
+     "submittedAt": "2026-10-25T18:09:14.6798216+00:00"
+    }
+   }
+  },
+  {
+   "name": "submit_layer",
+   "args": {
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "entryPoint": "Integrate",
+    "parallelism": 1,
+    "layerKey": "subinterval-14",
+    "parameters": {
+     "k": "14"
+    }
+   },
+   "t_start": 1792951751.7984574,
+   "t_end": 1792951755.973741,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Queued",
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "layerId": "03f5878db6124d4eb5bc1199d6327b6d",
+    "layerKey": "subinterval-14",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Integrate",
+     "parallelism": 1,
+     "previousLayerIds": [],
+     "queuedSeconds": 0.1541359,
+     "submittedAt": "2026-10-25T18:09:14.6801566+00:00"
+    }
+   }
+  },
+  {
+   "name": "submit_layer",
+   "args": {
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "entryPoint": "Integrate",
+    "parallelism": 1,
+    "layerKey": "subinterval-18",
+    "parameters": {
+     "k": "18"
+    }
+   },
+   "t_start": 1792951752.5273209,
+   "t_end": 1792951755.973741,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Queued",
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "layerId": "86c6c334beec417ea2ad192106c39a68",
+    "layerKey": "subinterval-18",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Integrate",
+     "parallelism": 1,
+     "previousLayerIds": [],
+     "queuedSeconds": 0.1503092,
+     "submittedAt": "2026-10-25T18:09:14.7463545+00:00"
+    }
+   }
+  },
+  {
+   "name": "submit_layer",
+   "args": {
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "entryPoint": "Integrate",
+    "parallelism": 1,
+    "layerKey": "subinterval-1",
+    "parameters": {
+     "k": "1"
+    }
+   },
+   "t_start": 1792951749.6034732,
+   "t_end": 1792951755.973741,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Queued",
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "layerId": "1556c89c4fbc4b53aeb46de726a364d9",
+    "layerKey": "subinterval-1",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Integrate",
+     "parallelism": 1,
+     "previousLayerIds": [],
+     "queuedSeconds": 0.1623589,
+     "submittedAt": "2026-10-25T18:09:14.8778593+00:00"
+    }
+   }
+  },
+  {
+   "name": "submit_layer",
+   "args": {
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "entryPoint": "Integrate",
+    "parallelism": 1,
+    "layerKey": "subinterval-24",
+    "parameters": {
+     "k": "24"
+    }
+   },
+   "t_start": 1792951753.50215,
+   "t_end": 1792951755.973741,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Queued",
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "layerId": "bd32d526301a46609c985a1632082671",
+    "layerKey": "subinterval-24",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Integrate",
+     "parallelism": 1,
+     "previousLayerIds": [],
+     "queuedSeconds": 0.1528078,
+     "submittedAt": "2026-10-25T18:09:14.7674375+00:00"
+    }
+   }
+  },
+  {
+   "name": "submit_layer",
+   "args": {
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "entryPoint": "Integrate",
+    "parallelism": 1,
+    "layerKey": "subinterval-20",
+    "parameters": {
+     "k": "20"
+    }
+   },
+   "t_start": 1792951752.8508568,
+   "t_end": 1792951755.973741,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Queued",
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "layerId": "7fd48083e2a24042a7283a1502421364",
+    "layerKey": "subinterval-20",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Integrate",
+     "parallelism": 1,
+     "previousLayerIds": [],
+     "queuedSeconds": 0.1552709,
+     "submittedAt": "2026-10-25T18:09:14.8119701+00:00"
+    }
+   }
+  },
+  {
+   "name": "submit_layer",
+   "args": {
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "entryPoint": "Integrate",
+    "parallelism": 1,
+    "layerKey": "subinterval-21",
+    "parameters": {
+     "k": "21"
+    }
+   },
+   "t_start": 1792951753.0118732,
+   "t_end": 1792951755.9742413,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Queued",
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "layerId": "1950e9fb5e924c09bd11b3f34b06b4e9",
+    "layerKey": "subinterval-21",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Integrate",
+     "parallelism": 1,
+     "previousLayerIds": [],
+     "queuedSeconds": 0.1533191,
+     "submittedAt": "2026-10-25T18:09:14.7883248+00:00"
+    }
+   }
+  },
+  {
+   "name": "submit_layer",
+   "args": {
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "entryPoint": "Integrate",
+    "parallelism": 1,
+    "layerKey": "subinterval-17",
+    "parameters": {
+     "k": "17"
+    }
+   },
+   "t_start": 1792951752.3568795,
+   "t_end": 1792951755.9742413,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Queued",
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "layerId": "122e320b05e54ad5a7fae7e978a7a0bc",
+    "layerKey": "subinterval-17",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Integrate",
+     "parallelism": 1,
+     "previousLayerIds": [],
+     "queuedSeconds": 0.161961,
+     "submittedAt": "2026-10-25T18:09:14.8546908+00:00"
+    }
+   }
+  },
+  {
+   "name": "submit_layer",
+   "args": {
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "entryPoint": "Integrate",
+    "parallelism": 1,
+    "layerKey": "subinterval-16",
+    "parameters": {
+     "k": "16"
+    }
+   },
+   "t_start": 1792951752.1236632,
+   "t_end": 1792951755.9742413,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Queued",
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "layerId": "7884e1735db94dff85e8e6b7180b8a5e",
+    "layerKey": "subinterval-16",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Integrate",
+     "parallelism": 1,
+     "previousLayerIds": [],
+     "queuedSeconds": 0.1598749,
+     "submittedAt": "2026-10-25T18:09:14.8348621+00:00"
+    }
+   }
+  },
+  {
+   "name": "submit_layer",
+   "args": {
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "entryPoint": "Integrate",
+    "parallelism": 1,
+    "layerKey": "subinterval-23",
+    "parameters": {
+     "k": "23"
+    }
+   },
+   "t_start": 1792951753.3382154,
+   "t_end": 1792951756.0307522,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Queued",
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "layerId": "3fb9b8d38ef84d128395aeb99e6eb493",
+    "layerKey": "subinterval-23",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Integrate",
+     "parallelism": 1,
+     "previousLayerIds": [],
+     "queuedSeconds": 0.1624193,
+     "submittedAt": "2026-10-25T18:09:14.8991182+00:00"
+    }
+   }
+  },
+  {
+   "name": "submit_layer",
+   "args": {
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "entryPoint": "Integrate",
+    "parallelism": 1,
+    "layerKey": "subinterval-31",
+    "parameters": {
+     "k": "31"
+    }
+   },
+   "t_start": 1792951754.6478412,
+   "t_end": 1792951756.0307522,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Queued",
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "layerId": "19b75129bed8469c98c45c5115ba17b2",
+    "layerKey": "subinterval-31",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Integrate",
+     "parallelism": 1,
+     "previousLayerIds": [],
+     "queuedSeconds": 0.0443075,
+     "submittedAt": "2026-10-25T18:09:15.1090387+00:00"
+    }
+   }
+  },
+  {
+   "name": "submit_layer",
+   "args": {
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "entryPoint": "Integrate",
+    "parallelism": 1,
+    "layerKey": "subinterval-19",
+    "parameters": {
+     "k": "19"
+    }
+   },
+   "t_start": 1792951752.6893368,
+   "t_end": 1792951756.0312524,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Queued",
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "layerId": "7a5adcc857b94a02ba3abfde7bb6eeef",
+    "layerKey": "subinterval-19",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Integrate",
+     "parallelism": 1,
+     "previousLayerIds": [],
+     "queuedSeconds": 0.0463626,
+     "submittedAt": "2026-10-25T18:09:15.0622543+00:00"
+    }
+   }
+  },
+  {
+   "name": "submit_layer",
+   "args": {
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "entryPoint": "Integrate",
+    "parallelism": 1,
+    "layerKey": "subinterval-28",
+    "parameters": {
+     "k": "28"
+    }
+   },
+   "t_start": 1792951754.1616788,
+   "t_end": 1792951756.0317523,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Queued",
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "layerId": "9495cca6e88a467e9a655eb0536dd359",
+    "layerKey": "subinterval-28",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Integrate",
+     "parallelism": 1,
+     "previousLayerIds": [],
+     "queuedSeconds": 0.0425477,
+     "submittedAt": "2026-10-25T18:09:15.0415863+00:00"
+    }
+   }
+  },
+  {
+   "name": "submit_layer",
+   "args": {
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "entryPoint": "Integrate",
+    "parallelism": 1,
+    "layerKey": "subinterval-29",
+    "parameters": {
+     "k": "29"
+    }
+   },
+   "t_start": 1792951754.3231964,
+   "t_end": 1792951756.0317523,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Queued",
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "layerId": "91178bfb48c54094994592b148c2af50",
+    "layerKey": "subinterval-29",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Integrate",
+     "parallelism": 1,
+     "previousLayerIds": [],
+     "queuedSeconds": 0.0456835,
+     "submittedAt": "2026-10-25T18:09:15.0847875+00:00"
+    }
+   }
+  },
+  {
+   "name": "submit_layer",
+   "args": {
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "entryPoint": "Integrate",
+    "parallelism": 1,
+    "layerKey": "subinterval-30",
+    "parameters": {
+     "k": "30"
+    }
+   },
+   "t_start": 1792951754.4853144,
+   "t_end": 1792951756.0322528,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Queued",
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "layerId": "009850c278f649feb70fd01357d4e1ab",
+    "layerKey": "subinterval-30",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Integrate",
+     "parallelism": 1,
+     "previousLayerIds": [],
+     "queuedSeconds": 0.0472398,
+     "submittedAt": "2026-10-25T18:09:15.1310861+00:00"
+    }
+   }
+  },
+  {
+   "name": "submit_layer",
+   "args": {
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "entryPoint": "Integrate",
+    "parallelism": 1,
+    "layerKey": "subinterval-27",
+    "parameters": {
+     "k": "27"
+    }
+   },
+   "t_start": 1792951753.9957561,
+   "t_end": 1792951756.050259,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Queued",
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "layerId": "45b7de4e1d4e4fc89b962ef5d8676207",
+    "layerKey": "subinterval-27",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Integrate",
+     "parallelism": 1,
+     "previousLayerIds": [],
+     "queuedSeconds": 0.0465787,
+     "submittedAt": "2026-10-25T18:09:15.1538778+00:00"
+    }
+   }
+  },
+  {
+   "name": "submit_layer",
+   "args": {
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "entryPoint": "Integrate",
+    "parallelism": 1,
+    "layerKey": "subinterval-22",
+    "parameters": {
+     "k": "22"
+    }
+   },
+   "t_start": 1792951753.1758902,
+   "t_end": 1792951756.1361575,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Queued",
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "layerId": "773aa3e7cc5f40fb9486b43f07f79a2a",
+    "layerKey": "subinterval-22",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Integrate",
+     "parallelism": 1,
+     "previousLayerIds": [],
+     "queuedSeconds": 0.0695046,
+     "submittedAt": "2026-10-25T18:09:15.153945+00:00"
+    }
+   }
+  },
+  {
+   "name": "submit_layer",
+   "args": {
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "entryPoint": "Integrate",
+    "parallelism": 1,
+    "layerKey": "subinterval-26",
+    "parameters": {
+     "k": "26"
+    }
+   },
+   "t_start": 1792951753.8343234,
+   "t_end": 1792951756.1891975,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Queued",
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "layerId": "4438356b07374739b7111c67a2cfc1a5",
+    "layerKey": "subinterval-26",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Integrate",
+     "parallelism": 1,
+     "previousLayerIds": [],
+     "queuedSeconds": 0.0915127,
+     "submittedAt": "2026-10-25T18:09:15.1539907+00:00"
+    }
+   }
+  },
+  {
+   "name": "submit_layer",
+   "args": {
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "entryPoint": "Integrate",
+    "parallelism": 1,
+    "layerKey": "subinterval-25",
+    "parameters": {
+     "k": "25"
+    }
+   },
+   "t_start": 1792951753.665785,
+   "t_end": 1792951756.1971972,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Queued",
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "layerId": "fd6231a034b44398a3cc3c32004ffd25",
+    "layerKey": "subinterval-25",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Integrate",
+     "parallelism": 1,
+     "previousLayerIds": [],
+     "queuedSeconds": 0.1110365,
+     "submittedAt": "2026-10-25T18:09:15.1540144+00:00"
+    }
+   }
+  },
+  {
+   "name": "wait_layer",
+   "args": {
+    "layerId": "5e4e06f3838847d68ec6a89ccc100e28",
+    "waitSeconds": 20
+   },
+   "t_start": 1792951756.2356987,
+   "t_end": 1792951762.119471,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "layerId": "5e4e06f3838847d68ec6a89ccc100e28",
+    "layerKey": "subinterval-0",
+    "layer": {
+     "entryPoint": "Integrate",
+     "parallelism": 1,
+     "previousLayerIds": [],
+     "successCount": 1,
+     "failureCount": 0,
+     "queuedSeconds": 0.0306405,
+     "elapsedSeconds": 3.6466812,
+     "submittedAt": "2026-10-25T18:09:14.537432+00:00",
+     "startedAt": "2026-10-25T18:09:14.5680725+00:00",
+     "completedAt": "2026-10-25T18:09:18.2147537+00:00",
+     "jobId": 1365
+    },
+    "output": {
+     "Value": 0.23276643114749396
+    }
+   }
+  },
+  {
+   "name": "wait_layer",
+   "args": {
+    "layerId": "c5aeb3cc28424e89b58da54b0656dde7",
+    "waitSeconds": 20
+   },
+   "t_start": 1792951756.8036454,
+   "t_end": 1792951762.150975,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "layerId": "c5aeb3cc28424e89b58da54b0656dde7",
+    "layerKey": "subinterval-3",
+    "layer": {
+     "entryPoint": "Integrate",
+     "parallelism": 1,
+     "previousLayerIds": [],
+     "successCount": 1,
+     "failureCount": 0,
+     "queuedSeconds": 3.623744,
+     "elapsedSeconds": 3.144676,
+     "submittedAt": "2026-10-25T18:09:14.6136553+00:00",
+     "startedAt": "2026-10-25T18:09:18.2373993+00:00",
+     "completedAt": "2026-10-25T18:09:21.3820753+00:00",
+     "jobId": 1369
+    },
+    "output": {
+     "Value": 0.041803614644598086
+    }
+   }
+  },
+  {
+   "name": "wait_layer",
+   "args": {
+    "layerId": "016a23508e4f4e6aa4653130697709eb",
+    "waitSeconds": 20
+   },
+   "t_start": 1792951757.4584131,
+   "t_end": 1792951762.1514752,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "layerId": "016a23508e4f4e6aa4653130697709eb",
+    "layerKey": "subinterval-7",
+    "layer": {
+     "entryPoint": "Integrate",
+     "parallelism": 1,
+     "previousLayerIds": [],
+     "successCount": 1,
+     "failureCount": 0,
+     "queuedSeconds": 0.0405322,
+     "elapsedSeconds": 3.7944531,
+     "submittedAt": "2026-10-25T18:09:14.5927054+00:00",
+     "startedAt": "2026-10-25T18:09:14.6332376+00:00",
+     "completedAt": "2026-10-25T18:09:18.4276907+00:00",
+     "jobId": 1366
+    },
+    "output": {
+     "Value": -0.0033088956691831417
+    }
+   }
+  },
+  {
+   "name": "wait_layer",
+   "args": {
+    "layerId": "7dab453ef23d4e93a057f60dfe003021",
+    "waitSeconds": 20
+   },
+   "t_start": 1792951756.642229,
+   "t_end": 1792951762.152974,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "layerId": "7dab453ef23d4e93a057f60dfe003021",
+    "layerKey": "subinterval-2",
+    "layer": {
+     "entryPoint": "Integrate",
+     "parallelism": 1,
+     "previousLayerIds": [],
+     "successCount": 1,
+     "failureCount": 0,
+     "queuedSeconds": 0.0527024,
+     "elapsedSeconds": 3.8668671,
+     "submittedAt": "2026-10-25T18:09:14.5387684+00:00",
+     "startedAt": "2026-10-25T18:09:14.5914708+00:00",
+     "completedAt": "2026-10-25T18:09:18.4583379+00:00",
+     "jobId": 1368
+    },
+    "output": {
+     "Value": 0.09792502436247437
+    }
+   }
+  },
+  {
+   "name": "wait_layer",
+   "args": {
+    "layerId": "b1491a0b70bb41d5ab6660341d59392a",
+    "waitSeconds": 20
+   },
+   "t_start": 1792951757.621401,
+   "t_end": 1792951762.16198,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "layerId": "b1491a0b70bb41d5ab6660341d59392a",
+    "layerKey": "subinterval-8",
+    "layer": {
+     "entryPoint": "Integrate",
+     "parallelism": 1,
+     "previousLayerIds": [],
+     "successCount": 1,
+     "failureCount": 0,
+     "queuedSeconds": 0.0419086,
+     "elapsedSeconds": 3.8454202,
+     "submittedAt": "2026-10-25T18:09:14.5708092+00:00",
+     "startedAt": "2026-10-25T18:09:14.6127178+00:00",
+     "completedAt": "2026-10-25T18:09:18.458138+00:00",
+     "jobId": 1367
+    },
+    "output": {
+     "Value": -0.016215079409915543
+    }
+   }
+  },
+  {
+   "name": "wait_layer",
+   "args": {
+    "layerId": "147639f1439e4f61af83e13affa71c10",
+    "waitSeconds": 20
+   },
+   "t_start": 1792951756.9669933,
+   "t_end": 1792951762.321503,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "layerId": "147639f1439e4f61af83e13affa71c10",
+    "layerKey": "subinterval-4",
+    "layer": {
+     "entryPoint": "Integrate",
+     "parallelism": 1,
+     "previousLayerIds": [],
+     "successCount": 1,
+     "failureCount": 0,
+     "queuedSeconds": 3.8161876,
+     "elapsedSeconds": 3.1540552,
+     "submittedAt": "2026-10-25T18:09:14.6341445+00:00",
+     "startedAt": "2026-10-25T18:09:18.4503321+00:00",
+     "completedAt": "2026-10-25T18:09:21.6043873+00:00",
+     "jobId": 1370
+    },
+    "output": {
+     "Value": 0.011555981763894814
+    }
+   }
+  },
+  {
+   "name": "wait_layer",
+   "args": {
+    "layerId": "47b2c16c9c324957b0299a43c4e892b7",
+    "waitSeconds": 20
+   },
+   "t_start": 1792951757.784027,
+   "t_end": 1792951762.4761686,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "layerId": "47b2c16c9c324957b0299a43c4e892b7",
+    "layerKey": "subinterval-9",
+    "layer": {
+     "entryPoint": "Integrate",
+     "parallelism": 1,
+     "previousLayerIds": [],
+     "successCount": 1,
+     "failureCount": 0,
+     "queuedSeconds": 3.8258608,
+     "elapsedSeconds": 3.2736708,
+     "submittedAt": "2026-10-25T18:09:14.6794205+00:00",
+     "startedAt": "2026-10-25T18:09:18.5052813+00:00",
+     "completedAt": "2026-10-25T18:09:21.7789521+00:00",
+     "jobId": 1371
+    },
+    "output": {
+     "Value": -0.041793901443343516
+    }
+   }
+  },
+  {
+   "name": "wait_layer",
+   "args": {
+    "layerId": "f6dd35b34d9d42498d99940325bc3ca1",
+    "waitSeconds": 20
+   },
+   "t_start": 1792951757.295499,
+   "t_end": 1792951762.4932017,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "layerId": "f6dd35b34d9d42498d99940325bc3ca1",
+    "layerKey": "subinterval-6",
+    "layer": {
+     "entryPoint": "Integrate",
+     "parallelism": 1,
+     "previousLayerIds": [],
+     "successCount": 1,
+     "failureCount": 0,
+     "queuedSeconds": 3.8251623,
+     "elapsedSeconds": 3.2984233,
+     "submittedAt": "2026-10-25T18:09:14.6561473+00:00",
+     "startedAt": "2026-10-25T18:09:18.4813096+00:00",
+     "completedAt": "2026-10-25T18:09:21.7797329+00:00",
+     "jobId": 1372
+    },
+    "output": {
+     "Value": -0.00010863594290234714
+    }
+   }
+  },
+  {
+   "name": "wait_layer",
+   "args": {
+    "layerId": "50db697dd8b74cf29697df36623fa53e",
+    "waitSeconds": 20
+   },
+   "t_start": 1792951757.946531,
+   "t_end": 1792951765.327549,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "layerId": "50db697dd8b74cf29697df36623fa53e",
+    "layerKey": "subinterval-10",
+    "layer": {
+     "entryPoint": "Integrate",
+     "parallelism": 1,
+     "previousLayerIds": [],
+     "successCount": 1,
+     "failureCount": 0,
+     "queuedSeconds": 6.7256041,
+     "elapsedSeconds": 3.152396,
+     "submittedAt": "2026-10-25T18:09:14.6794208+00:00",
+     "startedAt": "2026-10-25T18:09:21.4050249+00:00",
+     "completedAt": "2026-10-25T18:09:24.5574209+00:00",
+     "jobId": 1373
+    },
+    "output": {
+     "Value": -0.0756798194204559
+    }
+   }
+  },
+  {
+   "name": "wait_layer",
+   "args": {
+    "layerId": "c9fe4c4402b549ed93e7636577a5a7ad",
+    "waitSeconds": 20
+   },
+   "t_start": 1792951757.1326392,
+   "t_end": 1792951765.5533385,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "layerId": "c9fe4c4402b549ed93e7636577a5a7ad",
+    "layerKey": "subinterval-5",
+    "layer": {
+     "entryPoint": "Integrate",
+     "parallelism": 1,
+     "previousLayerIds": [],
+     "successCount": 1,
+     "failureCount": 0,
+     "queuedSeconds": 6.947732,
+     "elapsedSeconds": 3.2272806,
+     "submittedAt": "2026-10-25T18:09:14.679571+00:00",
+     "startedAt": "2026-10-25T18:09:21.627303+00:00",
+     "completedAt": "2026-10-25T18:09:24.8545836+00:00",
+     "jobId": 1374
+    },
+    "output": {
+     "Value": 0.0012506315673618928
+    }
+   }
+  },
+  {
+   "name": "wait_layer",
+   "args": {
+    "layerId": "0f0456c2d4b24c919b395bb2ed466ae0",
+    "waitSeconds": 20
+   },
+   "t_start": 1792951758.766517,
+   "t_end": 1792951765.7166684,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "layerId": "0f0456c2d4b24c919b395bb2ed466ae0",
+    "layerKey": "subinterval-15",
+    "layer": {
+     "entryPoint": "Integrate",
+     "parallelism": 1,
+     "previousLayerIds": [],
+     "successCount": 1,
+     "failureCount": 0,
+     "queuedSeconds": 7.1229686,
+     "elapsedSeconds": 3.2164144,
+     "submittedAt": "2026-10-25T18:09:14.6798216+00:00",
+     "startedAt": "2026-10-25T18:09:21.8027902+00:00",
+     "completedAt": "2026-10-25T18:09:25.0192046+00:00",
+     "jobId": 1375
+    },
+    "output": {
+     "Value": -0.032143799636397206
+    }
+   }
+  },
+  {
+   "name": "wait_layer",
+   "args": {
+    "layerId": "609fefd472cd4725b4950d7dc13775f0",
+    "waitSeconds": 20
+   },
+   "t_start": 1792951758.439439,
+   "t_end": 1792951765.7383108,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "layerId": "609fefd472cd4725b4950d7dc13775f0",
+    "layerKey": "subinterval-13",
+    "layer": {
+     "entryPoint": "Integrate",
+     "parallelism": 1,
+     "previousLayerIds": [],
+     "successCount": 1,
+     "failureCount": 0,
+     "queuedSeconds": 7.1442526,
+     "elapsedSeconds": 3.2163654,
+     "submittedAt": "2026-10-25T18:09:14.680125+00:00",
+     "startedAt": "2026-10-25T18:09:21.8243776+00:00",
+     "completedAt": "2026-10-25T18:09:25.040743+00:00",
+     "jobId": 1376
+    },
+    "output": {
+     "Value": -0.09576931487708117
+    }
+   }
+  },
+  {
+   "name": "wait_layer",
+   "args": {
+    "layerId": "03f5878db6124d4eb5bc1199d6327b6d",
+    "waitSeconds": 20
+   },
+   "t_start": 1792951758.6029673,
+   "t_end": 1792951768.421202,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "layerId": "03f5878db6124d4eb5bc1199d6327b6d",
+    "layerKey": "subinterval-14",
+    "layer": {
+     "entryPoint": "Integrate",
+     "parallelism": 1,
+     "previousLayerIds": [],
+     "successCount": 1,
+     "failureCount": 0,
+     "queuedSeconds": 9.9003441,
+     "elapsedSeconds": 3.1389159,
+     "submittedAt": "2026-10-25T18:09:14.6801566+00:00",
+     "startedAt": "2026-10-25T18:09:24.5805007+00:00",
+     "completedAt": "2026-10-25T18:09:27.7194166+00:00",
+     "jobId": 1377
+    },
+    "output": {
+     "Value": -0.06328638874931454
+    }
+   }
+  },
+  {
+   "name": "wait_layer",
+   "args": {
+    "layerId": "4884dec2804948b7b7f459313085dcec",
+    "waitSeconds": 20
+   },
+   "t_start": 1792951758.27752,
+   "t_end": 1792951768.718368,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "layerId": "4884dec2804948b7b7f459313085dcec",
+    "layerKey": "subinterval-12",
+    "layer": {
+     "entryPoint": "Integrate",
+     "parallelism": 1,
+     "previousLayerIds": [],
+     "successCount": 1,
+     "failureCount": 0,
+     "queuedSeconds": 10.1776561,
+     "elapsedSeconds": 3.1420157,
+     "submittedAt": "2026-10-25T18:09:14.6992332+00:00",
+     "startedAt": "2026-10-25T18:09:24.8768893+00:00",
+     "completedAt": "2026-10-25T18:09:28.018905+00:00",
+     "jobId": 1378
+    },
+    "output": {
+     "Value": -0.1132246519499332
+    }
+   }
+  },
+  {
+   "name": "wait_layer",
+   "args": {
+    "layerId": "86c6c334beec417ea2ad192106c39a68",
+    "waitSeconds": 20
+   },
+   "t_start": 1792951759.2847252,
+   "t_end": 1792951768.926962,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "layerId": "86c6c334beec417ea2ad192106c39a68",
+    "layerKey": "subinterval-18",
+    "layer": {
+     "entryPoint": "Integrate",
+     "parallelism": 1,
+     "previousLayerIds": [],
+     "successCount": 1,
+     "failureCount": 0,
+     "queuedSeconds": 10.3183713,
+     "elapsedSeconds": 3.1652321,
+     "submittedAt": "2026-10-25T18:09:14.7463545+00:00",
+     "startedAt": "2026-10-25T18:09:25.0647258+00:00",
+     "completedAt": "2026-10-25T18:09:28.2299579+00:00",
+     "jobId": 1380
+    },
+    "output": {
+     "Value": -0.00010818580378062037
+    }
+   }
+  },
+  {
+   "name": "wait_layer",
+   "args": {
+    "layerId": "cd8f98af85b74f0d99739ab9224a3566",
+    "waitSeconds": 20
+   },
+   "t_start": 1792951758.1144998,
+   "t_end": 1792951768.9486327,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "layerId": "cd8f98af85b74f0d99739ab9224a3566",
+    "layerKey": "subinterval-11",
+    "layer": {
+     "entryPoint": "Integrate",
+     "parallelism": 1,
+     "previousLayerIds": [],
+     "successCount": 1,
+     "failureCount": 0,
+     "queuedSeconds": 10.3206789,
+     "elapsedSeconds": 3.188802,
+     "submittedAt": "2026-10-25T18:09:14.7208811+00:00",
+     "startedAt": "2026-10-25T18:09:25.04156+00:00",
+     "completedAt": "2026-10-25T18:09:28.230362+00:00",
+     "jobId": 1379
+    },
+    "output": {
+     "Value": -0.10477479378700687
+    }
+   }
+  },
+  {
+   "name": "wait_layer",
+   "args": {
+    "layerId": "1556c89c4fbc4b53aeb46de726a364d9",
+    "waitSeconds": 20
+   },
+   "t_start": 1792951756.4777105,
+   "t_end": 1792951771.5705495,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "layerId": "1556c89c4fbc4b53aeb46de726a364d9",
+    "layerKey": "subinterval-1",
+    "layer": {
+     "entryPoint": "Integrate",
+     "parallelism": 1,
+     "previousLayerIds": [],
+     "successCount": 1,
+     "failureCount": 0,
+     "queuedSeconds": 12.8648913,
+     "elapsedSeconds": 3.1332194,
+     "submittedAt": "2026-10-25T18:09:14.8778593+00:00",
+     "startedAt": "2026-10-25T18:09:27.7427506+00:00",
+     "completedAt": "2026-10-25T18:09:30.87597+00:00",
+     "jobId": 1381
+    },
+    "output": {
+     "Value": 0.17130564277318036
+    }
+   }
+  },
+  {
+   "name": "wait_layer",
+   "args": {
+    "layerId": "3fb9b8d38ef84d128395aeb99e6eb493",
+    "waitSeconds": 20
+   },
+   "t_start": 1792951760.1267276,
+   "t_end": 1792951771.8877492,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "layerId": "3fb9b8d38ef84d128395aeb99e6eb493",
+    "layerKey": "subinterval-23",
+    "layer": {
+     "entryPoint": "Integrate",
+     "parallelism": 1,
+     "previousLayerIds": [],
+     "successCount": 1,
+     "failureCount": 0,
+     "queuedSeconds": 13.1438419,
+     "elapsedSeconds": 3.1411677,
+     "submittedAt": "2026-10-25T18:09:14.8991182+00:00",
+     "startedAt": "2026-10-25T18:09:28.0429601+00:00",
+     "completedAt": "2026-10-25T18:09:31.1841278+00:00",
+     "jobId": 1382
+    },
+    "output": {
+     "Value": 0.04098380132896767
+    }
+   }
+  },
+  {
+   "name": "wait_layer",
+   "args": {
+    "layerId": "9495cca6e88a467e9a655eb0536dd359",
+    "waitSeconds": 20
+   },
+   "t_start": 1792951761.033405,
+   "t_end": 1792951772.096737,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "layerId": "9495cca6e88a467e9a655eb0536dd359",
+    "layerKey": "subinterval-28",
+    "layer": {
+     "entryPoint": "Integrate",
+     "parallelism": 1,
+     "previousLayerIds": [],
+     "successCount": 1,
+     "failureCount": 0,
+     "queuedSeconds": 13.2107956,
+     "elapsedSeconds": 3.1451612,
+     "submittedAt": "2026-10-25T18:09:15.0415863+00:00",
+     "startedAt": "2026-10-25T18:09:28.2523819+00:00",
+     "completedAt": "2026-10-25T18:09:31.3975431+00:00",
+     "jobId": 1383
+    },
+    "output": {
+     "Value": 0.009927357996813659
+    }
+   }
+  },
+  {
+   "name": "wait_layer",
+   "args": {
+    "layerId": "7a5adcc857b94a02ba3abfde7bb6eeef",
+    "waitSeconds": 20
+   },
+   "t_start": 1792951759.4752367,
+   "t_end": 1792951772.1161318,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "layerId": "7a5adcc857b94a02ba3abfde7bb6eeef",
+    "layerKey": "subinterval-19",
+    "layer": {
+     "entryPoint": "Integrate",
+     "parallelism": 1,
+     "previousLayerIds": [],
+     "successCount": 1,
+     "failureCount": 0,
+     "queuedSeconds": 13.2106213,
+     "elapsedSeconds": 3.1391996,
+     "submittedAt": "2026-10-25T18:09:15.0622543+00:00",
+     "startedAt": "2026-10-25T18:09:28.2728756+00:00",
+     "completedAt": "2026-10-25T18:09:31.4120752+00:00",
+     "jobId": 1384
+    },
+    "output": {
+     "Value": 0.00032776904224127114
+    }
+   }
+  },
+  {
+   "name": "wait_layer",
+   "args": {
+    "layerId": "91178bfb48c54094994592b148c2af50",
+    "waitSeconds": 20
+   },
+   "t_start": 1792951761.198457,
+   "t_end": 1792951774.7266176,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "layerId": "91178bfb48c54094994592b148c2af50",
+    "layerKey": "subinterval-29",
+    "layer": {
+     "entryPoint": "Integrate",
+     "parallelism": 1,
+     "previousLayerIds": [],
+     "successCount": 1,
+     "failureCount": 0,
+     "queuedSeconds": 15.8131533,
+     "elapsedSeconds": 3.1323887,
+     "submittedAt": "2026-10-25T18:09:15.0847875+00:00",
+     "startedAt": "2026-10-25T18:09:30.8979408+00:00",
+     "completedAt": "2026-10-25T18:09:34.0303295+00:00",
+     "jobId": 1385
+    },
+    "output": {
+     "Value": 0.002954058621440855
+    }
+   }
+  },
+  {
+   "name": "wait_layer",
+   "args": {
+    "layerId": "19b75129bed8469c98c45c5115ba17b2",
+    "waitSeconds": 20
+   },
+   "t_start": 1792951761.5265326,
+   "t_end": 1792951775.0431023,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "layerId": "19b75129bed8469c98c45c5115ba17b2",
+    "layerKey": "subinterval-31",
+    "layer": {
+     "entryPoint": "Integrate",
+     "parallelism": 1,
+     "previousLayerIds": [],
+     "successCount": 1,
+     "failureCount": 0,
+     "queuedSeconds": 16.0960119,
+     "elapsedSeconds": 3.1385167,
+     "submittedAt": "2026-10-25T18:09:15.1090387+00:00",
+     "startedAt": "2026-10-25T18:09:31.2050506+00:00",
+     "completedAt": "2026-10-25T18:09:34.3435673+00:00",
+     "jobId": 1386
+    },
+    "output": {
+     "Value": -7.511615492648983e-06
+    }
+   }
+  },
+  {
+   "name": "wait_layer",
+   "args": {
+    "layerId": "bd32d526301a46609c985a1632082671",
+    "waitSeconds": 20
+   },
+   "t_start": 1792951760.2964866,
+   "t_end": 1792951775.2817767,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "layerId": "bd32d526301a46609c985a1632082671",
+    "layerKey": "subinterval-24",
+    "layer": {
+     "entryPoint": "Integrate",
+     "parallelism": 1,
+     "previousLayerIds": [],
+     "successCount": 1,
+     "failureCount": 0,
+     "queuedSeconds": 16.6535705,
+     "elapsedSeconds": 3.161069,
+     "submittedAt": "2026-10-25T18:09:14.7674375+00:00",
+     "startedAt": "2026-10-25T18:09:31.421008+00:00",
+     "completedAt": "2026-10-25T18:09:34.582077+00:00",
+     "jobId": 1387
+    },
+    "output": {
+     "Value": 0.05091512037668717
+    }
+   }
+  },
+  {
+   "name": "wait_layer",
+   "args": {
+    "layerId": "1950e9fb5e924c09bd11b3f34b06b4e9",
+    "waitSeconds": 20
+   },
+   "t_start": 1792951759.8022034,
+   "t_end": 1792951775.3027778,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "layerId": "1950e9fb5e924c09bd11b3f34b06b4e9",
+    "layerKey": "subinterval-21",
+    "layer": {
+     "entryPoint": "Integrate",
+     "parallelism": 1,
+     "previousLayerIds": [],
+     "successCount": 1,
+     "failureCount": 0,
+     "queuedSeconds": 16.6537253,
+     "elapsedSeconds": 3.1520919,
+     "submittedAt": "2026-10-25T18:09:14.7883248+00:00",
+     "startedAt": "2026-10-25T18:09:31.4420501+00:00",
+     "completedAt": "2026-10-25T18:09:34.594142+00:00",
+     "jobId": 1388
+    },
+    "output": {
+     "Value": 0.011766042051615635
+    }
+   }
+  },
+  {
+   "name": "wait_layer",
+   "args": {
+    "layerId": "7fd48083e2a24042a7283a1502421364",
+    "waitSeconds": 20
+   },
+   "t_start": 1792951759.638872,
+   "t_end": 1792951777.8826435,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "layerId": "7fd48083e2a24042a7283a1502421364",
+    "layerKey": "subinterval-20",
+    "layer": {
+     "entryPoint": "Integrate",
+     "parallelism": 1,
+     "previousLayerIds": [],
+     "successCount": 1,
+     "failureCount": 0,
+     "queuedSeconds": 19.2396905,
+     "elapsedSeconds": 3.1333517,
+     "submittedAt": "2026-10-25T18:09:14.8119701+00:00",
+     "startedAt": "2026-10-25T18:09:34.0516606+00:00",
+     "completedAt": "2026-10-25T18:09:37.1850123+00:00",
+     "jobId": 1389
+    },
+    "output": {
+     "Value": 0.0033757961538210374
+    }
+   }
+  },
+  {
+   "name": "wait_layer",
+   "args": {
+    "layerId": "7884e1735db94dff85e8e6b7180b8a5e",
+    "waitSeconds": 20
+   },
+   "t_start": 1792951758.9310298,
+   "t_end": 1792951778.197467,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "layerId": "7884e1735db94dff85e8e6b7180b8a5e",
+    "layerKey": "subinterval-16",
+    "layer": {
+     "entryPoint": "Integrate",
+     "parallelism": 1,
+     "previousLayerIds": [],
+     "successCount": 1,
+     "failureCount": 0,
+     "queuedSeconds": 19.5332739,
+     "elapsedSeconds": 3.1309311,
+     "submittedAt": "2026-10-25T18:09:14.8348621+00:00",
+     "startedAt": "2026-10-25T18:09:34.368136+00:00",
+     "completedAt": "2026-10-25T18:09:37.4990671+00:00",
+     "jobId": 1390
+    },
+    "output": {
+     "Value": -0.011694016397069809
+    }
+   }
+  },
+  {
+   "name": "wait_layer",
+   "args": {
+    "layerId": "122e320b05e54ad5a7fae7e978a7a0bc",
+    "waitSeconds": 20
+   },
+   "t_start": 1792951759.0985723,
+   "t_end": 1792951778.4355135,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "layerId": "122e320b05e54ad5a7fae7e978a7a0bc",
+    "layerKey": "subinterval-17",
+    "layer": {
+     "entryPoint": "Integrate",
+     "parallelism": 1,
+     "previousLayerIds": [],
+     "successCount": 1,
+     "failureCount": 0,
+     "queuedSeconds": 19.7506044,
+     "elapsedSeconds": 3.1292055,
+     "submittedAt": "2026-10-25T18:09:14.8546908+00:00",
+     "startedAt": "2026-10-25T18:09:34.6052952+00:00",
+     "completedAt": "2026-10-25T18:09:37.7345007+00:00",
+     "jobId": 1391
+    },
+    "output": {
+     "Value": -0.002391540073663761
+    }
+   }
+  },
+  {
+   "name": "wait_layer",
+   "args": {
+    "layerId": "009850c278f649feb70fd01357d4e1ab",
+    "waitSeconds": 20
+   },
+   "t_start": 1792951761.362581,
+   "t_end": 1792951778.479999,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "layerId": "009850c278f649feb70fd01357d4e1ab",
+    "layerKey": "subinterval-30",
+    "layer": {
+     "entryPoint": "Integrate",
+     "parallelism": 1,
+     "previousLayerIds": [],
+     "successCount": 1,
+     "failureCount": 0,
+     "queuedSeconds": 19.4966617,
+     "elapsedSeconds": 3.1575677,
+     "submittedAt": "2026-10-25T18:09:15.1310861+00:00",
+     "startedAt": "2026-10-25T18:09:34.6277478+00:00",
+     "completedAt": "2026-10-25T18:09:37.7853155+00:00",
+     "jobId": 1392
+    },
+    "output": {
+     "Value": 0.0003849293479483631
+    }
+   }
+  },
+  {
+   "name": "wait_layer",
+   "args": {
+    "layerId": "45b7de4e1d4e4fc89b962ef5d8676207",
+    "waitSeconds": 20
+   },
+   "t_start": 1792951760.803018,
+   "t_end": 1792951781.046843,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "layerId": "45b7de4e1d4e4fc89b962ef5d8676207",
+    "layerKey": "subinterval-27",
+    "layer": {
+     "entryPoint": "Integrate",
+     "parallelism": 1,
+     "previousLayerIds": [],
+     "successCount": 1,
+     "failureCount": 0,
+     "queuedSeconds": 22.0533629,
+     "elapsedSeconds": 3.1345641,
+     "submittedAt": "2026-10-25T18:09:15.1538778+00:00",
+     "startedAt": "2026-10-25T18:09:37.2072407+00:00",
+     "completedAt": "2026-10-25T18:09:40.3418048+00:00",
+     "jobId": 1393
+    },
+    "output": {
+     "Value": 0.022264740203445516
+    }
+   }
+  },
+  {
+   "name": "wait_layer",
+   "args": {
+    "layerId": "773aa3e7cc5f40fb9486b43f07f79a2a",
+    "waitSeconds": 20
+   },
+   "t_start": 1792951759.9642024,
+   "t_end": 1792951781.3496127,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "layerId": "773aa3e7cc5f40fb9486b43f07f79a2a",
+    "layerKey": "subinterval-22",
+    "layer": {
+     "entryPoint": "Integrate",
+     "parallelism": 1,
+     "previousLayerIds": [],
+     "successCount": 1,
+     "failureCount": 0,
+     "queuedSeconds": 22.3701908,
+     "elapsedSeconds": 3.1277544,
+     "submittedAt": "2026-10-25T18:09:15.153945+00:00",
+     "startedAt": "2026-10-25T18:09:37.5241358+00:00",
+     "completedAt": "2026-10-25T18:09:40.6518902+00:00",
+     "jobId": 1394
+    },
+    "output": {
+     "Value": 0.025555556291751963
+    }
+   }
+  },
+  {
+   "name": "wait_layer",
+   "args": {
+    "layerId": "4438356b07374739b7111c67a2cfc1a5",
+    "waitSeconds": 20
+   },
+   "t_start": 1792951760.6229799,
+   "t_end": 1792951781.6005192,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "layerId": "4438356b07374739b7111c67a2cfc1a5",
+    "layerKey": "subinterval-26",
+    "layer": {
+     "entryPoint": "Integrate",
+     "parallelism": 1,
+     "previousLayerIds": [],
+     "successCount": 1,
+     "failureCount": 0,
+     "queuedSeconds": 22.6052457,
+     "elapsedSeconds": 3.1437177,
+     "submittedAt": "2026-10-25T18:09:15.1539907+00:00",
+     "startedAt": "2026-10-25T18:09:37.7592364+00:00",
+     "completedAt": "2026-10-25T18:09:40.9029541+00:00",
+     "jobId": 1395
+    },
+    "output": {
+     "Value": 0.037621544022671004
+    }
+   }
+  },
+  {
+   "name": "wait_layer",
+   "args": {
+    "layerId": "fd6231a034b44398a3cc3c32004ffd25",
+    "waitSeconds": 20
+   },
+   "t_start": 1792951760.4594996,
+   "t_end": 1792951781.6548486,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "layerId": "fd6231a034b44398a3cc3c32004ffd25",
+    "layerKey": "subinterval-25",
+    "layer": {
+     "entryPoint": "Integrate",
+     "parallelism": 1,
+     "previousLayerIds": [],
+     "successCount": 1,
+     "failureCount": 0,
+     "queuedSeconds": 22.6531431,
+     "elapsedSeconds": 3.1415224,
+     "submittedAt": "2026-10-25T18:09:15.1540144+00:00",
+     "startedAt": "2026-10-25T18:09:37.8071575+00:00",
+     "completedAt": "2026-10-25T18:09:40.9486799+00:00",
+     "jobId": 1396
+    },
+    "output": {
+     "Value": 0.049474622509798526
+    }
+   }
+  },
+  {
+   "name": "run_layer",
+   "args": {
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "entryPoint": "Reduce",
+    "parallelism": 1,
+    "layerKey": "reduce-final",
+    "previousLayerIds": [
+     "5e4e06f3838847d68ec6a89ccc100e28",
+     "1556c89c4fbc4b53aeb46de726a364d9",
+     "7dab453ef23d4e93a057f60dfe003021",
+     "c5aeb3cc28424e89b58da54b0656dde7",
+     "147639f1439e4f61af83e13affa71c10",
+     "c9fe4c4402b549ed93e7636577a5a7ad",
+     "f6dd35b34d9d42498d99940325bc3ca1",
+     "016a23508e4f4e6aa4653130697709eb",
+     "b1491a0b70bb41d5ab6660341d59392a",
+     "47b2c16c9c324957b0299a43c4e892b7",
+     "50db697dd8b74cf29697df36623fa53e",
+     "cd8f98af85b74f0d99739ab9224a3566",
+     "4884dec2804948b7b7f459313085dcec",
+     "609fefd472cd4725b4950d7dc13775f0",
+     "03f5878db6124d4eb5bc1199d6327b6d",
+     "0f0456c2d4b24c919b395bb2ed466ae0",
+     "7884e1735db94dff85e8e6b7180b8a5e",
+     "122e320b05e54ad5a7fae7e978a7a0bc",
+     "86c6c334beec417ea2ad192106c39a68",
+     "7a5adcc857b94a02ba3abfde7bb6eeef",
+     "7fd48083e2a24042a7283a1502421364",
+     "1950e9fb5e924c09bd11b3f34b06b4e9",
+     "773aa3e7cc5f40fb9486b43f07f79a2a",
+     "3fb9b8d38ef84d128395aeb99e6eb493",
+     "bd32d526301a46609c985a1632082671",
+     "fd6231a034b44398a3cc3c32004ffd25",
+     "4438356b07374739b7111c67a2cfc1a5",
+     "45b7de4e1d4e4fc89b962ef5d8676207",
+     "9495cca6e88a467e9a655eb0536dd359",
+     "91178bfb48c54094994592b148c2af50",
+     "009850c278f649feb70fd01357d4e1ab",
+     "19b75129bed8469c98c45c5115ba17b2"
+    ],
+    "waitSeconds": 20
+   },
+   "t_start": 1792951781.664849,
+   "t_end": 1792951785.4232872,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+    "layerId": "327a03e74f994da8992b11a42aea4c90",
+    "layerKey": "reduce-final",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Reduce",
+     "parallelism": 1,
+     "previousLayerIds": [
+      "5e4e06f3838847d68ec6a89ccc100e28",
+      "1556c89c4fbc4b53aeb46de726a364d9",
+      "7dab453ef23d4e93a057f60dfe003021",
+      "c5aeb3cc28424e89b58da54b0656dde7",
+      "147639f1439e4f61af83e13affa71c10",
+      "c9fe4c4402b549ed93e7636577a5a7ad",
+      "f6dd35b34d9d42498d99940325bc3ca1",
+      "016a23508e4f4e6aa4653130697709eb",
+      "b1491a0b70bb41d5ab6660341d59392a",
+      "47b2c16c9c324957b0299a43c4e892b7",
+      "50db697dd8b74cf29697df36623fa53e",
+      "cd8f98af85b74f0d99739ab9224a3566",
+      "4884dec2804948b7b7f459313085dcec",
+      "609fefd472cd4725b4950d7dc13775f0",
+      "03f5878db6124d4eb5bc1199d6327b6d",
+      "0f0456c2d4b24c919b395bb2ed466ae0",
+      "7884e1735db94dff85e8e6b7180b8a5e",
+      "122e320b05e54ad5a7fae7e978a7a0bc",
+      "86c6c334beec417ea2ad192106c39a68",
+      "7a5adcc857b94a02ba3abfde7bb6eeef",
+      "7fd48083e2a24042a7283a1502421364",
+      "1950e9fb5e924c09bd11b3f34b06b4e9",
+      "773aa3e7cc5f40fb9486b43f07f79a2a",
+      "3fb9b8d38ef84d128395aeb99e6eb493",
+      "bd32d526301a46609c985a1632082671",
+      "fd6231a034b44398a3cc3c32004ffd25",
+      "4438356b07374739b7111c67a2cfc1a5",
+      "45b7de4e1d4e4fc89b962ef5d8676207",
+      "9495cca6e88a467e9a655eb0536dd359",
+      "91178bfb48c54094994592b148c2af50",
+      "009850c278f649feb70fd01357d4e1ab",
+      "19b75129bed8469c98c45c5115ba17b2"
+     ],
+     "successCount": 1,
+     "failureCount": 0,
+     "queuedSeconds": 0.0243338,
+     "elapsedSeconds": 3.1298299,
+     "submittedAt": "2026-10-25T18:09:41.564792+00:00",
+     "startedAt": "2026-10-25T18:09:41.5891258+00:00",
+     "completedAt": "2026-10-25T18:09:44.7189557+00:00",
+     "jobId": 1397
+    },
+    "output": {
+     "Value": 0.25165212943066617
+    }
+   }
+  }
+ ],
+ "model_calls": [
+  {
+   "t_start": 1792951706.4253066,
+   "chunks": 360,
+   "chars": 983,
+   "t_first_chunk": 1792951713.2821562,
+   "t_end": 1792951716.7109234
+  },
+  {
+   "t_start": 1792951716.7169209,
+   "chunks": 100,
+   "chars": 21,
+   "t_first_chunk": 1792951721.1573775,
+   "t_end": 1792951721.8769786
+  },
+  {
+   "t_start": 1792951721.8834772,
+   "chunks": 783,
+   "chars": 2639,
+   "t_first_chunk": 1792951727.9622622,
+   "t_end": 1792951733.6146312
+  },
+  {
+   "t_start": 1792951740.9879193,
+   "chunks": 864,
+   "chars": 2601,
+   "t_first_chunk": 1792951743.9451253,
+   "t_end": 1792951748.1957722
+  },
+  {
+   "t_start": 1792951785.4287858,
+   "chunks": 32,
+   "chars": 83,
+   "t_first_chunk": 1792951786.702218,
+   "t_end": 1792951786.8972504
+  }
+ ],
+ "layers": [
+  {
+   "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+   "layerId": "5e4e06f3838847d68ec6a89ccc100e28",
+   "layerKey": "subinterval-0",
+   "status": "Completed",
+   "entryPoint": "Integrate",
+   "parallelism": 1,
+   "previousLayerIds": [],
+   "submittedAt": "2026-10-25T18:09:14.537432+00:00",
+   "completedAt": "2026-10-25T18:09:18.2147537+00:00"
+  },
+  {
+   "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+   "layerId": "7dab453ef23d4e93a057f60dfe003021",
+   "layerKey": "subinterval-2",
+   "status": "Completed",
+   "entryPoint": "Integrate",
+   "parallelism": 1,
+   "previousLayerIds": [],
+   "submittedAt": "2026-10-25T18:09:14.5387684+00:00",
+   "completedAt": "2026-10-25T18:09:18.4583379+00:00"
+  },
+  {
+   "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+   "layerId": "b1491a0b70bb41d5ab6660341d59392a",
+   "layerKey": "subinterval-8",
+   "status": "Completed",
+   "entryPoint": "Integrate",
+   "parallelism": 1,
+   "previousLayerIds": [],
+   "submittedAt": "2026-10-25T18:09:14.5708092+00:00",
+   "completedAt": "2026-10-25T18:09:18.458138+00:00"
+  },
+  {
+   "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+   "layerId": "016a23508e4f4e6aa4653130697709eb",
+   "layerKey": "subinterval-7",
+   "status": "Completed",
+   "entryPoint": "Integrate",
+   "parallelism": 1,
+   "previousLayerIds": [],
+   "submittedAt": "2026-10-25T18:09:14.5927054+00:00",
+   "completedAt": "2026-10-25T18:09:18.4276907+00:00"
+  },
+  {
+   "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+   "layerId": "c5aeb3cc28424e89b58da54b0656dde7",
+   "layerKey": "subinterval-3",
+   "status": "Completed",
+   "entryPoint": "Integrate",
+   "parallelism": 1,
+   "previousLayerIds": [],
+   "submittedAt": "2026-10-25T18:09:14.6136553+00:00",
+   "completedAt": "2026-10-25T18:09:21.3820753+00:00"
+  },
+  {
+   "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+   "layerId": "147639f1439e4f61af83e13affa71c10",
+   "layerKey": "subinterval-4",
+   "status": "Completed",
+   "entryPoint": "Integrate",
+   "parallelism": 1,
+   "previousLayerIds": [],
+   "submittedAt": "2026-10-25T18:09:14.6341445+00:00",
+   "completedAt": "2026-10-25T18:09:21.6043873+00:00"
+  },
+  {
+   "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+   "layerId": "f6dd35b34d9d42498d99940325bc3ca1",
+   "layerKey": "subinterval-6",
+   "status": "Completed",
+   "entryPoint": "Integrate",
+   "parallelism": 1,
+   "previousLayerIds": [],
+   "submittedAt": "2026-10-25T18:09:14.6561473+00:00",
+   "completedAt": "2026-10-25T18:09:21.7797329+00:00"
+  },
+  {
+   "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+   "layerId": "47b2c16c9c324957b0299a43c4e892b7",
+   "layerKey": "subinterval-9",
+   "status": "Completed",
+   "entryPoint": "Integrate",
+   "parallelism": 1,
+   "previousLayerIds": [],
+   "submittedAt": "2026-10-25T18:09:14.6794205+00:00",
+   "completedAt": "2026-10-25T18:09:21.7789521+00:00"
+  },
+  {
+   "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+   "layerId": "50db697dd8b74cf29697df36623fa53e",
+   "layerKey": "subinterval-10",
+   "status": "Completed",
+   "entryPoint": "Integrate",
+   "parallelism": 1,
+   "previousLayerIds": [],
+   "submittedAt": "2026-10-25T18:09:14.6794208+00:00",
+   "completedAt": "2026-10-25T18:09:24.5574209+00:00"
+  },
+  {
+   "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+   "layerId": "c9fe4c4402b549ed93e7636577a5a7ad",
+   "layerKey": "subinterval-5",
+   "status": "Completed",
+   "entryPoint": "Integrate",
+   "parallelism": 1,
+   "previousLayerIds": [],
+   "submittedAt": "2026-10-25T18:09:14.679571+00:00",
+   "completedAt": "2026-10-25T18:09:24.8545836+00:00"
+  },
+  {
+   "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+   "layerId": "0f0456c2d4b24c919b395bb2ed466ae0",
+   "layerKey": "subinterval-15",
+   "status": "Completed",
+   "entryPoint": "Integrate",
+   "parallelism": 1,
+   "previousLayerIds": [],
+   "submittedAt": "2026-10-25T18:09:14.6798216+00:00",
+   "completedAt": "2026-10-25T18:09:25.0192046+00:00"
+  },
+  {
+   "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+   "layerId": "609fefd472cd4725b4950d7dc13775f0",
+   "layerKey": "subinterval-13",
+   "status": "Completed",
+   "entryPoint": "Integrate",
+   "parallelism": 1,
+   "previousLayerIds": [],
+   "submittedAt": "2026-10-25T18:09:14.680125+00:00",
+   "completedAt": "2026-10-25T18:09:25.040743+00:00"
+  },
+  {
+   "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+   "layerId": "03f5878db6124d4eb5bc1199d6327b6d",
+   "layerKey": "subinterval-14",
+   "status": "Completed",
+   "entryPoint": "Integrate",
+   "parallelism": 1,
+   "previousLayerIds": [],
+   "submittedAt": "2026-10-25T18:09:14.6801566+00:00",
+   "completedAt": "2026-10-25T18:09:27.7194166+00:00"
+  },
+  {
+   "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+   "layerId": "4884dec2804948b7b7f459313085dcec",
+   "layerKey": "subinterval-12",
+   "status": "Completed",
+   "entryPoint": "Integrate",
+   "parallelism": 1,
+   "previousLayerIds": [],
+   "submittedAt": "2026-10-25T18:09:14.6992332+00:00",
+   "completedAt": "2026-10-25T18:09:28.018905+00:00"
+  },
+  {
+   "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+   "layerId": "cd8f98af85b74f0d99739ab9224a3566",
+   "layerKey": "subinterval-11",
+   "status": "Completed",
+   "entryPoint": "Integrate",
+   "parallelism": 1,
+   "previousLayerIds": [],
+   "submittedAt": "2026-10-25T18:09:14.7208811+00:00",
+   "completedAt": "2026-10-25T18:09:28.230362+00:00"
+  },
+  {
+   "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+   "layerId": "86c6c334beec417ea2ad192106c39a68",
+   "layerKey": "subinterval-18",
+   "status": "Completed",
+   "entryPoint": "Integrate",
+   "parallelism": 1,
+   "previousLayerIds": [],
+   "submittedAt": "2026-10-25T18:09:14.7463545+00:00",
+   "completedAt": "2026-10-25T18:09:28.2299579+00:00"
+  },
+  {
+   "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+   "layerId": "bd32d526301a46609c985a1632082671",
+   "layerKey": "subinterval-24",
+   "status": "Completed",
+   "entryPoint": "Integrate",
+   "parallelism": 1,
+   "previousLayerIds": [],
+   "submittedAt": "2026-10-25T18:09:14.7674375+00:00",
+   "completedAt": "2026-10-25T18:09:34.582077+00:00"
+  },
+  {
+   "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+   "layerId": "1950e9fb5e924c09bd11b3f34b06b4e9",
+   "layerKey": "subinterval-21",
+   "status": "Completed",
+   "entryPoint": "Integrate",
+   "parallelism": 1,
+   "previousLayerIds": [],
+   "submittedAt": "2026-10-25T18:09:14.7883248+00:00",
+   "completedAt": "2026-10-25T18:09:34.594142+00:00"
+  },
+  {
+   "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+   "layerId": "7fd48083e2a24042a7283a1502421364",
+   "layerKey": "subinterval-20",
+   "status": "Completed",
+   "entryPoint": "Integrate",
+   "parallelism": 1,
+   "previousLayerIds": [],
+   "submittedAt": "2026-10-25T18:09:14.8119701+00:00",
+   "completedAt": "2026-10-25T18:09:37.1850123+00:00"
+  },
+  {
+   "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+   "layerId": "7884e1735db94dff85e8e6b7180b8a5e",
+   "layerKey": "subinterval-16",
+   "status": "Completed",
+   "entryPoint": "Integrate",
+   "parallelism": 1,
+   "previousLayerIds": [],
+   "submittedAt": "2026-10-25T18:09:14.8348621+00:00",
+   "completedAt": "2026-10-25T18:09:37.4990671+00:00"
+  },
+  {
+   "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+   "layerId": "122e320b05e54ad5a7fae7e978a7a0bc",
+   "layerKey": "subinterval-17",
+   "status": "Completed",
+   "entryPoint": "Integrate",
+   "parallelism": 1,
+   "previousLayerIds": [],
+   "submittedAt": "2026-10-25T18:09:14.8546908+00:00",
+   "completedAt": "2026-10-25T18:09:37.7345007+00:00"
+  },
+  {
+   "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+   "layerId": "1556c89c4fbc4b53aeb46de726a364d9",
+   "layerKey": "subinterval-1",
+   "status": "Completed",
+   "entryPoint": "Integrate",
+   "parallelism": 1,
+   "previousLayerIds": [],
+   "submittedAt": "2026-10-25T18:09:14.8778593+00:00",
+   "completedAt": "2026-10-25T18:09:30.87597+00:00"
+  },
+  {
+   "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+   "layerId": "3fb9b8d38ef84d128395aeb99e6eb493",
+   "layerKey": "subinterval-23",
+   "status": "Completed",
+   "entryPoint": "Integrate",
+   "parallelism": 1,
+   "previousLayerIds": [],
+   "submittedAt": "2026-10-25T18:09:14.8991182+00:00",
+   "completedAt": "2026-10-25T18:09:31.1841278+00:00"
+  },
+  {
+   "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+   "layerId": "9495cca6e88a467e9a655eb0536dd359",
+   "layerKey": "subinterval-28",
+   "status": "Completed",
+   "entryPoint": "Integrate",
+   "parallelism": 1,
+   "previousLayerIds": [],
+   "submittedAt": "2026-10-25T18:09:15.0415863+00:00",
+   "completedAt": "2026-10-25T18:09:31.3975431+00:00"
+  },
+  {
+   "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+   "layerId": "7a5adcc857b94a02ba3abfde7bb6eeef",
+   "layerKey": "subinterval-19",
+   "status": "Completed",
+   "entryPoint": "Integrate",
+   "parallelism": 1,
+   "previousLayerIds": [],
+   "submittedAt": "2026-10-25T18:09:15.0622543+00:00",
+   "completedAt": "2026-10-25T18:09:31.4120752+00:00"
+  },
+  {
+   "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+   "layerId": "91178bfb48c54094994592b148c2af50",
+   "layerKey": "subinterval-29",
+   "status": "Completed",
+   "entryPoint": "Integrate",
+   "parallelism": 1,
+   "previousLayerIds": [],
+   "submittedAt": "2026-10-25T18:09:15.0847875+00:00",
+   "completedAt": "2026-10-25T18:09:34.0303295+00:00"
+  },
+  {
+   "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+   "layerId": "19b75129bed8469c98c45c5115ba17b2",
+   "layerKey": "subinterval-31",
+   "status": "Completed",
+   "entryPoint": "Integrate",
+   "parallelism": 1,
+   "previousLayerIds": [],
+   "submittedAt": "2026-10-25T18:09:15.1090387+00:00",
+   "completedAt": "2026-10-25T18:09:34.3435673+00:00"
+  },
+  {
+   "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+   "layerId": "009850c278f649feb70fd01357d4e1ab",
+   "layerKey": "subinterval-30",
+   "status": "Completed",
+   "entryPoint": "Integrate",
+   "parallelism": 1,
+   "previousLayerIds": [],
+   "submittedAt": "2026-10-25T18:09:15.1310861+00:00",
+   "completedAt": "2026-10-25T18:09:37.7853155+00:00"
+  },
+  {
+   "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+   "layerId": "45b7de4e1d4e4fc89b962ef5d8676207",
+   "layerKey": "subinterval-27",
+   "status": "Completed",
+   "entryPoint": "Integrate",
+   "parallelism": 1,
+   "previousLayerIds": [],
+   "submittedAt": "2026-10-25T18:09:15.1538778+00:00",
+   "completedAt": "2026-10-25T18:09:40.3418048+00:00"
+  },
+  {
+   "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+   "layerId": "773aa3e7cc5f40fb9486b43f07f79a2a",
+   "layerKey": "subinterval-22",
+   "status": "Completed",
+   "entryPoint": "Integrate",
+   "parallelism": 1,
+   "previousLayerIds": [],
+   "submittedAt": "2026-10-25T18:09:15.153945+00:00",
+   "completedAt": "2026-10-25T18:09:40.6518902+00:00"
+  },
+  {
+   "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+   "layerId": "4438356b07374739b7111c67a2cfc1a5",
+   "layerKey": "subinterval-26",
+   "status": "Completed",
+   "entryPoint": "Integrate",
+   "parallelism": 1,
+   "previousLayerIds": [],
+   "submittedAt": "2026-10-25T18:09:15.1539907+00:00",
+   "completedAt": "2026-10-25T18:09:40.9029541+00:00"
+  },
+  {
+   "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+   "layerId": "fd6231a034b44398a3cc3c32004ffd25",
+   "layerKey": "subinterval-25",
+   "status": "Completed",
+   "entryPoint": "Integrate",
+   "parallelism": 1,
+   "previousLayerIds": [],
+   "submittedAt": "2026-10-25T18:09:15.1540144+00:00",
+   "completedAt": "2026-10-25T18:09:40.9486799+00:00"
+  },
+  {
+   "sessionId": "9fe7dea2158145aeb3c00793f7bd196f",
+   "layerId": "327a03e74f994da8992b11a42aea4c90",
+   "layerKey": "reduce-final",
+   "status": "Completed",
+   "entryPoint": "Reduce",
+   "parallelism": 1,
+   "previousLayerIds": [
+    "5e4e06f3838847d68ec6a89ccc100e28",
+    "1556c89c4fbc4b53aeb46de726a364d9",
+    "7dab453ef23d4e93a057f60dfe003021",
+    "c5aeb3cc28424e89b58da54b0656dde7",
+    "147639f1439e4f61af83e13affa71c10",
+    "c9fe4c4402b549ed93e7636577a5a7ad",
+    "f6dd35b34d9d42498d99940325bc3ca1",
+    "016a23508e4f4e6aa4653130697709eb",
+    "b1491a0b70bb41d5ab6660341d59392a",
+    "47b2c16c9c324957b0299a43c4e892b7",
+    "50db697dd8b74cf29697df36623fa53e",
+    "cd8f98af85b74f0d99739ab9224a3566",
+    "4884dec2804948b7b7f459313085dcec",
+    "609fefd472cd4725b4950d7dc13775f0",
+    "03f5878db6124d4eb5bc1199d6327b6d",
+    "0f0456c2d4b24c919b395bb2ed466ae0",
+    "7884e1735db94dff85e8e6b7180b8a5e",
+    "122e320b05e54ad5a7fae7e978a7a0bc",
+    "86c6c334beec417ea2ad192106c39a68",
+    "7a5adcc857b94a02ba3abfde7bb6eeef",
+    "7fd48083e2a24042a7283a1502421364",
+    "1950e9fb5e924c09bd11b3f34b06b4e9",
+    "773aa3e7cc5f40fb9486b43f07f79a2a",
+    "3fb9b8d38ef84d128395aeb99e6eb493",
+    "bd32d526301a46609c985a1632082671",
+    "fd6231a034b44398a3cc3c32004ffd25",
+    "4438356b07374739b7111c67a2cfc1a5",
+    "45b7de4e1d4e4fc89b962ef5d8676207",
+    "9495cca6e88a467e9a655eb0536dd359",
+    "91178bfb48c54094994592b148c2af50",
+    "009850c278f649feb70fd01357d4e1ab",
+    "19b75129bed8469c98c45c5115ba17b2"
+   ],
+   "submittedAt": "2026-10-25T18:09:41.564792+00:00",
+   "completedAt": "2026-10-25T18:09:44.7189557+00:00"
+  }
+ ],
+ "cancelled": [],
+ "termination": "answer",
+ "error": null,
+ "grade": {
+  "answer": 0.25165212943066617,
+  "truth": 0.25165212943066384,
+  "tolerance": 1e-09,
+  "abs_error": 2.3314683517128287e-15,
+  "correct": true,
+  "protocol_ok": true,
+  "protocol_reasons": [],
+  "layers_completed": 33,
+  "layers_extra": 0,
+  "layers_other": 0,
+  "final_output": {
+   "Value": 0.25165212943066617
+  },
+  "plan_layer_ids": [
+   "009850c278f649feb70fd01357d4e1ab",
+   "016a23508e4f4e6aa4653130697709eb",
+   "03f5878db6124d4eb5bc1199d6327b6d",
+   "0f0456c2d4b24c919b395bb2ed466ae0",
+   "122e320b05e54ad5a7fae7e978a7a0bc",
+   "147639f1439e4f61af83e13affa71c10",
+   "1556c89c4fbc4b53aeb46de726a364d9",
+   "1950e9fb5e924c09bd11b3f34b06b4e9",
+   "19b75129bed8469c98c45c5115ba17b2",
+   "327a03e74f994da8992b11a42aea4c90",
+   "3fb9b8d38ef84d128395aeb99e6eb493",
+   "4438356b07374739b7111c67a2cfc1a5",
+   "45b7de4e1d4e4fc89b962ef5d8676207",
+   "47b2c16c9c324957b0299a43c4e892b7",
+   "4884dec2804948b7b7f459313085dcec",
+   "50db697dd8b74cf29697df36623fa53e",
+   "5e4e06f3838847d68ec6a89ccc100e28",
+   "609fefd472cd4725b4950d7dc13775f0",
+   "773aa3e7cc5f40fb9486b43f07f79a2a",
+   "7884e1735db94dff85e8e6b7180b8a5e",
+   "7a5adcc857b94a02ba3abfde7bb6eeef",
+   "7dab453ef23d4e93a057f60dfe003021",
+   "7fd48083e2a24042a7283a1502421364",
+   "86c6c334beec417ea2ad192106c39a68",
+   "91178bfb48c54094994592b148c2af50",
+   "9495cca6e88a467e9a655eb0536dd359",
+   "b1491a0b70bb41d5ab6660341d59392a",
+   "bd32d526301a46609c985a1632082671",
+   "c5aeb3cc28424e89b58da54b0656dde7",
+   "c9fe4c4402b549ed93e7636577a5a7ad",
+   "cd8f98af85b74f0d99739ab9224a3566",
+   "f6dd35b34d9d42498d99940325bc3ca1",
+   "fd6231a034b44398a3cc3c32004ffd25"
+  ],
+  "success": true
+ }
+}

@@ -1,0 +1,5472 @@
+{
+ "cell": {
+  "family": "f2",
+  "n": 32,
+  "arm": "tool_calling",
+  "model": "dsv41flash",
+  "rep": 1,
+  "run_id": "f2-n32-tool_calling-dsv41flash-r1"
+ },
+ "task": "Find, on the PARCS cluster, the midpoint that exactly N = 32 bisection steps reach when searching\nfor the K-th smallest of M numbers v_1, ..., v_M, where M = 16777216 and K = 5000000.\n\nThe numbers: for i = 1, 2, ..., M, with unsigned 64-bit wrapping arithmetic (C# `ulong`),\n\n    z = (ulong)i * 0x9E3779B97F4A7C15\n    z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9\n    z = (z ^ (z >> 27)) * 0x94D049BB133111EB\n    z = z ^ (z >> 31)\n    v_i = (double)(z % 2147483647) / 2147483647.0\n\nThe bisection: start with lo = 0, hi = 1. One step computes mid = (lo + hi) / 2 and\nc = the number of i with v_i <= mid; then, if c >= K, hi = mid, otherwise lo = mid.\n\nFollow this layer plan exactly; it is part of the task:\n\n1. Each step is one layer that counts in parallel: parallelism = maxParallelism from\n   get_cluster_info, each worker counting its share of i = 1..M. That is 32 step layers in total.\n   Do not fold several steps into one layer.\n2. The layer for step j >= 2 lists the layer of step j - 1 in previousLayerIds. Its workers read\n   lo, hi and the partial counts of step j - 1 from there, add the counts and update lo and hi\n   themselves. Do not do this arithmetic yourself.\n3. After step 32, run one layer with parallelism 1 that reads the step-32 layer the same way,\n   applies the last update and outputs the final midpoint (lo + hi) / 2.\n\nThe run uses exactly 33 layers. Report the final midpoint from the last layer's output with\n17 significant digits. End your answer with a line of the form\n\nANSWER: <number>\n",
+ "config": {
+  "configurable": {
+   "thread_id": "cec41c2b-6f76-4bd5-be24-7bd485cedaa1"
+  },
+  "recursion_limit": 600,
+  "run_name": "f2-n32-tool_calling-dsv41flash-r1",
+  "tags": [
+   "f2",
+   "n32",
+   "tool_calling",
+   "dsv41flash"
+  ],
+  "metadata": {
+   "family": "f2",
+   "n": 32,
+   "arm": "tool_calling",
+   "model": "dsv41flash",
+   "rep": 1,
+   "run_id": "f2-n32-tool_calling-dsv41flash-r1",
+   "model_name": "deepseek/deepseek-v4.1-flash-1017",
+   "manifest": "5ba7e99e0db5"
+  }
+ },
+ "trace_id": "cfb244ba-09bf-47f3-aafb-47f96b175a20",
+ "cluster_info": {
+  "scalingMode": "static",
+  "workerNodeCount": 1,
+  "currentCapacity": 4,
+  "maxParallelism": 4,
+  "daemonCpuRequestMillicores": 250,
+  "capacitySource": "dns",
+  "freeWorkers": 4,
+  "runningLayers": 0,
+  "queuedLayers": 0
+ },
+ "messages": [
+  {
+   "type": "human",
+   "data": {
+    "content": "Find, on the PARCS cluster, the midpoint that exactly N = 32 bisection steps reach when searching\nfor the K-th smallest of M numbers v_1, ..., v_M, where M = 16777216 and K = 5000000.\n\nThe numbers: for i = 1, 2, ..., M, with unsigned 64-bit wrapping arithmetic (C# `ulong`),\n\n    z = (ulong)i * 0x9E3779B97F4A7C15\n    z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9\n    z = (z ^ (z >> 27)) * 0x94D049BB133111EB\n    z = z ^ (z >> 31)\n    v_i = (double)(z % 2147483647) / 2147483647.0\n\nThe bisection: start with lo = 0, hi = 1. One step computes mid = (lo + hi) / 2 and\nc = the number of i with v_i <= mid; then, if c >= K, hi = mid, otherwise lo = mid.\n\nFollow this layer plan exactly; it is part of the task:\n\n1. Each step is one layer that counts in parallel: parallelism = maxParallelism from\n   get_cluster_info, each worker counting its share of i = 1..M. That is 32 step layers in total.\n   Do not fold several steps into one layer.\n2. The layer for step j >= 2 lists the layer of step j - 1 in previousLayerIds. Its workers read\n   lo, hi and the partial counts of step j - 1 from there, add the counts and update lo and hi\n   themselves. Do not do this arithmetic yourself.\n3. After step 32, run one layer with parallelism 1 that reads the step-32 layer the same way,\n   applies the last update and outputs the final midpoint (lo + hi) / 2.\n\nThe run uses exactly 33 layers. Report the final midpoint from the last layer's output with\n17 significant digits. End your answer with a line of the form\n\nANSWER: <number>\n",
+    "additional_kwargs": {},
+    "response_metadata": {},
+    "type": "human",
+    "name": null,
+    "id": "fd432b2e-f9cd-47e9-b848-8d3e76657df2"
+   }
+  },
+  {
+   "type": "ai",
+   "data": {
+    "content": "I'll start by getting the cluster capacity and compiling the session code.\n\n",
+    "additional_kwargs": {},
+    "response_metadata": {
+     "finish_reason": "tool_callstool_calls",
+     "model_name": "deepseek/deepseek-v4.1-flash-1017deepseek/deepseek-v4.1-flash-1017",
+     "service_tier": "default",
+     "model_provider": "openai"
+    },
+    "type": "ai",
+    "name": "ParcsAgent",
+    "id": "lc_run--01a17433-106e-7469-a4a6-ba286495c615",
+    "tool_calls": [
+     {
+      "name": "get_cluster_info",
+      "args": {},
+      "id": "chatcmpl-tool-b4472618eeacb762",
+      "type": "tool_call"
+     },
+     {
+      "name": "create_session",
+      "args": {
+       "sourceCode": "using System;\nusing System.Collections.Generic;\nusing System.Globalization;\nusing System.Text.Json;\nusing System.Threading;\nusing System.Threading.Tasks;\nusing Parcs.Agent.Runtime;\n\npublic class StepOut\n{\n    public long lo { get; set; }\n    public long hi { get; set; }\n    public long cnt { get; set; }\n}\n\npublic class Bisect : IAgentComputation\n{\n    const ulong MOD = 2147483647UL;\n    const long K = 5000000L;\n    const ulong M = 16777216UL;\n\n    static long CountRange(ulong from, ulong to, double mid)\n    {\n        long cnt = 0;\n        for (ulong i = from; i <= to; i++)\n        {\n            ulong z = i * 0x9E3779B97F4A7C15UL;\n            z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9UL;\n            z = (z ^ (z >> 27)) * 0x94D049BB133111EBUL;\n            z = z ^ (z >> 31);\n            ulong r = z % MOD;\n            double v = (double)r / 2147483647.0;\n            if (v <= mid) cnt++;\n        }\n        return cnt;\n    }\n\n    public Task<AgentLayerResult> ExecuteAsync(AgentLayerInput input, CancellationToken ct)\n    {\n        string fstr;\n        bool final = input.Parameters.TryGetValue(\"final\", out fstr) && fstr == \"true\";\n        int step = int.Parse(input.Parameters[\"step\"]);\n\n        double lo = 0.0, hi = 1.0;\n        long total = 0;\n\n        if (step > 1)\n        {\n            var prev = input.GetPreviousOutputs();\n            bool first = true;\n            foreach (var s in prev)\n            {\n                if (s == null) continue;\n                var o = JsonSerializer.Deserialize<StepOut>(s);\n                if (first) { lo = BitConverter.Int64BitsToDouble(o.lo); hi = BitConverter.Int64BitsToDouble(o.hi); first = false; }\n                total += o.cnt;\n            }\n            // apply the previous step's update\n            double pmid = (lo + hi) / 2.0;\n            if (total >= K) hi = pmid; else lo = pmid;\n        }\n\n        if (final)\n        {\n            double fm = (lo + hi) / 2.0;\n            return Task.FromResult(AgentLayerResult.Ok(JsonSerializer.Serialize(new {\n                step = step,\n                mid = fm,\n                midStr = fm.ToString(\"R\", CultureInfo.InvariantCulture),\n                midBits = BitConverter.DoubleToInt64Bits(fm),\n                lo = lo,\n                hi = hi,\n                count = total\n            })));\n        }\n\n        double mid = (lo + hi) / 2.0;\n        int W = input.TotalWorkers;\n        int w = input.WorkerIndex;\n        ulong from = (ulong)w * M / (ulong)W + 1;\n        ulong to = (ulong)(w + 1) * M / (ulong)W;\n        long cnt = from <= to ? CountRange(from, to, mid) : 0;\n\n        var res = new StepOut { lo = BitConverter.DoubleToInt64Bits(lo), hi = BitConverter.DoubleToInt64Bits(hi), cnt = cnt };\n        return Task.FromResult(AgentLayerResult.Ok(JsonSerializer.Serialize(res)));\n    }\n}\n"
+      },
+      "id": "chatcmpl-tool-bdec761258808781",
+      "type": "tool_call"
+     }
+    ],
+    "invalid_tool_calls": [],
+    "usage_metadata": {
+     "input_tokens": 6765,
+     "output_tokens": 5155,
+     "total_tokens": 11920,
+     "input_token_details": {
+      "audio": 0,
+      "cache_creation": 0,
+      "cache_read": 0
+     },
+     "output_token_details": {
+      "audio": 0,
+      "reasoning": 4303
+     }
+    }
+   }
+  },
+  {
+   "type": "tool",
+   "data": {
+    "content": [
+     {
+      "type": "text",
+      "text": "{\"ok\":true,\"output\":{\"scalingMode\":\"static\",\"workerNodeCount\":1,\"currentCapacity\":4,\"maxParallelism\":4,\"daemonCpuRequestMillicores\":250,\"capacitySource\":\"dns\",\"freeWorkers\":4,\"runningLayers\":0,\"queuedLayers\":0}}",
+      "id": "lc_4280737b-b3a1-4900-9647-389cd247fdad"
+     }
+    ],
+    "additional_kwargs": {},
+    "response_metadata": {},
+    "type": "tool",
+    "name": "get_cluster_info",
+    "id": "8685a640-e62d-460b-bed9-70f2fee0bb3e",
+    "tool_call_id": "chatcmpl-tool-b4472618eeacb762",
+    "artifact": {
+     "structured_content": {
+      "ok": true,
+      "output": {
+       "scalingMode": "static",
+       "workerNodeCount": 1,
+       "currentCapacity": 4,
+       "maxParallelism": 4,
+       "daemonCpuRequestMillicores": 250,
+       "capacitySource": "dns",
+       "freeWorkers": 4,
+       "runningLayers": 0,
+       "queuedLayers": 0
+      }
+     }
+    },
+    "status": "success"
+   }
+  },
+  {
+   "type": "tool",
+   "data": {
+    "content": [
+     {
+      "type": "text",
+      "text": "{\"ok\":true,\"status\":\"Created\",\"sessionId\":\"2d9096992c7b462ab3535095010439ce\",\"output\":{\"entryPoints\":[\"Bisect\"]}}",
+      "id": "lc_6ec979ee-2c79-4a55-85a5-f95be46522b6"
+     }
+    ],
+    "additional_kwargs": {},
+    "response_metadata": {},
+    "type": "tool",
+    "name": "create_session",
+    "id": "7c2b7060-3584-49dd-aead-7fb52c215572",
+    "tool_call_id": "chatcmpl-tool-bdec761258808781",
+    "artifact": {
+     "structured_content": {
+      "ok": true,
+      "status": "Created",
+      "sessionId": "2d9096992c7b462ab3535095010439ce",
+      "output": {
+       "entryPoints": [
+        "Bisect"
+       ]
+      }
+     }
+    },
+    "status": "success"
+   }
+  },
+  {
+   "type": "ai",
+   "data": {
+    "content": "maxParallelism = 4. Now I'll run the 33 layers in sequence.\n\n",
+    "additional_kwargs": {},
+    "response_metadata": {
+     "finish_reason": "tool_callstool_calls",
+     "model_name": "deepseek/deepseek-v4.1-flash-1017deepseek/deepseek-v4.1-flash-1017",
+     "service_tier": "default",
+     "model_provider": "openai"
+    },
+    "type": "ai",
+    "name": "ParcsAgent",
+    "id": "lc_run--01a17434-049b-7413-a358-60639a5c373a",
+    "tool_calls": [
+     {
+      "name": "run_layer",
+      "args": {
+       "sessionId": "2d9096992c7b462ab3535095010439ce",
+       "parallelism": 4,
+       "layerKey": "step-1",
+       "entryPoint": "Bisect",
+       "parameters": {
+        "step": "1",
+        "final": "false"
+       },
+       "waitSeconds": 200
+      },
+      "id": "chatcmpl-tool-a60c06961faa27bd",
+      "type": "tool_call"
+     }
+    ],
+    "invalid_tool_calls": [],
+    "usage_metadata": {
+     "input_tokens": 7740,
+     "output_tokens": 460,
+     "total_tokens": 8200,
+     "input_token_details": {
+      "audio": 0,
+      "cache_creation": 0,
+      "cache_read": 6656
+     },
+     "output_token_details": {
+      "audio": 0,
+      "reasoning": 289
+     }
+    }
+   }
+  },
+  {
+   "type": "tool",
+   "data": {
+    "content": [
+     {
+      "type": "text",
+      "text": "{\"ok\":true,\"status\":\"Completed\",\"sessionId\":\"2d9096992c7b462ab3535095010439ce\",\"layerId\":\"f70515f484ae4763bbce46da00d2d8f6\",\"layerKey\":\"step-1\",\"reused\":false,\"layer\":{\"entryPoint\":\"Bisect\",\"parallelism\":4,\"previousLayerIds\":[],\"successCount\":4,\"failureCount\":0,\"queuedSeconds\":0.0254125,\"elapsedSeconds\":3.1600614,\"submittedAt\":\"2026-10-25T17:55:36.1218429+00:00\",\"startedAt\":\"2026-10-25T17:55:36.1472554+00:00\",\"completedAt\":\"2026-10-25T17:55:39.3073168+00:00\",\"jobId\":1326},\"hint\":\"4 worker outputs are not shown in the summary view: call get_layer_result(layerId: \\\"f70515f484ae4763bbce46da00d2d8f6\\\", view: \\\"outputs\\\"), or pass view: \\\"outputs\\\" when running a layer.\"}",
+      "id": "lc_2932b758-ccd3-421f-84a5-7ae1f6bd4e41"
+     }
+    ],
+    "additional_kwargs": {},
+    "response_metadata": {},
+    "type": "tool",
+    "name": "run_layer",
+    "id": "62fe843c-17ab-4f12-ae28-ea874b3b8c5b",
+    "tool_call_id": "chatcmpl-tool-a60c06961faa27bd",
+    "artifact": {
+     "structured_content": {
+      "ok": true,
+      "status": "Completed",
+      "sessionId": "2d9096992c7b462ab3535095010439ce",
+      "layerId": "f70515f484ae4763bbce46da00d2d8f6",
+      "layerKey": "step-1",
+      "reused": false,
+      "layer": {
+       "entryPoint": "Bisect",
+       "parallelism": 4,
+       "previousLayerIds": [],
+       "successCount": 4,
+       "failureCount": 0,
+       "queuedSeconds": 0.0254125,
+       "elapsedSeconds": 3.1600614,
+       "submittedAt": "2026-10-25T17:55:36.1218429+00:00",
+       "startedAt": "2026-10-25T17:55:36.1472554+00:00",
+       "completedAt": "2026-10-25T17:55:39.3073168+00:00",
+       "jobId": 1326
+      },
+      "hint": "4 worker outputs are not shown in the summary view: call get_layer_result(layerId: \"f70515f484ae4763bbce46da00d2d8f6\", view: \"outputs\"), or pass view: \"outputs\" when running a layer."
+     }
+    },
+    "status": "success"
+   }
+  },
+  {
+   "type": "ai",
+   "data": {
+    "content": "",
+    "additional_kwargs": {},
+    "response_metadata": {
+     "finish_reason": "tool_callstool_calls",
+     "model_name": "deepseek/deepseek-v4.1-flash-1017deepseek/deepseek-v4.1-flash-1017",
+     "service_tier": "default",
+     "model_provider": "openai"
+    },
+    "type": "ai",
+    "name": "ParcsAgent",
+    "id": "lc_run--01a17434-316b-7206-b983-b5fec30b7408",
+    "tool_calls": [
+     {
+      "name": "run_layer",
+      "args": {
+       "entryPoint": "Bisect",
+       "layerKey": "step-2",
+       "parameters": {
+        "final": "false",
+        "step": "2"
+       },
+       "parallelism": 4,
+       "previousLayerIds": [
+        "f70515f484ae4763bbce46da00d2d8f6"
+       ],
+       "sessionId": "2d9096992c7b462ab3535095010439ce",
+       "waitSeconds": 200
+      },
+      "id": "chatcmpl-tool-a638e0bbb93c0f53",
+      "type": "tool_call"
+     }
+    ],
+    "invalid_tool_calls": [],
+    "usage_metadata": {
+     "input_tokens": 8180,
+     "output_tokens": 223,
+     "total_tokens": 8403,
+     "input_token_details": {
+      "audio": 0,
+      "cache_creation": 0,
+      "cache_read": 7680
+     },
+     "output_token_details": {
+      "audio": 0,
+      "reasoning": 31
+     }
+    }
+   }
+  },
+  {
+   "type": "tool",
+   "data": {
+    "content": [
+     {
+      "type": "text",
+      "text": "{\"ok\":true,\"status\":\"Completed\",\"sessionId\":\"2d9096992c7b462ab3535095010439ce\",\"layerId\":\"41b7497d23e44611bd2c8db73688db22\",\"layerKey\":\"step-2\",\"reused\":false,\"layer\":{\"entryPoint\":\"Bisect\",\"parallelism\":4,\"previousLayerIds\":[\"f70515f484ae4763bbce46da00d2d8f6\"],\"successCount\":4,\"failureCount\":0,\"queuedSeconds\":0.0277697,\"elapsedSeconds\":3.1481809,\"submittedAt\":\"2026-10-25T17:55:42.815991+00:00\",\"startedAt\":\"2026-10-25T17:55:42.8437607+00:00\",\"completedAt\":\"2026-10-25T17:55:45.9919416+00:00\",\"jobId\":1327},\"hint\":\"4 worker outputs are not shown in the summary view: call get_layer_result(layerId: \\\"41b7497d23e44611bd2c8db73688db22\\\", view: \\\"outputs\\\"), or pass view: \\\"outputs\\\" when running a layer.\"}",
+      "id": "lc_77b96e17-598f-4088-a318-52b95938f9fb"
+     }
+    ],
+    "additional_kwargs": {},
+    "response_metadata": {},
+    "type": "tool",
+    "name": "run_layer",
+    "id": "f0541438-bd78-4c1b-b4d7-a3160aeee705",
+    "tool_call_id": "chatcmpl-tool-a638e0bbb93c0f53",
+    "artifact": {
+     "structured_content": {
+      "ok": true,
+      "status": "Completed",
+      "sessionId": "2d9096992c7b462ab3535095010439ce",
+      "layerId": "41b7497d23e44611bd2c8db73688db22",
+      "layerKey": "step-2",
+      "reused": false,
+      "layer": {
+       "entryPoint": "Bisect",
+       "parallelism": 4,
+       "previousLayerIds": [
+        "f70515f484ae4763bbce46da00d2d8f6"
+       ],
+       "successCount": 4,
+       "failureCount": 0,
+       "queuedSeconds": 0.0277697,
+       "elapsedSeconds": 3.1481809,
+       "submittedAt": "2026-10-25T17:55:42.815991+00:00",
+       "startedAt": "2026-10-25T17:55:42.8437607+00:00",
+       "completedAt": "2026-10-25T17:55:45.9919416+00:00",
+       "jobId": 1327
+      },
+      "hint": "4 worker outputs are not shown in the summary view: call get_layer_result(layerId: \"41b7497d23e44611bd2c8db73688db22\", view: \"outputs\"), or pass view: \"outputs\" when running a layer."
+     }
+    },
+    "status": "success"
+   }
+  },
+  {
+   "type": "ai",
+   "data": {
+    "content": "",
+    "additional_kwargs": {},
+    "response_metadata": {
+     "finish_reason": "tool_callstool_calls",
+     "model_name": "deepseek/deepseek-v4.1-flash-1017deepseek/deepseek-v4.1-flash-1017",
+     "service_tier": "default",
+     "model_provider": "openai"
+    },
+    "type": "ai",
+    "name": "ParcsAgent",
+    "id": "lc_run--01a17434-4b8c-754a-b602-0a86d5e73a96",
+    "tool_calls": [
+     {
+      "name": "run_layer",
+      "args": {
+       "entryPoint": "Bisect",
+       "layerKey": "step-3",
+       "parameters": {
+        "final": "false",
+        "step": "3"
+       },
+       "parallelism": 4,
+       "previousLayerIds": [
+        "41b7497d23e44611bd2c8db73688db22"
+       ],
+       "sessionId": "2d9096992c7b462ab3535095010439ce",
+       "waitSeconds": 200
+      },
+      "id": "chatcmpl-tool-bcf3111b6df95dba",
+      "type": "tool_call"
+     }
+    ],
+    "invalid_tool_calls": [],
+    "usage_metadata": {
+     "input_tokens": 8658,
+     "output_tokens": 191,
+     "total_tokens": 8849,
+     "input_token_details": {
+      "audio": 0,
+      "cache_creation": 0,
+      "cache_read": 8064
+     },
+     "output_token_details": {
+      "audio": 0,
+      "reasoning": 0
+     }
+    }
+   }
+  },
+  {
+   "type": "tool",
+   "data": {
+    "content": [
+     {
+      "type": "text",
+      "text": "{\"ok\":true,\"status\":\"Completed\",\"sessionId\":\"2d9096992c7b462ab3535095010439ce\",\"layerId\":\"571432c5a6e241da8f0b824c2602a514\",\"layerKey\":\"step-3\",\"reused\":false,\"layer\":{\"entryPoint\":\"Bisect\",\"parallelism\":4,\"previousLayerIds\":[\"41b7497d23e44611bd2c8db73688db22\"],\"successCount\":4,\"failureCount\":0,\"queuedSeconds\":0.0214673,\"elapsedSeconds\":3.1520335,\"submittedAt\":\"2026-10-25T17:55:49.1844819+00:00\",\"startedAt\":\"2026-10-25T17:55:49.2059492+00:00\",\"completedAt\":\"2026-10-25T17:55:52.3579827+00:00\",\"jobId\":1328},\"hint\":\"4 worker outputs are not shown in the summary view: call get_layer_result(layerId: \\\"571432c5a6e241da8f0b824c2602a514\\\", view: \\\"outputs\\\"), or pass view: \\\"outputs\\\" when running a layer.\"}",
+      "id": "lc_dfa3847c-a5d0-470e-99ec-e91760078152"
+     }
+    ],
+    "additional_kwargs": {},
+    "response_metadata": {},
+    "type": "tool",
+    "name": "run_layer",
+    "id": "33f70fab-11a1-4d0b-9e96-c1625c43fce1",
+    "tool_call_id": "chatcmpl-tool-bcf3111b6df95dba",
+    "artifact": {
+     "structured_content": {
+      "ok": true,
+      "status": "Completed",
+      "sessionId": "2d9096992c7b462ab3535095010439ce",
+      "layerId": "571432c5a6e241da8f0b824c2602a514",
+      "layerKey": "step-3",
+      "reused": false,
+      "layer": {
+       "entryPoint": "Bisect",
+       "parallelism": 4,
+       "previousLayerIds": [
+        "41b7497d23e44611bd2c8db73688db22"
+       ],
+       "successCount": 4,
+       "failureCount": 0,
+       "queuedSeconds": 0.0214673,
+       "elapsedSeconds": 3.1520335,
+       "submittedAt": "2026-10-25T17:55:49.1844819+00:00",
+       "startedAt": "2026-10-25T17:55:49.2059492+00:00",
+       "completedAt": "2026-10-25T17:55:52.3579827+00:00",
+       "jobId": 1328
+      },
+      "hint": "4 worker outputs are not shown in the summary view: call get_layer_result(layerId: \"571432c5a6e241da8f0b824c2602a514\", view: \"outputs\"), or pass view: \"outputs\" when running a layer."
+     }
+    },
+    "status": "success"
+   }
+  },
+  {
+   "type": "ai",
+   "data": {
+    "content": "",
+    "additional_kwargs": {},
+    "response_metadata": {
+     "finish_reason": "tool_callstool_calls",
+     "model_name": "deepseek/deepseek-v4.1-flash-1017deepseek/deepseek-v4.1-flash-1017",
+     "service_tier": "default",
+     "model_provider": "openai"
+    },
+    "type": "ai",
+    "name": "ParcsAgent",
+    "id": "lc_run--01a17434-6461-767d-9b2d-8e3d74a2153d",
+    "tool_calls": [
+     {
+      "name": "run_layer",
+      "args": {
+       "entryPoint": "Bisect",
+       "layerKey": "step-4",
+       "parameters": {
+        "final": "false",
+        "step": "4"
+       },
+       "parallelism": 4,
+       "previousLayerIds": [
+        "571432c5a6e241da8f0b824c2602a514"
+       ],
+       "sessionId": "2d9096992c7b462ab3535095010439ce",
+       "waitSeconds": 200
+      },
+      "id": "chatcmpl-tool-b560f2959a746456",
+      "type": "tool_call"
+     }
+    ],
+    "invalid_tool_calls": [],
+    "usage_metadata": {
+     "input_tokens": 9137,
+     "output_tokens": 192,
+     "total_tokens": 9329,
+     "input_token_details": {
+      "audio": 0,
+      "cache_creation": 0,
+      "cache_read": 8832
+     },
+     "output_token_details": {
+      "audio": 0,
+      "reasoning": 0
+     }
+    }
+   }
+  },
+  {
+   "type": "tool",
+   "data": {
+    "content": [
+     {
+      "type": "text",
+      "text": "{\"ok\":true,\"status\":\"Completed\",\"sessionId\":\"2d9096992c7b462ab3535095010439ce\",\"layerId\":\"413871e7e25f465c86a75975e34c7e28\",\"layerKey\":\"step-4\",\"reused\":false,\"layer\":{\"entryPoint\":\"Bisect\",\"parallelism\":4,\"previousLayerIds\":[\"571432c5a6e241da8f0b824c2602a514\"],\"successCount\":4,\"failureCount\":0,\"queuedSeconds\":0.0233637,\"elapsedSeconds\":3.1322635,\"submittedAt\":\"2026-10-25T17:55:55.1380781+00:00\",\"startedAt\":\"2026-10-25T17:55:55.1614418+00:00\",\"completedAt\":\"2026-10-25T17:55:58.2937053+00:00\",\"jobId\":1329},\"hint\":\"4 worker outputs are not shown in the summary view: call get_layer_result(layerId: \\\"413871e7e25f465c86a75975e34c7e28\\\", view: \\\"outputs\\\"), or pass view: \\\"outputs\\\" when running a layer.\"}",
+      "id": "lc_46447010-c17b-4aec-836d-c68bdfb3d0e1"
+     }
+    ],
+    "additional_kwargs": {},
+    "response_metadata": {},
+    "type": "tool",
+    "name": "run_layer",
+    "id": "8192ef27-22c6-4ad3-83bf-0680b4e341b8",
+    "tool_call_id": "chatcmpl-tool-b560f2959a746456",
+    "artifact": {
+     "structured_content": {
+      "ok": true,
+      "status": "Completed",
+      "sessionId": "2d9096992c7b462ab3535095010439ce",
+      "layerId": "413871e7e25f465c86a75975e34c7e28",
+      "layerKey": "step-4",
+      "reused": false,
+      "layer": {
+       "entryPoint": "Bisect",
+       "parallelism": 4,
+       "previousLayerIds": [
+        "571432c5a6e241da8f0b824c2602a514"
+       ],
+       "successCount": 4,
+       "failureCount": 0,
+       "queuedSeconds": 0.0233637,
+       "elapsedSeconds": 3.1322635,
+       "submittedAt": "2026-10-25T17:55:55.1380781+00:00",
+       "startedAt": "2026-10-25T17:55:55.1614418+00:00",
+       "completedAt": "2026-10-25T17:55:58.2937053+00:00",
+       "jobId": 1329
+      },
+      "hint": "4 worker outputs are not shown in the summary view: call get_layer_result(layerId: \"413871e7e25f465c86a75975e34c7e28\", view: \"outputs\"), or pass view: \"outputs\" when running a layer."
+     }
+    },
+    "status": "success"
+   }
+  },
+  {
+   "type": "ai",
+   "data": {
+    "content": "",
+    "additional_kwargs": {},
+    "response_metadata": {
+     "finish_reason": "tool_callstool_calls",
+     "model_name": "deepseek/deepseek-v4.1-flash-1017deepseek/deepseek-v4.1-flash-1017",
+     "service_tier": "default",
+     "model_provider": "openai"
+    },
+    "type": "ai",
+    "name": "ParcsAgent",
+    "id": "lc_run--01a17434-7b9e-7313-b590-c7a0b0ab63ea",
+    "tool_calls": [
+     {
+      "name": "run_layer",
+      "args": {
+       "entryPoint": "Bisect",
+       "layerKey": "step-5",
+       "parameters": {
+        "final": "false",
+        "step": "5"
+       },
+       "parallelism": 4,
+       "previousLayerIds": [
+        "413871e7e25f465c86a75975e34c7e28"
+       ],
+       "sessionId": "2d9096992c7b462ab3535095010439ce",
+       "waitSeconds": 200
+      },
+      "id": "chatcmpl-tool-b8aeea297067658a",
+      "type": "tool_call"
+     }
+    ],
+    "invalid_tool_calls": [],
+    "usage_metadata": {
+     "input_tokens": 9618,
+     "output_tokens": 192,
+     "total_tokens": 9810,
+     "input_token_details": {
+      "audio": 0,
+      "cache_creation": 0,
+      "cache_read": 9216
+     },
+     "output_token_details": {
+      "audio": 0,
+      "reasoning": 0
+     }
+    }
+   }
+  },
+  {
+   "type": "tool",
+   "data": {
+    "content": [
+     {
+      "type": "text",
+      "text": "{\"ok\":true,\"status\":\"Completed\",\"sessionId\":\"2d9096992c7b462ab3535095010439ce\",\"layerId\":\"8d461600c1b044239e585434c0545d61\",\"layerKey\":\"step-5\",\"reused\":false,\"layer\":{\"entryPoint\":\"Bisect\",\"parallelism\":4,\"previousLayerIds\":[\"413871e7e25f465c86a75975e34c7e28\"],\"successCount\":4,\"failureCount\":0,\"queuedSeconds\":0.0222147,\"elapsedSeconds\":3.1356435,\"submittedAt\":\"2026-10-25T17:56:00.6935157+00:00\",\"startedAt\":\"2026-10-25T17:56:00.7157304+00:00\",\"completedAt\":\"2026-10-25T17:56:03.8513739+00:00\",\"jobId\":1330},\"hint\":\"4 worker outputs are not shown in the summary view: call get_layer_result(layerId: \\\"8d461600c1b044239e585434c0545d61\\\", view: \\\"outputs\\\"), or pass view: \\\"outputs\\\" when running a layer.\"}",
+      "id": "lc_c08a5178-38d0-4dcf-bffc-1e9f947a7e0b"
+     }
+    ],
+    "additional_kwargs": {},
+    "response_metadata": {},
+    "type": "tool",
+    "name": "run_layer",
+    "id": "21f0dba7-7ec7-4ed5-9a79-07a9c4be3090",
+    "tool_call_id": "chatcmpl-tool-b8aeea297067658a",
+    "artifact": {
+     "structured_content": {
+      "ok": true,
+      "status": "Completed",
+      "sessionId": "2d9096992c7b462ab3535095010439ce",
+      "layerId": "8d461600c1b044239e585434c0545d61",
+      "layerKey": "step-5",
+      "reused": false,
+      "layer": {
+       "entryPoint": "Bisect",
+       "parallelism": 4,
+       "previousLayerIds": [
+        "413871e7e25f465c86a75975e34c7e28"
+       ],
+       "successCount": 4,
+       "failureCount": 0,
+       "queuedSeconds": 0.0222147,
+       "elapsedSeconds": 3.1356435,
+       "submittedAt": "2026-10-25T17:56:00.6935157+00:00",
+       "startedAt": "2026-10-25T17:56:00.7157304+00:00",
+       "completedAt": "2026-10-25T17:56:03.8513739+00:00",
+       "jobId": 1330
+      },
+      "hint": "4 worker outputs are not shown in the summary view: call get_layer_result(layerId: \"8d461600c1b044239e585434c0545d61\", view: \"outputs\"), or pass view: \"outputs\" when running a layer."
+     }
+    },
+    "status": "success"
+   }
+  },
+  {
+   "type": "ai",
+   "data": {
+    "content": "",
+    "additional_kwargs": {},
+    "response_metadata": {
+     "finish_reason": "tool_callstool_calls",
+     "model_name": "deepseek/deepseek-v4.1-flash-1017deepseek/deepseek-v4.1-flash-1017",
+     "service_tier": "default",
+     "model_provider": "openai"
+    },
+    "type": "ai",
+    "name": "ParcsAgent",
+    "id": "lc_run--01a17434-9151-76de-a398-0c36cad7dbbf",
+    "tool_calls": [
+     {
+      "name": "run_layer",
+      "args": {
+       "entryPoint": "Bisect",
+       "layerKey": "step-6",
+       "parameters": {
+        "final": "false",
+        "step": "6"
+       },
+       "parallelism": 4,
+       "previousLayerIds": [
+        "8d461600c1b044239e585434c0545d61"
+       ],
+       "sessionId": "2d9096992c7b462ab3535095010439ce",
+       "waitSeconds": 200
+      },
+      "id": "chatcmpl-tool-88cd0c5d1c344d84",
+      "type": "tool_call"
+     }
+    ],
+    "invalid_tool_calls": [],
+    "usage_metadata": {
+     "input_tokens": 10095,
+     "output_tokens": 190,
+     "total_tokens": 10285,
+     "input_token_details": {
+      "audio": 0,
+      "cache_creation": 0,
+      "cache_read": 9728
+     },
+     "output_token_details": {
+      "audio": 0,
+      "reasoning": 0
+     }
+    }
+   }
+  },
+  {
+   "type": "tool",
+   "data": {
+    "content": [
+     {
+      "type": "text",
+      "text": "{\"ok\":true,\"status\":\"Completed\",\"sessionId\":\"2d9096992c7b462ab3535095010439ce\",\"layerId\":\"9ba82768a78c406c83342c96ca83a4ce\",\"layerKey\":\"step-6\",\"reused\":false,\"layer\":{\"entryPoint\":\"Bisect\",\"parallelism\":4,\"previousLayerIds\":[\"8d461600c1b044239e585434c0545d61\"],\"successCount\":4,\"failureCount\":0,\"queuedSeconds\":0.022129,\"elapsedSeconds\":3.1402144,\"submittedAt\":\"2026-10-25T17:56:06.4909145+00:00\",\"startedAt\":\"2026-10-25T17:56:06.5130435+00:00\",\"completedAt\":\"2026-10-25T17:56:09.6532579+00:00\",\"jobId\":1331},\"hint\":\"4 worker outputs are not shown in the summary view: call get_layer_result(layerId: \\\"9ba82768a78c406c83342c96ca83a4ce\\\", view: \\\"outputs\\\"), or pass view: \\\"outputs\\\" when running a layer.\"}",
+      "id": "lc_9ca39425-079d-4436-889d-63be1949a0a1"
+     }
+    ],
+    "additional_kwargs": {},
+    "response_metadata": {},
+    "type": "tool",
+    "name": "run_layer",
+    "id": "ddd3fea1-70c8-4ce8-a985-87b79dab2241",
+    "tool_call_id": "chatcmpl-tool-88cd0c5d1c344d84",
+    "artifact": {
+     "structured_content": {
+      "ok": true,
+      "status": "Completed",
+      "sessionId": "2d9096992c7b462ab3535095010439ce",
+      "layerId": "9ba82768a78c406c83342c96ca83a4ce",
+      "layerKey": "step-6",
+      "reused": false,
+      "layer": {
+       "entryPoint": "Bisect",
+       "parallelism": 4,
+       "previousLayerIds": [
+        "8d461600c1b044239e585434c0545d61"
+       ],
+       "successCount": 4,
+       "failureCount": 0,
+       "queuedSeconds": 0.022129,
+       "elapsedSeconds": 3.1402144,
+       "submittedAt": "2026-10-25T17:56:06.4909145+00:00",
+       "startedAt": "2026-10-25T17:56:06.5130435+00:00",
+       "completedAt": "2026-10-25T17:56:09.6532579+00:00",
+       "jobId": 1331
+      },
+      "hint": "4 worker outputs are not shown in the summary view: call get_layer_result(layerId: \"9ba82768a78c406c83342c96ca83a4ce\", view: \"outputs\"), or pass view: \"outputs\" when running a layer."
+     }
+    },
+    "status": "success"
+   }
+  },
+  {
+   "type": "ai",
+   "data": {
+    "content": "",
+    "additional_kwargs": {},
+    "response_metadata": {
+     "finish_reason": "tool_callstool_calls",
+     "model_name": "deepseek/deepseek-v4.1-flash-1017deepseek/deepseek-v4.1-flash-1017",
+     "service_tier": "default",
+     "model_provider": "openai"
+    },
+    "type": "ai",
+    "name": "ParcsAgent",
+    "id": "lc_run--01a17434-a7f4-7433-a0ee-afc01510aa35",
+    "tool_calls": [
+     {
+      "name": "run_layer",
+      "args": {
+       "entryPoint": "Bisect",
+       "layerKey": "step-7",
+       "parameters": {
+        "final": "false",
+        "step": "7"
+       },
+       "parallelism": 4,
+       "previousLayerIds": [
+        "9ba82768a78c406c83342c96ca83a4ce"
+       ],
+       "sessionId": "2d9096992c7b462ab3535095010439ce",
+       "waitSeconds": 200
+      },
+      "id": "chatcmpl-tool-85b768db63775343",
+      "type": "tool_call"
+     }
+    ],
+    "invalid_tool_calls": [],
+    "usage_metadata": {
+     "input_tokens": 10569,
+     "output_tokens": 191,
+     "total_tokens": 10760,
+     "input_token_details": {
+      "audio": 0,
+      "cache_creation": 0,
+      "cache_read": 10240
+     },
+     "output_token_details": {
+      "audio": 0,
+      "reasoning": 0
+     }
+    }
+   }
+  },
+  {
+   "type": "tool",
+   "data": {
+    "content": [
+     {
+      "type": "text",
+      "text": "{\"ok\":true,\"status\":\"Completed\",\"sessionId\":\"2d9096992c7b462ab3535095010439ce\",\"layerId\":\"292590f5b5184e3fa21b30d49fbd01df\",\"layerKey\":\"step-7\",\"reused\":false,\"layer\":{\"entryPoint\":\"Bisect\",\"parallelism\":4,\"previousLayerIds\":[\"9ba82768a78c406c83342c96ca83a4ce\"],\"successCount\":4,\"failureCount\":0,\"queuedSeconds\":0.0215342,\"elapsedSeconds\":3.1446316,\"submittedAt\":\"2026-10-25T17:56:15.707132+00:00\",\"startedAt\":\"2026-10-25T17:56:15.7286662+00:00\",\"completedAt\":\"2026-10-25T17:56:18.8732978+00:00\",\"jobId\":1332},\"hint\":\"4 worker outputs are not shown in the summary view: call get_layer_result(layerId: \\\"292590f5b5184e3fa21b30d49fbd01df\\\", view: \\\"outputs\\\"), or pass view: \\\"outputs\\\" when running a layer.\"}",
+      "id": "lc_63fe0ef1-9ba5-48b5-895a-80f5ccd500f0"
+     }
+    ],
+    "additional_kwargs": {},
+    "response_metadata": {},
+    "type": "tool",
+    "name": "run_layer",
+    "id": "dd2927a7-9091-4e2a-abd8-c48fed067cb2",
+    "tool_call_id": "chatcmpl-tool-85b768db63775343",
+    "artifact": {
+     "structured_content": {
+      "ok": true,
+      "status": "Completed",
+      "sessionId": "2d9096992c7b462ab3535095010439ce",
+      "layerId": "292590f5b5184e3fa21b30d49fbd01df",
+      "layerKey": "step-7",
+      "reused": false,
+      "layer": {
+       "entryPoint": "Bisect",
+       "parallelism": 4,
+       "previousLayerIds": [
+        "9ba82768a78c406c83342c96ca83a4ce"
+       ],
+       "successCount": 4,
+       "failureCount": 0,
+       "queuedSeconds": 0.0215342,
+       "elapsedSeconds": 3.1446316,
+       "submittedAt": "2026-10-25T17:56:15.707132+00:00",
+       "startedAt": "2026-10-25T17:56:15.7286662+00:00",
+       "completedAt": "2026-10-25T17:56:18.8732978+00:00",
+       "jobId": 1332
+      },
+      "hint": "4 worker outputs are not shown in the summary view: call get_layer_result(layerId: \"292590f5b5184e3fa21b30d49fbd01df\", view: \"outputs\"), or pass view: \"outputs\" when running a layer."
+     }
+    },
+    "status": "success"
+   }
+  },
+  {
+   "type": "ai",
+   "data": {
+    "content": "",
+    "additional_kwargs": {},
+    "response_metadata": {
+     "finish_reason": "tool_callstool_calls",
+     "model_name": "deepseek/deepseek-v4.1-flash-1017deepseek/deepseek-v4.1-flash-1017",
+     "service_tier": "default",
+     "model_provider": "openai"
+    },
+    "type": "ai",
+    "name": "ParcsAgent",
+    "id": "lc_run--01a17434-cc01-740c-b653-f52b77432ec6",
+    "tool_calls": [
+     {
+      "name": "run_layer",
+      "args": {
+       "entryPoint": "Bisect",
+       "layerKey": "step-8",
+       "parameters": {
+        "final": "false",
+        "step": "8"
+       },
+       "parallelism": 4,
+       "previousLayerIds": [
+        "292590f5b5184e3fa21b30d49fbd01df"
+       ],
+       "sessionId": "2d9096992c7b462ab3535095010439ce",
+       "waitSeconds": 200
+      },
+      "id": "chatcmpl-tool-92f2e8a1942601df",
+      "type": "tool_call"
+     }
+    ],
+    "invalid_tool_calls": [],
+    "usage_metadata": {
+     "input_tokens": 11047,
+     "output_tokens": 192,
+     "total_tokens": 11239,
+     "input_token_details": {
+      "audio": 0,
+      "cache_creation": 0,
+      "cache_read": 10752
+     },
+     "output_token_details": {
+      "audio": 0,
+      "reasoning": 0
+     }
+    }
+   }
+  },
+  {
+   "type": "tool",
+   "data": {
+    "content": [
+     {
+      "type": "text",
+      "text": "{\"ok\":true,\"status\":\"Completed\",\"sessionId\":\"2d9096992c7b462ab3535095010439ce\",\"layerId\":\"0988f4a925e840d7ac648fe5a1ba34fa\",\"layerKey\":\"step-8\",\"reused\":false,\"layer\":{\"entryPoint\":\"Bisect\",\"parallelism\":4,\"previousLayerIds\":[\"292590f5b5184e3fa21b30d49fbd01df\"],\"successCount\":4,\"failureCount\":0,\"queuedSeconds\":0.0204404,\"elapsedSeconds\":3.1457192,\"submittedAt\":\"2026-10-25T17:56:21.3347541+00:00\",\"startedAt\":\"2026-10-25T17:56:21.3551945+00:00\",\"completedAt\":\"2026-10-25T17:56:24.5009137+00:00\",\"jobId\":1333},\"hint\":\"4 worker outputs are not shown in the summary view: call get_layer_result(layerId: \\\"0988f4a925e840d7ac648fe5a1ba34fa\\\", view: \\\"outputs\\\"), or pass view: \\\"outputs\\\" when running a layer.\"}",
+      "id": "lc_d5939cd5-b409-4d1e-af95-b91946a3f323"
+     }
+    ],
+    "additional_kwargs": {},
+    "response_metadata": {},
+    "type": "tool",
+    "name": "run_layer",
+    "id": "27ec0537-d65a-4f00-81a1-16ef2ce2f1cc",
+    "tool_call_id": "chatcmpl-tool-92f2e8a1942601df",
+    "artifact": {
+     "structured_content": {
+      "ok": true,
+      "status": "Completed",
+      "sessionId": "2d9096992c7b462ab3535095010439ce",
+      "layerId": "0988f4a925e840d7ac648fe5a1ba34fa",
+      "layerKey": "step-8",
+      "reused": false,
+      "layer": {
+       "entryPoint": "Bisect",
+       "parallelism": 4,
+       "previousLayerIds": [
+        "292590f5b5184e3fa21b30d49fbd01df"
+       ],
+       "successCount": 4,
+       "failureCount": 0,
+       "queuedSeconds": 0.0204404,
+       "elapsedSeconds": 3.1457192,
+       "submittedAt": "2026-10-25T17:56:21.3347541+00:00",
+       "startedAt": "2026-10-25T17:56:21.3551945+00:00",
+       "completedAt": "2026-10-25T17:56:24.5009137+00:00",
+       "jobId": 1333
+      },
+      "hint": "4 worker outputs are not shown in the summary view: call get_layer_result(layerId: \"0988f4a925e840d7ac648fe5a1ba34fa\", view: \"outputs\"), or pass view: \"outputs\" when running a layer."
+     }
+    },
+    "status": "success"
+   }
+  },
+  {
+   "type": "ai",
+   "data": {
+    "content": "",
+    "additional_kwargs": {},
+    "response_metadata": {
+     "finish_reason": "tool_callstool_calls",
+     "model_name": "deepseek/deepseek-v4.1-flash-1017deepseek/deepseek-v4.1-flash-1017",
+     "service_tier": "default",
+     "model_provider": "openai"
+    },
+    "type": "ai",
+    "name": "ParcsAgent",
+    "id": "lc_run--01a17434-e1f5-75ff-88ee-cc53a3da9c01",
+    "tool_calls": [
+     {
+      "name": "run_layer",
+      "args": {
+       "entryPoint": "Bisect",
+       "layerKey": "step-9",
+       "parameters": {
+        "final": "false",
+        "step": "9"
+       },
+       "parallelism": 4,
+       "previousLayerIds": [
+        "0988f4a925e840d7ac648fe5a1ba34fa"
+       ],
+       "sessionId": "2d9096992c7b462ab3535095010439ce",
+       "waitSeconds": 200
+      },
+      "id": "chatcmpl-tool-8ebaa5ce68ff0415",
+      "type": "tool_call"
+     }
+    ],
+    "invalid_tool_calls": [],
+    "usage_metadata": {
+     "input_tokens": 11528,
+     "output_tokens": 192,
+     "total_tokens": 11720,
+     "input_token_details": {
+      "audio": 0,
+      "cache_creation": 0,
+      "cache_read": 11136
+     },
+     "output_token_details": {
+      "audio": 0,
+      "reasoning": 0
+     }
+    }
+   }
+  },
+  {
+   "type": "tool",
+   "data": {
+    "content": [
+     {
+      "type": "text",
+      "text": "{\"ok\":true,\"status\":\"Completed\",\"sessionId\":\"2d9096992c7b462ab3535095010439ce\",\"layerId\":\"fbfea90a7c204b028d8db68650c6e578\",\"layerKey\":\"step-9\",\"reused\":false,\"layer\":{\"entryPoint\":\"Bisect\",\"parallelism\":4,\"previousLayerIds\":[\"0988f4a925e840d7ac648fe5a1ba34fa\"],\"successCount\":4,\"failureCount\":0,\"queuedSeconds\":0.0241756,\"elapsedSeconds\":3.1372435,\"submittedAt\":\"2026-10-25T17:56:27.9514723+00:00\",\"startedAt\":\"2026-10-25T17:56:27.9756479+00:00\",\"completedAt\":\"2026-10-25T17:56:31.1128914+00:00\",\"jobId\":1334},\"hint\":\"4 worker outputs are not shown in the summary view: call get_layer_result(layerId: \\\"fbfea90a7c204b028d8db68650c6e578\\\", view: \\\"outputs\\\"), or pass view: \\\"outputs\\\" when running a layer.\"}",
+      "id": "lc_d747853d-23e5-450b-be12-8f365ac9f609"
+     }
+    ],
+    "additional_kwargs": {},
+    "response_metadata": {},
+    "type": "tool",
+    "name": "run_layer",
+    "id": "f3c6e0b9-9324-4487-8d01-9e7f2ec2f403",
+    "tool_call_id": "chatcmpl-tool-8ebaa5ce68ff0415",
+    "artifact": {
+     "structured_content": {
+      "ok": true,
+      "status": "Completed",
+      "sessionId": "2d9096992c7b462ab3535095010439ce",
+      "layerId": "fbfea90a7c204b028d8db68650c6e578",
+      "layerKey": "step-9",
+      "reused": false,
+      "layer": {
+       "entryPoint": "Bisect",
+       "parallelism": 4,
+       "previousLayerIds": [
+        "0988f4a925e840d7ac648fe5a1ba34fa"
+       ],
+       "successCount": 4,
+       "failureCount": 0,
+       "queuedSeconds": 0.0241756,
+       "elapsedSeconds": 3.1372435,
+       "submittedAt": "2026-10-25T17:56:27.9514723+00:00",
+       "startedAt": "2026-10-25T17:56:27.9756479+00:00",
+       "completedAt": "2026-10-25T17:56:31.1128914+00:00",
+       "jobId": 1334
+      },
+      "hint": "4 worker outputs are not shown in the summary view: call get_layer_result(layerId: \"fbfea90a7c204b028d8db68650c6e578\", view: \"outputs\"), or pass view: \"outputs\" when running a layer."
+     }
+    },
+    "status": "success"
+   }
+  },
+  {
+   "type": "ai",
+   "data": {
+    "content": "",
+    "additional_kwargs": {},
+    "response_metadata": {
+     "finish_reason": "tool_callstool_calls",
+     "model_name": "deepseek/deepseek-v4.1-flash-1017deepseek/deepseek-v4.1-flash-1017",
+     "service_tier": "default",
+     "model_provider": "openai"
+    },
+    "type": "ai",
+    "name": "ParcsAgent",
+    "id": "lc_run--01a17434-fc09-77a5-a181-dafdef272215",
+    "tool_calls": [
+     {
+      "name": "run_layer",
+      "args": {
+       "entryPoint": "Bisect",
+       "layerKey": "step-10",
+       "parameters": {
+        "final": "false",
+        "step": "10"
+       },
+       "parallelism": 4,
+       "previousLayerIds": [
+        "fbfea90a7c204b028d8db68650c6e578"
+       ],
+       "sessionId": "2d9096992c7b462ab3535095010439ce",
+       "waitSeconds": 200
+      },
+      "id": "chatcmpl-tool-9265bf0cba1d96ec",
+      "type": "tool_call"
+     }
+    ],
+    "invalid_tool_calls": [],
+    "usage_metadata": {
+     "input_tokens": 12009,
+     "output_tokens": 192,
+     "total_tokens": 12201,
+     "input_token_details": {
+      "audio": 0,
+      "cache_creation": 0,
+      "cache_read": 11648
+     },
+     "output_token_details": {
+      "audio": 0,
+      "reasoning": 0
+     }
+    }
+   }
+  },
+  {
+   "type": "tool",
+   "data": {
+    "content": [
+     {
+      "type": "text",
+      "text": "{\"ok\":true,\"status\":\"Completed\",\"sessionId\":\"2d9096992c7b462ab3535095010439ce\",\"layerId\":\"64d8a17616814693aaf984cf5e687aa2\",\"layerKey\":\"step-10\",\"reused\":false,\"layer\":{\"entryPoint\":\"Bisect\",\"parallelism\":4,\"previousLayerIds\":[\"fbfea90a7c204b028d8db68650c6e578\"],\"successCount\":4,\"failureCount\":0,\"queuedSeconds\":0.0252225,\"elapsedSeconds\":3.1480038,\"submittedAt\":\"2026-10-25T17:56:34.7204509+00:00\",\"startedAt\":\"2026-10-25T17:56:34.7456734+00:00\",\"completedAt\":\"2026-10-25T17:56:37.8936772+00:00\",\"jobId\":1335},\"hint\":\"4 worker outputs are not shown in the summary view: call get_layer_result(layerId: \\\"64d8a17616814693aaf984cf5e687aa2\\\", view: \\\"outputs\\\"), or pass view: \\\"outputs\\\" when running a layer.\"}",
+      "id": "lc_c4b38395-efa0-4429-8f70-400cb80f7856"
+     }
+    ],
+    "additional_kwargs": {},
+    "response_metadata": {},
+    "type": "tool",
+    "name": "run_layer",
+    "id": "3ce8e028-0344-4eb6-af71-7ff9eacf415d",
+    "tool_call_id": "chatcmpl-tool-9265bf0cba1d96ec",
+    "artifact": {
+     "structured_content": {
+      "ok": true,
+      "status": "Completed",
+      "sessionId": "2d9096992c7b462ab3535095010439ce",
+      "layerId": "64d8a17616814693aaf984cf5e687aa2",
+      "layerKey": "step-10",
+      "reused": false,
+      "layer": {
+       "entryPoint": "Bisect",
+       "parallelism": 4,
+       "previousLayerIds": [
+        "fbfea90a7c204b028d8db68650c6e578"
+       ],
+       "successCount": 4,
+       "failureCount": 0,
+       "queuedSeconds": 0.0252225,
+       "elapsedSeconds": 3.1480038,
+       "submittedAt": "2026-10-25T17:56:34.7204509+00:00",
+       "startedAt": "2026-10-25T17:56:34.7456734+00:00",
+       "completedAt": "2026-10-25T17:56:37.8936772+00:00",
+       "jobId": 1335
+      },
+      "hint": "4 worker outputs are not shown in the summary view: call get_layer_result(layerId: \"64d8a17616814693aaf984cf5e687aa2\", view: \"outputs\"), or pass view: \"outputs\" when running a layer."
+     }
+    },
+    "status": "success"
+   }
+  },
+  {
+   "type": "ai",
+   "data": {
+    "content": "",
+    "additional_kwargs": {},
+    "response_metadata": {
+     "finish_reason": "tool_callstool_calls",
+     "model_name": "deepseek/deepseek-v4.1-flash-1017deepseek/deepseek-v4.1-flash-1017",
+     "service_tier": "default",
+     "model_provider": "openai"
+    },
+    "type": "ai",
+    "name": "ParcsAgent",
+    "id": "lc_run--01a17435-1644-7094-8b8d-689038bc6c7f",
+    "tool_calls": [
+     {
+      "name": "run_layer",
+      "args": {
+       "entryPoint": "Bisect",
+       "layerKey": "step-11",
+       "parameters": {
+        "final": "false",
+        "step": "11"
+       },
+       "parallelism": 4,
+       "previousLayerIds": [
+        "64d8a17616814693aaf984cf5e687aa2"
+       ],
+       "sessionId": "2d9096992c7b462ab3535095010439ce",
+       "waitSeconds": 200
+      },
+      "id": "chatcmpl-tool-a8ad5b324d5b5684",
+      "type": "tool_call"
+     }
+    ],
+    "invalid_tool_calls": [],
+    "usage_metadata": {
+     "input_tokens": 12486,
+     "output_tokens": 190,
+     "total_tokens": 12676,
+     "input_token_details": {
+      "audio": 0,
+      "cache_creation": 0,
+      "cache_read": 12160
+     },
+     "output_token_details": {
+      "audio": 0,
+      "reasoning": 0
+     }
+    }
+   }
+  },
+  {
+   "type": "tool",
+   "data": {
+    "content": [
+     {
+      "type": "text",
+      "text": "{\"ok\":true,\"status\":\"Completed\",\"sessionId\":\"2d9096992c7b462ab3535095010439ce\",\"layerId\":\"85b2abd469504386bd89a43bd556cdb4\",\"layerKey\":\"step-11\",\"reused\":false,\"layer\":{\"entryPoint\":\"Bisect\",\"parallelism\":4,\"previousLayerIds\":[\"64d8a17616814693aaf984cf5e687aa2\"],\"successCount\":4,\"failureCount\":0,\"queuedSeconds\":0.0245526,\"elapsedSeconds\":3.1337736,\"submittedAt\":\"2026-10-25T17:56:40.682686+00:00\",\"startedAt\":\"2026-10-25T17:56:40.7072386+00:00\",\"completedAt\":\"2026-10-25T17:56:43.8410122+00:00\",\"jobId\":1336},\"hint\":\"4 worker outputs are not shown in the summary view: call get_layer_result(layerId: \\\"85b2abd469504386bd89a43bd556cdb4\\\", view: \\\"outputs\\\"), or pass view: \\\"outputs\\\" when running a layer.\"}",
+      "id": "lc_b2c6aaca-7165-4edc-a73c-3420b0a1675f"
+     }
+    ],
+    "additional_kwargs": {},
+    "response_metadata": {},
+    "type": "tool",
+    "name": "run_layer",
+    "id": "87e58921-e89b-40c6-a700-ecf5304c6b31",
+    "tool_call_id": "chatcmpl-tool-a8ad5b324d5b5684",
+    "artifact": {
+     "structured_content": {
+      "ok": true,
+      "status": "Completed",
+      "sessionId": "2d9096992c7b462ab3535095010439ce",
+      "layerId": "85b2abd469504386bd89a43bd556cdb4",
+      "layerKey": "step-11",
+      "reused": false,
+      "layer": {
+       "entryPoint": "Bisect",
+       "parallelism": 4,
+       "previousLayerIds": [
+        "64d8a17616814693aaf984cf5e687aa2"
+       ],
+       "successCount": 4,
+       "failureCount": 0,
+       "queuedSeconds": 0.0245526,
+       "elapsedSeconds": 3.1337736,
+       "submittedAt": "2026-10-25T17:56:40.682686+00:00",
+       "startedAt": "2026-10-25T17:56:40.7072386+00:00",
+       "completedAt": "2026-10-25T17:56:43.8410122+00:00",
+       "jobId": 1336
+      },
+      "hint": "4 worker outputs are not shown in the summary view: call get_layer_result(layerId: \"85b2abd469504386bd89a43bd556cdb4\", view: \"outputs\"), or pass view: \"outputs\" when running a layer."
+     }
+    },
+    "status": "success"
+   }
+  },
+  {
+   "type": "ai",
+   "data": {
+    "content": "",
+    "additional_kwargs": {},
+    "response_metadata": {
+     "finish_reason": "tool_callstool_calls",
+     "model_name": "deepseek/deepseek-v4.1-flash-1017deepseek/deepseek-v4.1-flash-1017",
+     "service_tier": "default",
+     "model_provider": "openai"
+    },
+    "type": "ai",
+    "name": "ParcsAgent",
+    "id": "lc_run--01a17435-2d7e-74e4-b923-a95e0d2ce5f3",
+    "tool_calls": [
+     {
+      "name": "run_layer",
+      "args": {
+       "entryPoint": "Bisect",
+       "layerKey": "step-12",
+       "parameters": {
+        "final": "false",
+        "step": "12"
+       },
+       "parallelism": 4,
+       "previousLayerIds": [
+        "85b2abd469504386bd89a43bd556cdb4"
+       ],
+       "sessionId": "2d9096992c7b462ab3535095010439ce",
+       "waitSeconds": 200
+      },
+      "id": "chatcmpl-tool-b486d4f27129d053",
+      "type": "tool_call"
+     }
+    ],
+    "invalid_tool_calls": [],
+    "usage_metadata": {
+     "input_tokens": 12956,
+     "output_tokens": 189,
+     "total_tokens": 13145,
+     "input_token_details": {
+      "audio": 0,
+      "cache_creation": 0,
+      "cache_read": 12672
+     },
+     "output_token_details": {
+      "audio": 0,
+      "reasoning": 0
+     }
+    }
+   }
+  },
+  {
+   "type": "tool",
+   "data": {
+    "content": [
+     {
+      "type": "text",
+      "text": "{\"ok\":true,\"status\":\"Completed\",\"sessionId\":\"2d9096992c7b462ab3535095010439ce\",\"layerId\":\"b56fcfcccf5c4ea8aaf086becf5bbd7a\",\"layerKey\":\"step-12\",\"reused\":false,\"layer\":{\"entryPoint\":\"Bisect\",\"parallelism\":4,\"previousLayerIds\":[\"85b2abd469504386bd89a43bd556cdb4\"],\"successCount\":4,\"failureCount\":0,\"queuedSeconds\":0.0257687,\"elapsedSeconds\":3.1373381,\"submittedAt\":\"2026-10-25T17:56:48.5990063+00:00\",\"startedAt\":\"2026-10-25T17:56:48.624775+00:00\",\"completedAt\":\"2026-10-25T17:56:51.7621131+00:00\",\"jobId\":1337},\"hint\":\"4 worker outputs are not shown in the summary view: call get_layer_result(layerId: \\\"b56fcfcccf5c4ea8aaf086becf5bbd7a\\\", view: \\\"outputs\\\"), or pass view: \\\"outputs\\\" when running a layer.\"}",
+      "id": "lc_fd1891af-b247-46b6-84f8-db869d0161a6"
+     }
+    ],
+    "additional_kwargs": {},
+    "response_metadata": {},
+    "type": "tool",
+    "name": "run_layer",
+    "id": "8d79fa9f-b751-4501-89df-5fd9e56f6a5c",
+    "tool_call_id": "chatcmpl-tool-b486d4f27129d053",
+    "artifact": {
+     "structured_content": {
+      "ok": true,
+      "status": "Completed",
+      "sessionId": "2d9096992c7b462ab3535095010439ce",
+      "layerId": "b56fcfcccf5c4ea8aaf086becf5bbd7a",
+      "layerKey": "step-12",
+      "reused": false,
+      "layer": {
+       "entryPoint": "Bisect",
+       "parallelism": 4,
+       "previousLayerIds": [
+        "85b2abd469504386bd89a43bd556cdb4"
+       ],
+       "successCount": 4,
+       "failureCount": 0,
+       "queuedSeconds": 0.0257687,
+       "elapsedSeconds": 3.1373381,
+       "submittedAt": "2026-10-25T17:56:48.5990063+00:00",
+       "startedAt": "2026-10-25T17:56:48.624775+00:00",
+       "completedAt": "2026-10-25T17:56:51.7621131+00:00",
+       "jobId": 1337
+      },
+      "hint": "4 worker outputs are not shown in the summary view: call get_layer_result(layerId: \"b56fcfcccf5c4ea8aaf086becf5bbd7a\", view: \"outputs\"), or pass view: \"outputs\" when running a layer."
+     }
+    },
+    "status": "success"
+   }
+  },
+  {
+   "type": "ai",
+   "data": {
+    "content": "",
+    "additional_kwargs": {},
+    "response_metadata": {
+     "finish_reason": "tool_callstool_calls",
+     "model_name": "deepseek/deepseek-v4.1-flash-1017deepseek/deepseek-v4.1-flash-1017",
+     "service_tier": "default",
+     "model_provider": "openai"
+    },
+    "type": "ai",
+    "name": "ParcsAgent",
+    "id": "lc_run--01a17435-4c73-7201-80a9-a98e1c283cbb",
+    "tool_calls": [
+     {
+      "name": "run_layer",
+      "args": {
+       "entryPoint": "Bisect",
+       "layerKey": "step-13",
+       "parameters": {
+        "final": "false",
+        "step": "13"
+       },
+       "parallelism": 4,
+       "previousLayerIds": [
+        "b56fcfcccf5c4ea8aaf086becf5bbd7a"
+       ],
+       "sessionId": "2d9096992c7b462ab3535095010439ce",
+       "waitSeconds": 200
+      },
+      "id": "chatcmpl-tool-8d9c71058fac9c85",
+      "type": "tool_call"
+     }
+    ],
+    "invalid_tool_calls": [],
+    "usage_metadata": {
+     "input_tokens": 13434,
+     "output_tokens": 194,
+     "total_tokens": 13628,
+     "input_token_details": {
+      "audio": 0,
+      "cache_creation": 0,
+      "cache_read": 13056
+     },
+     "output_token_details": {
+      "audio": 0,
+      "reasoning": 0
+     }
+    }
+   }
+  },
+  {
+   "type": "tool",
+   "data": {
+    "content": [
+     {
+      "type": "text",
+      "text": "{\"ok\":true,\"status\":\"Completed\",\"sessionId\":\"2d9096992c7b462ab3535095010439ce\",\"layerId\":\"118c038a32884c46aad2b46bb7eea78f\",\"layerKey\":\"step-13\",\"reused\":false,\"layer\":{\"entryPoint\":\"Bisect\",\"parallelism\":4,\"previousLayerIds\":[\"b56fcfcccf5c4ea8aaf086becf5bbd7a\"],\"successCount\":4,\"failureCount\":0,\"queuedSeconds\":0.0241581,\"elapsedSeconds\":3.1432369,\"submittedAt\":\"2026-10-25T17:56:54.6171408+00:00\",\"startedAt\":\"2026-10-25T17:56:54.6412989+00:00\",\"completedAt\":\"2026-10-25T17:56:57.7845358+00:00\",\"jobId\":1338},\"hint\":\"4 worker outputs are not shown in the summary view: call get_layer_result(layerId: \\\"118c038a32884c46aad2b46bb7eea78f\\\", view: \\\"outputs\\\"), or pass view: \\\"outputs\\\" when running a layer.\"}",
+      "id": "lc_26178673-6576-4dce-8c46-7a4c94ee621b"
+     }
+    ],
+    "additional_kwargs": {},
+    "response_metadata": {},
+    "type": "tool",
+    "name": "run_layer",
+    "id": "32ca1d0b-4f1e-4ae0-bf43-2e5e979843e9",
+    "tool_call_id": "chatcmpl-tool-8d9c71058fac9c85",
+    "artifact": {
+     "structured_content": {
+      "ok": true,
+      "status": "Completed",
+      "sessionId": "2d9096992c7b462ab3535095010439ce",
+      "layerId": "118c038a32884c46aad2b46bb7eea78f",
+      "layerKey": "step-13",
+      "reused": false,
+      "layer": {
+       "entryPoint": "Bisect",
+       "parallelism": 4,
+       "previousLayerIds": [
+        "b56fcfcccf5c4ea8aaf086becf5bbd7a"
+       ],
+       "successCount": 4,
+       "failureCount": 0,
+       "queuedSeconds": 0.0241581,
+       "elapsedSeconds": 3.1432369,
+       "submittedAt": "2026-10-25T17:56:54.6171408+00:00",
+       "startedAt": "2026-10-25T17:56:54.6412989+00:00",
+       "completedAt": "2026-10-25T17:56:57.7845358+00:00",
+       "jobId": 1338
+      },
+      "hint": "4 worker outputs are not shown in the summary view: call get_layer_result(layerId: \"118c038a32884c46aad2b46bb7eea78f\", view: \"outputs\"), or pass view: \"outputs\" when running a layer."
+     }
+    },
+    "status": "success"
+   }
+  },
+  {
+   "type": "ai",
+   "data": {
+    "content": "",
+    "additional_kwargs": {},
+    "response_metadata": {
+     "finish_reason": "tool_callstool_calls",
+     "model_name": "deepseek/deepseek-v4.1-flash-1017deepseek/deepseek-v4.1-flash-1017",
+     "service_tier": "default",
+     "model_provider": "openai"
+    },
+    "type": "ai",
+    "name": "ParcsAgent",
+    "id": "lc_run--01a17435-63fb-7643-b8d5-50cd4953a7ee",
+    "tool_calls": [
+     {
+      "name": "run_layer",
+      "args": {
+       "entryPoint": "Bisect",
+       "layerKey": "step-14",
+       "parameters": {
+        "final": "false",
+        "step": "14"
+       },
+       "parallelism": 4,
+       "previousLayerIds": [
+        "118c038a32884c46aad2b46bb7eea78f"
+       ],
+       "sessionId": "2d9096992c7b462ab3535095010439ce",
+       "waitSeconds": 200
+      },
+      "id": "chatcmpl-tool-8263df83753de057",
+      "type": "tool_call"
+     }
+    ],
+    "invalid_tool_calls": [],
+    "usage_metadata": {
+     "input_tokens": 13919,
+     "output_tokens": 192,
+     "total_tokens": 14111,
+     "input_token_details": {
+      "audio": 0,
+      "cache_creation": 0,
+      "cache_read": 13568
+     },
+     "output_token_details": {
+      "audio": 0,
+      "reasoning": 0
+     }
+    }
+   }
+  },
+  {
+   "type": "tool",
+   "data": {
+    "content": [
+     {
+      "type": "text",
+      "text": "{\"ok\":true,\"status\":\"Completed\",\"sessionId\":\"2d9096992c7b462ab3535095010439ce\",\"layerId\":\"36bc9dad1e1149da962a3b18a7e78c27\",\"layerKey\":\"step-14\",\"reused\":false,\"layer\":{\"entryPoint\":\"Bisect\",\"parallelism\":4,\"previousLayerIds\":[\"118c038a32884c46aad2b46bb7eea78f\"],\"successCount\":4,\"failureCount\":0,\"queuedSeconds\":0.0232836,\"elapsedSeconds\":3.1359987,\"submittedAt\":\"2026-10-25T17:57:00.6315858+00:00\",\"startedAt\":\"2026-10-25T17:57:00.6548694+00:00\",\"completedAt\":\"2026-10-25T17:57:03.7908681+00:00\",\"jobId\":1339},\"hint\":\"4 worker outputs are not shown in the summary view: call get_layer_result(layerId: \\\"36bc9dad1e1149da962a3b18a7e78c27\\\", view: \\\"outputs\\\"), or pass view: \\\"outputs\\\" when running a layer.\"}",
+      "id": "lc_32b8d69c-d6bf-4a61-9152-4339d23e6264"
+     }
+    ],
+    "additional_kwargs": {},
+    "response_metadata": {},
+    "type": "tool",
+    "name": "run_layer",
+    "id": "7dc5b35d-6b0d-4bf8-be80-e5f92debb0bc",
+    "tool_call_id": "chatcmpl-tool-8263df83753de057",
+    "artifact": {
+     "structured_content": {
+      "ok": true,
+      "status": "Completed",
+      "sessionId": "2d9096992c7b462ab3535095010439ce",
+      "layerId": "36bc9dad1e1149da962a3b18a7e78c27",
+      "layerKey": "step-14",
+      "reused": false,
+      "layer": {
+       "entryPoint": "Bisect",
+       "parallelism": 4,
+       "previousLayerIds": [
+        "118c038a32884c46aad2b46bb7eea78f"
+       ],
+       "successCount": 4,
+       "failureCount": 0,
+       "queuedSeconds": 0.0232836,
+       "elapsedSeconds": 3.1359987,
+       "submittedAt": "2026-10-25T17:57:00.6315858+00:00",
+       "startedAt": "2026-10-25T17:57:00.6548694+00:00",
+       "completedAt": "2026-10-25T17:57:03.7908681+00:00",
+       "jobId": 1339
+      },
+      "hint": "4 worker outputs are not shown in the summary view: call get_layer_result(layerId: \"36bc9dad1e1149da962a3b18a7e78c27\", view: \"outputs\"), or pass view: \"outputs\" when running a layer."
+     }
+    },
+    "status": "success"
+   }
+  },
+  {
+   "type": "ai",
+   "data": {
+    "content": "",
+    "additional_kwargs": {},
+    "response_metadata": {
+     "finish_reason": "tool_callstool_calls",
+     "model_name": "deepseek/deepseek-v4.1-flash-1017deepseek/deepseek-v4.1-flash-1017",
+     "service_tier": "default",
+     "model_provider": "openai"
+    },
+    "type": "ai",
+    "name": "ParcsAgent",
+    "id": "lc_run--01a17435-7b75-7640-977d-23700e36eba0",
+    "tool_calls": [
+     {
+      "name": "run_layer",
+      "args": {
+       "entryPoint": "Bisect",
+       "layerKey": "step-15",
+       "parameters": {
+        "final": "false",
+        "step": "15"
+       },
+       "parallelism": 4,
+       "previousLayerIds": [
+        "36bc9dad1e1149da962a3b18a7e78c27"
+       ],
+       "sessionId": "2d9096992c7b462ab3535095010439ce",
+       "waitSeconds": 200
+      },
+      "id": "chatcmpl-tool-aed0cf8a4d9cc653",
+      "type": "tool_call"
+     }
+    ],
+    "invalid_tool_calls": [],
+    "usage_metadata": {
+     "input_tokens": 14402,
+     "output_tokens": 193,
+     "total_tokens": 14595,
+     "input_token_details": {
+      "audio": 0,
+      "cache_creation": 0,
+      "cache_read": 14080
+     },
+     "output_token_details": {
+      "audio": 0,
+      "reasoning": 0
+     }
+    }
+   }
+  },
+  {
+   "type": "tool",
+   "data": {
+    "content": [
+     {
+      "type": "text",
+      "text": "{\"ok\":true,\"status\":\"Completed\",\"sessionId\":\"2d9096992c7b462ab3535095010439ce\",\"layerId\":\"cb04620321e64b39924c96d9a443bf66\",\"layerKey\":\"step-15\",\"reused\":false,\"layer\":{\"entryPoint\":\"Bisect\",\"parallelism\":4,\"previousLayerIds\":[\"36bc9dad1e1149da962a3b18a7e78c27\"],\"successCount\":4,\"failureCount\":0,\"queuedSeconds\":0.0215817,\"elapsedSeconds\":3.1489247,\"submittedAt\":\"2026-10-25T17:57:06.5096339+00:00\",\"startedAt\":\"2026-10-25T17:57:06.5312156+00:00\",\"completedAt\":\"2026-10-25T17:57:09.6801403+00:00\",\"jobId\":1340},\"hint\":\"4 worker outputs are not shown in the summary view: call get_layer_result(layerId: \\\"cb04620321e64b39924c96d9a443bf66\\\", view: \\\"outputs\\\"), or pass view: \\\"outputs\\\" when running a layer.\"}",
+      "id": "lc_aa8f81be-98b3-4179-a0f5-7a32bb05001a"
+     }
+    ],
+    "additional_kwargs": {},
+    "response_metadata": {},
+    "type": "tool",
+    "name": "run_layer",
+    "id": "84a12490-259c-4cfc-ae08-5ff05a0c996e",
+    "tool_call_id": "chatcmpl-tool-aed0cf8a4d9cc653",
+    "artifact": {
+     "structured_content": {
+      "ok": true,
+      "status": "Completed",
+      "sessionId": "2d9096992c7b462ab3535095010439ce",
+      "layerId": "cb04620321e64b39924c96d9a443bf66",
+      "layerKey": "step-15",
+      "reused": false,
+      "layer": {
+       "entryPoint": "Bisect",
+       "parallelism": 4,
+       "previousLayerIds": [
+        "36bc9dad1e1149da962a3b18a7e78c27"
+       ],
+       "successCount": 4,
+       "failureCount": 0,
+       "queuedSeconds": 0.0215817,
+       "elapsedSeconds": 3.1489247,
+       "submittedAt": "2026-10-25T17:57:06.5096339+00:00",
+       "startedAt": "2026-10-25T17:57:06.5312156+00:00",
+       "completedAt": "2026-10-25T17:57:09.6801403+00:00",
+       "jobId": 1340
+      },
+      "hint": "4 worker outputs are not shown in the summary view: call get_layer_result(layerId: \"cb04620321e64b39924c96d9a443bf66\", view: \"outputs\"), or pass view: \"outputs\" when running a layer."
+     }
+    },
+    "status": "success"
+   }
+  },
+  {
+   "type": "ai",
+   "data": {
+    "content": "",
+    "additional_kwargs": {},
+    "response_metadata": {
+     "finish_reason": "tool_callstool_calls",
+     "model_name": "deepseek/deepseek-v4.1-flash-1017deepseek/deepseek-v4.1-flash-1017",
+     "service_tier": "default",
+     "model_provider": "openai"
+    },
+    "type": "ai",
+    "name": "ParcsAgent",
+    "id": "lc_run--01a17435-9272-7545-a60e-14a7fd31fb79",
+    "tool_calls": [
+     {
+      "name": "run_layer",
+      "args": {
+       "entryPoint": "Bisect",
+       "layerKey": "step-16",
+       "parameters": {
+        "final": "false",
+        "step": "16"
+       },
+       "parallelism": 4,
+       "previousLayerIds": [
+        "cb04620321e64b39924c96d9a443bf66"
+       ],
+       "sessionId": "2d9096992c7b462ab3535095010439ce",
+       "waitSeconds": 200
+      },
+      "id": "chatcmpl-tool-bd5d5a0223298a14",
+      "type": "tool_call"
+     }
+    ],
+    "invalid_tool_calls": [],
+    "usage_metadata": {
+     "input_tokens": 14881,
+     "output_tokens": 190,
+     "total_tokens": 15071,
+     "input_token_details": {
+      "audio": 0,
+      "cache_creation": 0,
+      "cache_read": 14592
+     },
+     "output_token_details": {
+      "audio": 0,
+      "reasoning": 0
+     }
+    }
+   }
+  },
+  {
+   "type": "tool",
+   "data": {
+    "content": [
+     {
+      "type": "text",
+      "text": "{\"ok\":true,\"status\":\"Completed\",\"sessionId\":\"2d9096992c7b462ab3535095010439ce\",\"layerId\":\"60491d4d4c374ea397ad00ce13d53d80\",\"layerKey\":\"step-16\",\"reused\":false,\"layer\":{\"entryPoint\":\"Bisect\",\"parallelism\":4,\"previousLayerIds\":[\"cb04620321e64b39924c96d9a443bf66\"],\"successCount\":4,\"failureCount\":0,\"queuedSeconds\":0.0220756,\"elapsedSeconds\":3.1498287,\"submittedAt\":\"2026-10-25T17:57:12.9573823+00:00\",\"startedAt\":\"2026-10-25T17:57:12.9794579+00:00\",\"completedAt\":\"2026-10-25T17:57:16.1292866+00:00\",\"jobId\":1341},\"hint\":\"4 worker outputs are not shown in the summary view: call get_layer_result(layerId: \\\"60491d4d4c374ea397ad00ce13d53d80\\\", view: \\\"outputs\\\"), or pass view: \\\"outputs\\\" when running a layer.\"}",
+      "id": "lc_fe8748d6-a1d9-427f-bcb3-6989e9ddb3fc"
+     }
+    ],
+    "additional_kwargs": {},
+    "response_metadata": {},
+    "type": "tool",
+    "name": "run_layer",
+    "id": "5fa8dd2b-a511-4469-8bf4-977007f23ee5",
+    "tool_call_id": "chatcmpl-tool-bd5d5a0223298a14",
+    "artifact": {
+     "structured_content": {
+      "ok": true,
+      "status": "Completed",
+      "sessionId": "2d9096992c7b462ab3535095010439ce",
+      "layerId": "60491d4d4c374ea397ad00ce13d53d80",
+      "layerKey": "step-16",
+      "reused": false,
+      "layer": {
+       "entryPoint": "Bisect",
+       "parallelism": 4,
+       "previousLayerIds": [
+        "cb04620321e64b39924c96d9a443bf66"
+       ],
+       "successCount": 4,
+       "failureCount": 0,
+       "queuedSeconds": 0.0220756,
+       "elapsedSeconds": 3.1498287,
+       "submittedAt": "2026-10-25T17:57:12.9573823+00:00",
+       "startedAt": "2026-10-25T17:57:12.9794579+00:00",
+       "completedAt": "2026-10-25T17:57:16.1292866+00:00",
+       "jobId": 1341
+      },
+      "hint": "4 worker outputs are not shown in the summary view: call get_layer_result(layerId: \"60491d4d4c374ea397ad00ce13d53d80\", view: \"outputs\"), or pass view: \"outputs\" when running a layer."
+     }
+    },
+    "status": "success"
+   }
+  },
+  {
+   "type": "ai",
+   "data": {
+    "content": "",
+    "additional_kwargs": {},
+    "response_metadata": {
+     "finish_reason": "tool_callstool_calls",
+     "model_name": "deepseek/deepseek-v4.1-flash-1017deepseek/deepseek-v4.1-flash-1017",
+     "service_tier": "default",
+     "model_provider": "openai"
+    },
+    "type": "ai",
+    "name": "ParcsAgent",
+    "id": "lc_run--01a17435-ab9e-71a3-a9b5-5bd9e33f7dc6",
+    "tool_calls": [
+     {
+      "name": "run_layer",
+      "args": {
+       "entryPoint": "Bisect",
+       "layerKey": "step-17",
+       "parameters": {
+        "final": "false",
+        "step": "17"
+       },
+       "parallelism": 4,
+       "previousLayerIds": [
+        "60491d4d4c374ea397ad00ce13d53d80"
+       ],
+       "sessionId": "2d9096992c7b462ab3535095010439ce",
+       "waitSeconds": 200
+      },
+      "id": "chatcmpl-tool-83cb3ba224767e7a",
+      "type": "tool_call"
+     }
+    ],
+    "invalid_tool_calls": [],
+    "usage_metadata": {
+     "input_tokens": 15356,
+     "output_tokens": 191,
+     "total_tokens": 15547,
+     "input_token_details": {
+      "audio": 0,
+      "cache_creation": 0,
+      "cache_read": 14976
+     },
+     "output_token_details": {
+      "audio": 0,
+      "reasoning": 0
+     }
+    }
+   }
+  },
+  {
+   "type": "tool",
+   "data": {
+    "content": [
+     {
+      "type": "text",
+      "text": "{\"ok\":true,\"status\":\"Completed\",\"sessionId\":\"2d9096992c7b462ab3535095010439ce\",\"layerId\":\"6203c26ce9ef4475b19f2a4e0775dd52\",\"layerKey\":\"step-17\",\"reused\":false,\"layer\":{\"entryPoint\":\"Bisect\",\"parallelism\":4,\"previousLayerIds\":[\"60491d4d4c374ea397ad00ce13d53d80\"],\"successCount\":4,\"failureCount\":0,\"queuedSeconds\":0.0241438,\"elapsedSeconds\":3.1342494,\"submittedAt\":\"2026-10-25T17:57:19.3856844+00:00\",\"startedAt\":\"2026-10-25T17:57:19.4098282+00:00\",\"completedAt\":\"2026-10-25T17:57:22.5440776+00:00\",\"jobId\":1342},\"hint\":\"4 worker outputs are not shown in the summary view: call get_layer_result(layerId: \\\"6203c26ce9ef4475b19f2a4e0775dd52\\\", view: \\\"outputs\\\"), or pass view: \\\"outputs\\\" when running a layer.\"}",
+      "id": "lc_2b837bed-85d2-4d58-8a6b-45e84317f90c"
+     }
+    ],
+    "additional_kwargs": {},
+    "response_metadata": {},
+    "type": "tool",
+    "name": "run_layer",
+    "id": "4c5ebcfa-710e-4abe-8796-524495838137",
+    "tool_call_id": "chatcmpl-tool-83cb3ba224767e7a",
+    "artifact": {
+     "structured_content": {
+      "ok": true,
+      "status": "Completed",
+      "sessionId": "2d9096992c7b462ab3535095010439ce",
+      "layerId": "6203c26ce9ef4475b19f2a4e0775dd52",
+      "layerKey": "step-17",
+      "reused": false,
+      "layer": {
+       "entryPoint": "Bisect",
+       "parallelism": 4,
+       "previousLayerIds": [
+        "60491d4d4c374ea397ad00ce13d53d80"
+       ],
+       "successCount": 4,
+       "failureCount": 0,
+       "queuedSeconds": 0.0241438,
+       "elapsedSeconds": 3.1342494,
+       "submittedAt": "2026-10-25T17:57:19.3856844+00:00",
+       "startedAt": "2026-10-25T17:57:19.4098282+00:00",
+       "completedAt": "2026-10-25T17:57:22.5440776+00:00",
+       "jobId": 1342
+      },
+      "hint": "4 worker outputs are not shown in the summary view: call get_layer_result(layerId: \"6203c26ce9ef4475b19f2a4e0775dd52\", view: \"outputs\"), or pass view: \"outputs\" when running a layer."
+     }
+    },
+    "status": "success"
+   }
+  },
+  {
+   "type": "ai",
+   "data": {
+    "content": "",
+    "additional_kwargs": {},
+    "response_metadata": {
+     "finish_reason": "tool_callstool_calls",
+     "model_name": "deepseek/deepseek-v4.1-flash-1017deepseek/deepseek-v4.1-flash-1017",
+     "service_tier": "default",
+     "model_provider": "openai"
+    },
+    "type": "ai",
+    "name": "ParcsAgent",
+    "id": "lc_run--01a17435-c4b0-7278-98ac-ebea2f92b1f1",
+    "tool_calls": [
+     {
+      "name": "run_layer",
+      "args": {
+       "entryPoint": "Bisect",
+       "layerKey": "step-18",
+       "parameters": {
+        "final": "false",
+        "step": "18"
+       },
+       "parallelism": 4,
+       "previousLayerIds": [
+        "6203c26ce9ef4475b19f2a4e0775dd52"
+       ],
+       "sessionId": "2d9096992c7b462ab3535095010439ce",
+       "waitSeconds": 200
+      },
+      "id": "chatcmpl-tool-883a5fff987dc34a",
+      "type": "tool_call"
+     }
+    ],
+    "invalid_tool_calls": [],
+    "usage_metadata": {
+     "input_tokens": 15837,
+     "output_tokens": 193,
+     "total_tokens": 16030,
+     "input_token_details": {
+      "audio": 0,
+      "cache_creation": 0,
+      "cache_read": 15488
+     },
+     "output_token_details": {
+      "audio": 0,
+      "reasoning": 0
+     }
+    }
+   }
+  },
+  {
+   "type": "tool",
+   "data": {
+    "content": [
+     {
+      "type": "text",
+      "text": "{\"ok\":true,\"status\":\"Completed\",\"sessionId\":\"2d9096992c7b462ab3535095010439ce\",\"layerId\":\"b04b41a4fc3940728f45c3adf2e26099\",\"layerKey\":\"step-18\",\"reused\":false,\"layer\":{\"entryPoint\":\"Bisect\",\"parallelism\":4,\"previousLayerIds\":[\"6203c26ce9ef4475b19f2a4e0775dd52\"],\"successCount\":4,\"failureCount\":0,\"queuedSeconds\":0.023157,\"elapsedSeconds\":3.1339947,\"submittedAt\":\"2026-10-25T17:57:25.2529553+00:00\",\"startedAt\":\"2026-10-25T17:57:25.2761123+00:00\",\"completedAt\":\"2026-10-25T17:57:28.410107+00:00\",\"jobId\":1343},\"hint\":\"4 worker outputs are not shown in the summary view: call get_layer_result(layerId: \\\"b04b41a4fc3940728f45c3adf2e26099\\\", view: \\\"outputs\\\"), or pass view: \\\"outputs\\\" when running a layer.\"}",
+      "id": "lc_63e5b5db-e344-480b-8ef4-8b52040b5e42"
+     }
+    ],
+    "additional_kwargs": {},
+    "response_metadata": {},
+    "type": "tool",
+    "name": "run_layer",
+    "id": "bfa89f1f-04ac-481f-b854-795a620e87a3",
+    "tool_call_id": "chatcmpl-tool-883a5fff987dc34a",
+    "artifact": {
+     "structured_content": {
+      "ok": true,
+      "status": "Completed",
+      "sessionId": "2d9096992c7b462ab3535095010439ce",
+      "layerId": "b04b41a4fc3940728f45c3adf2e26099",
+      "layerKey": "step-18",
+      "reused": false,
+      "layer": {
+       "entryPoint": "Bisect",
+       "parallelism": 4,
+       "previousLayerIds": [
+        "6203c26ce9ef4475b19f2a4e0775dd52"
+       ],
+       "successCount": 4,
+       "failureCount": 0,
+       "queuedSeconds": 0.023157,
+       "elapsedSeconds": 3.1339947,
+       "submittedAt": "2026-10-25T17:57:25.2529553+00:00",
+       "startedAt": "2026-10-25T17:57:25.2761123+00:00",
+       "completedAt": "2026-10-25T17:57:28.410107+00:00",
+       "jobId": 1343
+      },
+      "hint": "4 worker outputs are not shown in the summary view: call get_layer_result(layerId: \"b04b41a4fc3940728f45c3adf2e26099\", view: \"outputs\"), or pass view: \"outputs\" when running a layer."
+     }
+    },
+    "status": "success"
+   }
+  },
+  {
+   "type": "ai",
+   "data": {
+    "content": "",
+    "additional_kwargs": {},
+    "response_metadata": {
+     "finish_reason": "tool_callstool_calls",
+     "model_name": "deepseek/deepseek-v4.1-flash-1017deepseek/deepseek-v4.1-flash-1017",
+     "service_tier": "default",
+     "model_provider": "openai"
+    },
+    "type": "ai",
+    "name": "ParcsAgent",
+    "id": "lc_run--01a17435-db9c-76f3-a946-090d34b21822",
+    "tool_calls": [
+     {
+      "name": "run_layer",
+      "args": {
+       "entryPoint": "Bisect",
+       "layerKey": "step-19",
+       "parameters": {
+        "final": "false",
+        "step": "19"
+       },
+       "parallelism": 4,
+       "previousLayerIds": [
+        "b04b41a4fc3940728f45c3adf2e26099"
+       ],
+       "sessionId": "2d9096992c7b462ab3535095010439ce",
+       "waitSeconds": 200
+      },
+      "id": "chatcmpl-tool-befdbabeaad8e4c3",
+      "type": "tool_call"
+     }
+    ],
+    "invalid_tool_calls": [],
+    "usage_metadata": {
+     "input_tokens": 16320,
+     "output_tokens": 193,
+     "total_tokens": 16513,
+     "input_token_details": {
+      "audio": 0,
+      "cache_creation": 0,
+      "cache_read": 16000
+     },
+     "output_token_details": {
+      "audio": 0,
+      "reasoning": 0
+     }
+    }
+   }
+  },
+  {
+   "type": "tool",
+   "data": {
+    "content": [
+     {
+      "type": "text",
+      "text": "{\"ok\":true,\"status\":\"Completed\",\"sessionId\":\"2d9096992c7b462ab3535095010439ce\",\"layerId\":\"d967a6fc8f0749178e94065e4576040b\",\"layerKey\":\"step-19\",\"reused\":false,\"layer\":{\"entryPoint\":\"Bisect\",\"parallelism\":4,\"previousLayerIds\":[\"b04b41a4fc3940728f45c3adf2e26099\"],\"successCount\":4,\"failureCount\":0,\"queuedSeconds\":0.0227172,\"elapsedSeconds\":3.1532286,\"submittedAt\":\"2026-10-25T17:57:32.2579089+00:00\",\"startedAt\":\"2026-10-25T17:57:32.2806261+00:00\",\"completedAt\":\"2026-10-25T17:57:35.4338547+00:00\",\"jobId\":1344},\"hint\":\"4 worker outputs are not shown in the summary view: call get_layer_result(layerId: \\\"d967a6fc8f0749178e94065e4576040b\\\", view: \\\"outputs\\\"), or pass view: \\\"outputs\\\" when running a layer.\"}",
+      "id": "lc_ded4ae17-4cd4-4eb2-b31b-bfac84e4bbe2"
+     }
+    ],
+    "additional_kwargs": {},
+    "response_metadata": {},
+    "type": "tool",
+    "name": "run_layer",
+    "id": "1fb1b75a-44cf-4c16-b5b3-5541a57203cb",
+    "tool_call_id": "chatcmpl-tool-befdbabeaad8e4c3",
+    "artifact": {
+     "structured_content": {
+      "ok": true,
+      "status": "Completed",
+      "sessionId": "2d9096992c7b462ab3535095010439ce",
+      "layerId": "d967a6fc8f0749178e94065e4576040b",
+      "layerKey": "step-19",
+      "reused": false,
+      "layer": {
+       "entryPoint": "Bisect",
+       "parallelism": 4,
+       "previousLayerIds": [
+        "b04b41a4fc3940728f45c3adf2e26099"
+       ],
+       "successCount": 4,
+       "failureCount": 0,
+       "queuedSeconds": 0.0227172,
+       "elapsedSeconds": 3.1532286,
+       "submittedAt": "2026-10-25T17:57:32.2579089+00:00",
+       "startedAt": "2026-10-25T17:57:32.2806261+00:00",
+       "completedAt": "2026-10-25T17:57:35.4338547+00:00",
+       "jobId": 1344
+      },
+      "hint": "4 worker outputs are not shown in the summary view: call get_layer_result(layerId: \"d967a6fc8f0749178e94065e4576040b\", view: \"outputs\"), or pass view: \"outputs\" when running a layer."
+     }
+    },
+    "status": "success"
+   }
+  },
+  {
+   "type": "ai",
+   "data": {
+    "content": "",
+    "additional_kwargs": {},
+    "response_metadata": {
+     "finish_reason": "tool_callstool_calls",
+     "model_name": "deepseek/deepseek-v4.1-flash-1017deepseek/deepseek-v4.1-flash-1017",
+     "service_tier": "default",
+     "model_provider": "openai"
+    },
+    "type": "ai",
+    "name": "ParcsAgent",
+    "id": "lc_run--01a17435-f6e9-761b-af5a-dfee1fa97ec0",
+    "tool_calls": [
+     {
+      "name": "run_layer",
+      "args": {
+       "entryPoint": "Bisect",
+       "layerKey": "step-20",
+       "parameters": {
+        "final": "false",
+        "step": "20"
+       },
+       "parallelism": 4,
+       "previousLayerIds": [
+        "d967a6fc8f0749178e94065e4576040b"
+       ],
+       "sessionId": "2d9096992c7b462ab3535095010439ce",
+       "waitSeconds": 200
+      },
+      "id": "chatcmpl-tool-918612a2396c1252",
+      "type": "tool_call"
+     }
+    ],
+    "invalid_tool_calls": [],
+    "usage_metadata": {
+     "input_tokens": 16801,
+     "output_tokens": 191,
+     "total_tokens": 16992,
+     "input_token_details": {
+      "audio": 0,
+      "cache_creation": 0,
+      "cache_read": 16512
+     },
+     "output_token_details": {
+      "audio": 0,
+      "reasoning": 0
+     }
+    }
+   }
+  },
+  {
+   "type": "tool",
+   "data": {
+    "content": [
+     {
+      "type": "text",
+      "text": "{\"ok\":true,\"status\":\"Completed\",\"sessionId\":\"2d9096992c7b462ab3535095010439ce\",\"layerId\":\"a5e58728f4074270ad78ff29dd2f695c\",\"layerKey\":\"step-20\",\"reused\":false,\"layer\":{\"entryPoint\":\"Bisect\",\"parallelism\":4,\"previousLayerIds\":[\"d967a6fc8f0749178e94065e4576040b\"],\"successCount\":4,\"failureCount\":0,\"queuedSeconds\":0.0255198,\"elapsedSeconds\":3.1363701,\"submittedAt\":\"2026-10-25T17:57:38.6506979+00:00\",\"startedAt\":\"2026-10-25T17:57:38.6762177+00:00\",\"completedAt\":\"2026-10-25T17:57:41.8125878+00:00\",\"jobId\":1345},\"hint\":\"4 worker outputs are not shown in the summary view: call get_layer_result(layerId: \\\"a5e58728f4074270ad78ff29dd2f695c\\\", view: \\\"outputs\\\"), or pass view: \\\"outputs\\\" when running a layer.\"}",
+      "id": "lc_0f4b87b4-4b1e-49e2-af56-21cde3b3fd7f"
+     }
+    ],
+    "additional_kwargs": {},
+    "response_metadata": {},
+    "type": "tool",
+    "name": "run_layer",
+    "id": "2694ecfa-f2bb-4509-86a8-b91c61b7a6c2",
+    "tool_call_id": "chatcmpl-tool-918612a2396c1252",
+    "artifact": {
+     "structured_content": {
+      "ok": true,
+      "status": "Completed",
+      "sessionId": "2d9096992c7b462ab3535095010439ce",
+      "layerId": "a5e58728f4074270ad78ff29dd2f695c",
+      "layerKey": "step-20",
+      "reused": false,
+      "layer": {
+       "entryPoint": "Bisect",
+       "parallelism": 4,
+       "previousLayerIds": [
+        "d967a6fc8f0749178e94065e4576040b"
+       ],
+       "successCount": 4,
+       "failureCount": 0,
+       "queuedSeconds": 0.0255198,
+       "elapsedSeconds": 3.1363701,
+       "submittedAt": "2026-10-25T17:57:38.6506979+00:00",
+       "startedAt": "2026-10-25T17:57:38.6762177+00:00",
+       "completedAt": "2026-10-25T17:57:41.8125878+00:00",
+       "jobId": 1345
+      },
+      "hint": "4 worker outputs are not shown in the summary view: call get_layer_result(layerId: \"a5e58728f4074270ad78ff29dd2f695c\", view: \"outputs\"), or pass view: \"outputs\" when running a layer."
+     }
+    },
+    "status": "success"
+   }
+  },
+  {
+   "type": "ai",
+   "data": {
+    "content": "",
+    "additional_kwargs": {},
+    "response_metadata": {
+     "finish_reason": "tool_callstool_calls",
+     "model_name": "deepseek/deepseek-v4.1-flash-1017deepseek/deepseek-v4.1-flash-1017",
+     "service_tier": "default",
+     "model_provider": "openai"
+    },
+    "type": "ai",
+    "name": "ParcsAgent",
+    "id": "lc_run--01a17436-0fca-70bc-9369-8e68f8710dcd",
+    "tool_calls": [
+     {
+      "name": "run_layer",
+      "args": {
+       "entryPoint": "Bisect",
+       "layerKey": "step-21",
+       "parameters": {
+        "final": "false",
+        "step": "21"
+       },
+       "parallelism": 4,
+       "previousLayerIds": [
+        "a5e58728f4074270ad78ff29dd2f695c"
+       ],
+       "sessionId": "2d9096992c7b462ab3535095010439ce",
+       "waitSeconds": 200
+      },
+      "id": "chatcmpl-tool-8ad75135553da133",
+      "type": "tool_call"
+     }
+    ],
+    "invalid_tool_calls": [],
+    "usage_metadata": {
+     "input_tokens": 17278,
+     "output_tokens": 191,
+     "total_tokens": 17469,
+     "input_token_details": {
+      "audio": 0,
+      "cache_creation": 0,
+      "cache_read": 16896
+     },
+     "output_token_details": {
+      "audio": 0,
+      "reasoning": 0
+     }
+    }
+   }
+  },
+  {
+   "type": "tool",
+   "data": {
+    "content": [
+     {
+      "type": "text",
+      "text": "{\"ok\":true,\"status\":\"Completed\",\"sessionId\":\"2d9096992c7b462ab3535095010439ce\",\"layerId\":\"01a2e3654a2f4ea095ea3129cdd5a8ed\",\"layerKey\":\"step-21\",\"reused\":false,\"layer\":{\"entryPoint\":\"Bisect\",\"parallelism\":4,\"previousLayerIds\":[\"a5e58728f4074270ad78ff29dd2f695c\"],\"successCount\":4,\"failureCount\":0,\"queuedSeconds\":0.0238602,\"elapsedSeconds\":3.153181,\"submittedAt\":\"2026-10-25T17:57:45.3353177+00:00\",\"startedAt\":\"2026-10-25T17:57:45.3591779+00:00\",\"completedAt\":\"2026-10-25T17:57:48.5123589+00:00\",\"jobId\":1346},\"hint\":\"4 worker outputs are not shown in the summary view: call get_layer_result(layerId: \\\"01a2e3654a2f4ea095ea3129cdd5a8ed\\\", view: \\\"outputs\\\"), or pass view: \\\"outputs\\\" when running a layer.\"}",
+      "id": "lc_544eaf04-ebf1-454c-98ee-8900010691ec"
+     }
+    ],
+    "additional_kwargs": {},
+    "response_metadata": {},
+    "type": "tool",
+    "name": "run_layer",
+    "id": "22c131ff-e82d-4ae6-91e2-72da78fc2932",
+    "tool_call_id": "chatcmpl-tool-8ad75135553da133",
+    "artifact": {
+     "structured_content": {
+      "ok": true,
+      "status": "Completed",
+      "sessionId": "2d9096992c7b462ab3535095010439ce",
+      "layerId": "01a2e3654a2f4ea095ea3129cdd5a8ed",
+      "layerKey": "step-21",
+      "reused": false,
+      "layer": {
+       "entryPoint": "Bisect",
+       "parallelism": 4,
+       "previousLayerIds": [
+        "a5e58728f4074270ad78ff29dd2f695c"
+       ],
+       "successCount": 4,
+       "failureCount": 0,
+       "queuedSeconds": 0.0238602,
+       "elapsedSeconds": 3.153181,
+       "submittedAt": "2026-10-25T17:57:45.3353177+00:00",
+       "startedAt": "2026-10-25T17:57:45.3591779+00:00",
+       "completedAt": "2026-10-25T17:57:48.5123589+00:00",
+       "jobId": 1346
+      },
+      "hint": "4 worker outputs are not shown in the summary view: call get_layer_result(layerId: \"01a2e3654a2f4ea095ea3129cdd5a8ed\", view: \"outputs\"), or pass view: \"outputs\" when running a layer."
+     }
+    },
+    "status": "success"
+   }
+  },
+  {
+   "type": "ai",
+   "data": {
+    "content": "",
+    "additional_kwargs": {},
+    "response_metadata": {
+     "finish_reason": "tool_callstool_calls",
+     "model_name": "deepseek/deepseek-v4.1-flash-1017deepseek/deepseek-v4.1-flash-1017",
+     "service_tier": "default",
+     "model_provider": "openai"
+    },
+    "type": "ai",
+    "name": "ParcsAgent",
+    "id": "lc_run--01a17436-29f5-73ce-9abf-00b547413d9e",
+    "tool_calls": [
+     {
+      "name": "run_layer",
+      "args": {
+       "entryPoint": "Bisect",
+       "layerKey": "step-22",
+       "parameters": {
+        "final": "false",
+        "step": "22"
+       },
+       "parallelism": 4,
+       "previousLayerIds": [
+        "01a2e3654a2f4ea095ea3129cdd5a8ed"
+       ],
+       "sessionId": "2d9096992c7b462ab3535095010439ce",
+       "waitSeconds": 200
+      },
+      "id": "chatcmpl-tool-bdf5dd33f1707d8e",
+      "type": "tool_call"
+     }
+    ],
+    "invalid_tool_calls": [],
+    "usage_metadata": {
+     "input_tokens": 17760,
+     "output_tokens": 194,
+     "total_tokens": 17954,
+     "input_token_details": {
+      "audio": 0,
+      "cache_creation": 0,
+      "cache_read": 17408
+     },
+     "output_token_details": {
+      "audio": 0,
+      "reasoning": 0
+     }
+    }
+   }
+  },
+  {
+   "type": "tool",
+   "data": {
+    "content": [
+     {
+      "type": "text",
+      "text": "{\"ok\":true,\"status\":\"Completed\",\"sessionId\":\"2d9096992c7b462ab3535095010439ce\",\"layerId\":\"7ab6b8dda1bc41c9b5bbd163ef78fb84\",\"layerKey\":\"step-22\",\"reused\":false,\"layer\":{\"entryPoint\":\"Bisect\",\"parallelism\":4,\"previousLayerIds\":[\"01a2e3654a2f4ea095ea3129cdd5a8ed\"],\"successCount\":4,\"failureCount\":0,\"queuedSeconds\":0.0218909,\"elapsedSeconds\":3.1298359,\"submittedAt\":\"2026-10-25T17:57:51.859848+00:00\",\"startedAt\":\"2026-10-25T17:57:51.8817389+00:00\",\"completedAt\":\"2026-10-25T17:57:55.0115748+00:00\",\"jobId\":1347},\"hint\":\"4 worker outputs are not shown in the summary view: call get_layer_result(layerId: \\\"7ab6b8dda1bc41c9b5bbd163ef78fb84\\\", view: \\\"outputs\\\"), or pass view: \\\"outputs\\\" when running a layer.\"}",
+      "id": "lc_59ed3211-2071-4e14-bb66-c0a0058a067f"
+     }
+    ],
+    "additional_kwargs": {},
+    "response_metadata": {},
+    "type": "tool",
+    "name": "run_layer",
+    "id": "92c49324-8c2e-410d-adce-38816debd8dc",
+    "tool_call_id": "chatcmpl-tool-bdf5dd33f1707d8e",
+    "artifact": {
+     "structured_content": {
+      "ok": true,
+      "status": "Completed",
+      "sessionId": "2d9096992c7b462ab3535095010439ce",
+      "layerId": "7ab6b8dda1bc41c9b5bbd163ef78fb84",
+      "layerKey": "step-22",
+      "reused": false,
+      "layer": {
+       "entryPoint": "Bisect",
+       "parallelism": 4,
+       "previousLayerIds": [
+        "01a2e3654a2f4ea095ea3129cdd5a8ed"
+       ],
+       "successCount": 4,
+       "failureCount": 0,
+       "queuedSeconds": 0.0218909,
+       "elapsedSeconds": 3.1298359,
+       "submittedAt": "2026-10-25T17:57:51.859848+00:00",
+       "startedAt": "2026-10-25T17:57:51.8817389+00:00",
+       "completedAt": "2026-10-25T17:57:55.0115748+00:00",
+       "jobId": 1347
+      },
+      "hint": "4 worker outputs are not shown in the summary view: call get_layer_result(layerId: \"7ab6b8dda1bc41c9b5bbd163ef78fb84\", view: \"outputs\"), or pass view: \"outputs\" when running a layer."
+     }
+    },
+    "status": "success"
+   }
+  },
+  {
+   "type": "ai",
+   "data": {
+    "content": "",
+    "additional_kwargs": {},
+    "response_metadata": {
+     "finish_reason": "tool_callstool_calls",
+     "model_name": "deepseek/deepseek-v4.1-flash-1017deepseek/deepseek-v4.1-flash-1017",
+     "service_tier": "default",
+     "model_provider": "openai"
+    },
+    "type": "ai",
+    "name": "ParcsAgent",
+    "id": "lc_run--01a17436-435d-77be-9445-b7e94f510e81",
+    "tool_calls": [
+     {
+      "name": "run_layer",
+      "args": {
+       "entryPoint": "Bisect",
+       "layerKey": "step-23",
+       "parameters": {
+        "final": "false",
+        "step": "23"
+       },
+       "parallelism": 4,
+       "previousLayerIds": [
+        "7ab6b8dda1bc41c9b5bbd163ef78fb84"
+       ],
+       "sessionId": "2d9096992c7b462ab3535095010439ce",
+       "waitSeconds": 200
+      },
+      "id": "chatcmpl-tool-a7d3ff2d81e16e20",
+      "type": "tool_call"
+     }
+    ],
+    "invalid_tool_calls": [],
+    "usage_metadata": {
+     "input_tokens": 18248,
+     "output_tokens": 194,
+     "total_tokens": 18442,
+     "input_token_details": {
+      "audio": 0,
+      "cache_creation": 0,
+      "cache_read": 17920
+     },
+     "output_token_details": {
+      "audio": 0,
+      "reasoning": 0
+     }
+    }
+   }
+  },
+  {
+   "type": "tool",
+   "data": {
+    "content": [
+     {
+      "type": "text",
+      "text": "{\"ok\":true,\"status\":\"Completed\",\"sessionId\":\"2d9096992c7b462ab3535095010439ce\",\"layerId\":\"97b7b89b6fa0485b9cc887a9654b84d7\",\"layerKey\":\"step-23\",\"reused\":false,\"layer\":{\"entryPoint\":\"Bisect\",\"parallelism\":4,\"previousLayerIds\":[\"7ab6b8dda1bc41c9b5bbd163ef78fb84\"],\"successCount\":4,\"failureCount\":0,\"queuedSeconds\":0.0221628,\"elapsedSeconds\":3.140051,\"submittedAt\":\"2026-10-25T17:57:58.5729604+00:00\",\"startedAt\":\"2026-10-25T17:57:58.5951232+00:00\",\"completedAt\":\"2026-10-25T17:58:01.7351742+00:00\",\"jobId\":1348},\"hint\":\"4 worker outputs are not shown in the summary view: call get_layer_result(layerId: \\\"97b7b89b6fa0485b9cc887a9654b84d7\\\", view: \\\"outputs\\\"), or pass view: \\\"outputs\\\" when running a layer.\"}",
+      "id": "lc_ee73a9b8-40bb-4573-96ef-dc011b63e50f"
+     }
+    ],
+    "additional_kwargs": {},
+    "response_metadata": {},
+    "type": "tool",
+    "name": "run_layer",
+    "id": "9dda3440-9f2b-4edd-b84d-8f98bfe630bf",
+    "tool_call_id": "chatcmpl-tool-a7d3ff2d81e16e20",
+    "artifact": {
+     "structured_content": {
+      "ok": true,
+      "status": "Completed",
+      "sessionId": "2d9096992c7b462ab3535095010439ce",
+      "layerId": "97b7b89b6fa0485b9cc887a9654b84d7",
+      "layerKey": "step-23",
+      "reused": false,
+      "layer": {
+       "entryPoint": "Bisect",
+       "parallelism": 4,
+       "previousLayerIds": [
+        "7ab6b8dda1bc41c9b5bbd163ef78fb84"
+       ],
+       "successCount": 4,
+       "failureCount": 0,
+       "queuedSeconds": 0.0221628,
+       "elapsedSeconds": 3.140051,
+       "submittedAt": "2026-10-25T17:57:58.5729604+00:00",
+       "startedAt": "2026-10-25T17:57:58.5951232+00:00",
+       "completedAt": "2026-10-25T17:58:01.7351742+00:00",
+       "jobId": 1348
+      },
+      "hint": "4 worker outputs are not shown in the summary view: call get_layer_result(layerId: \"97b7b89b6fa0485b9cc887a9654b84d7\", view: \"outputs\"), or pass view: \"outputs\" when running a layer."
+     }
+    },
+    "status": "success"
+   }
+  },
+  {
+   "type": "ai",
+   "data": {
+    "content": "",
+    "additional_kwargs": {},
+    "response_metadata": {
+     "finish_reason": "tool_callstool_calls",
+     "model_name": "deepseek/deepseek-v4.1-flash-1017deepseek/deepseek-v4.1-flash-1017",
+     "service_tier": "default",
+     "model_provider": "openai"
+    },
+    "type": "ai",
+    "name": "ParcsAgent",
+    "id": "lc_run--01a17436-5d9f-7262-9fcb-a1e89c427275",
+    "tool_calls": [
+     {
+      "name": "run_layer",
+      "args": {
+       "entryPoint": "Bisect",
+       "layerKey": "step-24",
+       "parameters": {
+        "final": "false",
+        "step": "24"
+       },
+       "parallelism": 4,
+       "previousLayerIds": [
+        "97b7b89b6fa0485b9cc887a9654b84d7"
+       ],
+       "sessionId": "2d9096992c7b462ab3535095010439ce",
+       "waitSeconds": 200
+      },
+      "id": "chatcmpl-tool-be0901b8a937496c",
+      "type": "tool_call"
+     }
+    ],
+    "invalid_tool_calls": [],
+    "usage_metadata": {
+     "input_tokens": 18736,
+     "output_tokens": 194,
+     "total_tokens": 18930,
+     "input_token_details": {
+      "audio": 0,
+      "cache_creation": 0,
+      "cache_read": 18432
+     },
+     "output_token_details": {
+      "audio": 0,
+      "reasoning": 0
+     }
+    }
+   }
+  },
+  {
+   "type": "tool",
+   "data": {
+    "content": [
+     {
+      "type": "text",
+      "text": "{\"ok\":true,\"status\":\"Completed\",\"sessionId\":\"2d9096992c7b462ab3535095010439ce\",\"layerId\":\"a4c52649171d43af8365fe0495da8382\",\"layerKey\":\"step-24\",\"reused\":false,\"layer\":{\"entryPoint\":\"Bisect\",\"parallelism\":4,\"previousLayerIds\":[\"97b7b89b6fa0485b9cc887a9654b84d7\"],\"successCount\":4,\"failureCount\":0,\"queuedSeconds\":0.0225957,\"elapsedSeconds\":3.1413877,\"submittedAt\":\"2026-10-25T17:58:04.9491544+00:00\",\"startedAt\":\"2026-10-25T17:58:04.9717501+00:00\",\"completedAt\":\"2026-10-25T17:58:08.1131378+00:00\",\"jobId\":1349},\"hint\":\"4 worker outputs are not shown in the summary view: call get_layer_result(layerId: \\\"a4c52649171d43af8365fe0495da8382\\\", view: \\\"outputs\\\"), or pass view: \\\"outputs\\\" when running a layer.\"}",
+      "id": "lc_30fdcd83-d323-4caa-8749-d03a12ee3cd5"
+     }
+    ],
+    "additional_kwargs": {},
+    "response_metadata": {},
+    "type": "tool",
+    "name": "run_layer",
+    "id": "6283b8ca-b198-4bf6-990b-79ea7d06954c",
+    "tool_call_id": "chatcmpl-tool-be0901b8a937496c",
+    "artifact": {
+     "structured_content": {
+      "ok": true,
+      "status": "Completed",
+      "sessionId": "2d9096992c7b462ab3535095010439ce",
+      "layerId": "a4c52649171d43af8365fe0495da8382",
+      "layerKey": "step-24",
+      "reused": false,
+      "layer": {
+       "entryPoint": "Bisect",
+       "parallelism": 4,
+       "previousLayerIds": [
+        "97b7b89b6fa0485b9cc887a9654b84d7"
+       ],
+       "successCount": 4,
+       "failureCount": 0,
+       "queuedSeconds": 0.0225957,
+       "elapsedSeconds": 3.1413877,
+       "submittedAt": "2026-10-25T17:58:04.9491544+00:00",
+       "startedAt": "2026-10-25T17:58:04.9717501+00:00",
+       "completedAt": "2026-10-25T17:58:08.1131378+00:00",
+       "jobId": 1349
+      },
+      "hint": "4 worker outputs are not shown in the summary view: call get_layer_result(layerId: \"a4c52649171d43af8365fe0495da8382\", view: \"outputs\"), or pass view: \"outputs\" when running a layer."
+     }
+    },
+    "status": "success"
+   }
+  },
+  {
+   "type": "ai",
+   "data": {
+    "content": "",
+    "additional_kwargs": {},
+    "response_metadata": {
+     "finish_reason": "tool_callstool_calls",
+     "model_name": "deepseek/deepseek-v4.1-flash-1017deepseek/deepseek-v4.1-flash-1017",
+     "service_tier": "default",
+     "model_provider": "openai"
+    },
+    "type": "ai",
+    "name": "ParcsAgent",
+    "id": "lc_run--01a17436-768a-7365-9d96-5ab6827d4fff",
+    "tool_calls": [
+     {
+      "name": "run_layer",
+      "args": {
+       "entryPoint": "Bisect",
+       "layerKey": "step-25",
+       "parameters": {
+        "final": "false",
+        "step": "25"
+       },
+       "parallelism": 4,
+       "previousLayerIds": [
+        "a4c52649171d43af8365fe0495da8382"
+       ],
+       "sessionId": "2d9096992c7b462ab3535095010439ce",
+       "waitSeconds": 200
+      },
+      "id": "chatcmpl-tool-b16aecc85abb2368",
+      "type": "tool_call"
+     }
+    ],
+    "invalid_tool_calls": [],
+    "usage_metadata": {
+     "input_tokens": 19217,
+     "output_tokens": 190,
+     "total_tokens": 19407,
+     "input_token_details": {
+      "audio": 0,
+      "cache_creation": 0,
+      "cache_read": 18816
+     },
+     "output_token_details": {
+      "audio": 0,
+      "reasoning": 0
+     }
+    }
+   }
+  },
+  {
+   "type": "tool",
+   "data": {
+    "content": [
+     {
+      "type": "text",
+      "text": "{\"ok\":true,\"status\":\"Completed\",\"sessionId\":\"2d9096992c7b462ab3535095010439ce\",\"layerId\":\"670076c64706455eb787238ff021cc15\",\"layerKey\":\"step-25\",\"reused\":false,\"layer\":{\"entryPoint\":\"Bisect\",\"parallelism\":4,\"previousLayerIds\":[\"a4c52649171d43af8365fe0495da8382\"],\"successCount\":4,\"failureCount\":0,\"queuedSeconds\":0.0209704,\"elapsedSeconds\":3.1380967,\"submittedAt\":\"2026-10-25T17:58:10.9268477+00:00\",\"startedAt\":\"2026-10-25T17:58:10.9478181+00:00\",\"completedAt\":\"2026-10-25T17:58:14.0859148+00:00\",\"jobId\":1350},\"hint\":\"4 worker outputs are not shown in the summary view: call get_layer_result(layerId: \\\"670076c64706455eb787238ff021cc15\\\", view: \\\"outputs\\\"), or pass view: \\\"outputs\\\" when running a layer.\"}",
+      "id": "lc_850d729f-202d-41de-a7b6-cb59d0ff8204"
+     }
+    ],
+    "additional_kwargs": {},
+    "response_metadata": {},
+    "type": "tool",
+    "name": "run_layer",
+    "id": "97437dac-0e27-45cc-ac73-074cb6e313a8",
+    "tool_call_id": "chatcmpl-tool-b16aecc85abb2368",
+    "artifact": {
+     "structured_content": {
+      "ok": true,
+      "status": "Completed",
+      "sessionId": "2d9096992c7b462ab3535095010439ce",
+      "layerId": "670076c64706455eb787238ff021cc15",
+      "layerKey": "step-25",
+      "reused": false,
+      "layer": {
+       "entryPoint": "Bisect",
+       "parallelism": 4,
+       "previousLayerIds": [
+        "a4c52649171d43af8365fe0495da8382"
+       ],
+       "successCount": 4,
+       "failureCount": 0,
+       "queuedSeconds": 0.0209704,
+       "elapsedSeconds": 3.1380967,
+       "submittedAt": "2026-10-25T17:58:10.9268477+00:00",
+       "startedAt": "2026-10-25T17:58:10.9478181+00:00",
+       "completedAt": "2026-10-25T17:58:14.0859148+00:00",
+       "jobId": 1350
+      },
+      "hint": "4 worker outputs are not shown in the summary view: call get_layer_result(layerId: \"670076c64706455eb787238ff021cc15\", view: \"outputs\"), or pass view: \"outputs\" when running a layer."
+     }
+    },
+    "status": "success"
+   }
+  },
+  {
+   "type": "ai",
+   "data": {
+    "content": "",
+    "additional_kwargs": {},
+    "response_metadata": {
+     "finish_reason": "tool_callstool_calls",
+     "model_name": "deepseek/deepseek-v4.1-flash-1017deepseek/deepseek-v4.1-flash-1017",
+     "service_tier": "default",
+     "model_provider": "openai"
+    },
+    "type": "ai",
+    "name": "ParcsAgent",
+    "id": "lc_run--01a17436-8ddb-7560-b699-ab88fe3c1d92",
+    "tool_calls": [
+     {
+      "name": "run_layer",
+      "args": {
+       "entryPoint": "Bisect",
+       "layerKey": "step-26",
+       "parameters": {
+        "final": "false",
+        "step": "26"
+       },
+       "parallelism": 4,
+       "previousLayerIds": [
+        "670076c64706455eb787238ff021cc15"
+       ],
+       "sessionId": "2d9096992c7b462ab3535095010439ce",
+       "waitSeconds": 200
+      },
+      "id": "chatcmpl-tool-91de75338ac80bc5",
+      "type": "tool_call"
+     }
+    ],
+    "invalid_tool_calls": [],
+    "usage_metadata": {
+     "input_tokens": 19682,
+     "output_tokens": 186,
+     "total_tokens": 19868,
+     "input_token_details": {
+      "audio": 0,
+      "cache_creation": 0,
+      "cache_read": 19328
+     },
+     "output_token_details": {
+      "audio": 0,
+      "reasoning": 0
+     }
+    }
+   }
+  },
+  {
+   "type": "tool",
+   "data": {
+    "content": [
+     {
+      "type": "text",
+      "text": "{\"ok\":true,\"status\":\"Completed\",\"sessionId\":\"2d9096992c7b462ab3535095010439ce\",\"layerId\":\"866345f1b346414eb46aec4a6103f589\",\"layerKey\":\"step-26\",\"reused\":false,\"layer\":{\"entryPoint\":\"Bisect\",\"parallelism\":4,\"previousLayerIds\":[\"670076c64706455eb787238ff021cc15\"],\"successCount\":4,\"failureCount\":0,\"queuedSeconds\":0.0227067,\"elapsedSeconds\":3.1485824,\"submittedAt\":\"2026-10-25T17:58:16.8997968+00:00\",\"startedAt\":\"2026-10-25T17:58:16.9225035+00:00\",\"completedAt\":\"2026-10-25T17:58:20.0710859+00:00\",\"jobId\":1351},\"hint\":\"4 worker outputs are not shown in the summary view: call get_layer_result(layerId: \\\"866345f1b346414eb46aec4a6103f589\\\", view: \\\"outputs\\\"), or pass view: \\\"outputs\\\" when running a layer.\"}",
+      "id": "lc_838e4dd8-4eb8-4e9f-9d12-628e5588113d"
+     }
+    ],
+    "additional_kwargs": {},
+    "response_metadata": {},
+    "type": "tool",
+    "name": "run_layer",
+    "id": "10be9ab7-89b8-46e0-92ce-8fa6b4702398",
+    "tool_call_id": "chatcmpl-tool-91de75338ac80bc5",
+    "artifact": {
+     "structured_content": {
+      "ok": true,
+      "status": "Completed",
+      "sessionId": "2d9096992c7b462ab3535095010439ce",
+      "layerId": "866345f1b346414eb46aec4a6103f589",
+      "layerKey": "step-26",
+      "reused": false,
+      "layer": {
+       "entryPoint": "Bisect",
+       "parallelism": 4,
+       "previousLayerIds": [
+        "670076c64706455eb787238ff021cc15"
+       ],
+       "successCount": 4,
+       "failureCount": 0,
+       "queuedSeconds": 0.0227067,
+       "elapsedSeconds": 3.1485824,
+       "submittedAt": "2026-10-25T17:58:16.8997968+00:00",
+       "startedAt": "2026-10-25T17:58:16.9225035+00:00",
+       "completedAt": "2026-10-25T17:58:20.0710859+00:00",
+       "jobId": 1351
+      },
+      "hint": "4 worker outputs are not shown in the summary view: call get_layer_result(layerId: \"866345f1b346414eb46aec4a6103f589\", view: \"outputs\"), or pass view: \"outputs\" when running a layer."
+     }
+    },
+    "status": "success"
+   }
+  },
+  {
+   "type": "ai",
+   "data": {
+    "content": "",
+    "additional_kwargs": {},
+    "response_metadata": {
+     "finish_reason": "tool_callstool_calls",
+     "model_name": "deepseek/deepseek-v4.1-flash-1017deepseek/deepseek-v4.1-flash-1017",
+     "service_tier": "default",
+     "model_provider": "openai"
+    },
+    "type": "ai",
+    "name": "ParcsAgent",
+    "id": "lc_run--01a17436-a543-71fc-b5e5-b11ec2b0e35b",
+    "tool_calls": [
+     {
+      "name": "run_layer",
+      "args": {
+       "entryPoint": "Bisect",
+       "layerKey": "step-27",
+       "parameters": {
+        "final": "false",
+        "step": "27"
+       },
+       "parallelism": 4,
+       "previousLayerIds": [
+        "866345f1b346414eb46aec4a6103f589"
+       ],
+       "sessionId": "2d9096992c7b462ab3535095010439ce",
+       "waitSeconds": 200
+      },
+      "id": "chatcmpl-tool-b714a1cdae57cfc7",
+      "type": "tool_call"
+     }
+    ],
+    "invalid_tool_calls": [],
+    "usage_metadata": {
+     "input_tokens": 20147,
+     "output_tokens": 190,
+     "total_tokens": 20337,
+     "input_token_details": {
+      "audio": 0,
+      "cache_creation": 0,
+      "cache_read": 19840
+     },
+     "output_token_details": {
+      "audio": 0,
+      "reasoning": 0
+     }
+    }
+   }
+  },
+  {
+   "type": "tool",
+   "data": {
+    "content": [
+     {
+      "type": "text",
+      "text": "{\"ok\":true,\"status\":\"Completed\",\"sessionId\":\"2d9096992c7b462ab3535095010439ce\",\"layerId\":\"a420cf84f6b2431c9018190e0940d4e3\",\"layerKey\":\"step-27\",\"reused\":false,\"layer\":{\"entryPoint\":\"Bisect\",\"parallelism\":4,\"previousLayerIds\":[\"866345f1b346414eb46aec4a6103f589\"],\"successCount\":4,\"failureCount\":0,\"queuedSeconds\":0.0255889,\"elapsedSeconds\":3.132977,\"submittedAt\":\"2026-10-25T17:58:23.0371585+00:00\",\"startedAt\":\"2026-10-25T17:58:23.0627474+00:00\",\"completedAt\":\"2026-10-25T17:58:26.1957244+00:00\",\"jobId\":1352},\"hint\":\"4 worker outputs are not shown in the summary view: call get_layer_result(layerId: \\\"a420cf84f6b2431c9018190e0940d4e3\\\", view: \\\"outputs\\\"), or pass view: \\\"outputs\\\" when running a layer.\"}",
+      "id": "lc_1e4ca050-6dc8-4d66-81ad-308ed9009fbd"
+     }
+    ],
+    "additional_kwargs": {},
+    "response_metadata": {},
+    "type": "tool",
+    "name": "run_layer",
+    "id": "65717008-4426-4004-ba6f-9d9b5c2304ae",
+    "tool_call_id": "chatcmpl-tool-b714a1cdae57cfc7",
+    "artifact": {
+     "structured_content": {
+      "ok": true,
+      "status": "Completed",
+      "sessionId": "2d9096992c7b462ab3535095010439ce",
+      "layerId": "a420cf84f6b2431c9018190e0940d4e3",
+      "layerKey": "step-27",
+      "reused": false,
+      "layer": {
+       "entryPoint": "Bisect",
+       "parallelism": 4,
+       "previousLayerIds": [
+        "866345f1b346414eb46aec4a6103f589"
+       ],
+       "successCount": 4,
+       "failureCount": 0,
+       "queuedSeconds": 0.0255889,
+       "elapsedSeconds": 3.132977,
+       "submittedAt": "2026-10-25T17:58:23.0371585+00:00",
+       "startedAt": "2026-10-25T17:58:23.0627474+00:00",
+       "completedAt": "2026-10-25T17:58:26.1957244+00:00",
+       "jobId": 1352
+      },
+      "hint": "4 worker outputs are not shown in the summary view: call get_layer_result(layerId: \"a420cf84f6b2431c9018190e0940d4e3\", view: \"outputs\"), or pass view: \"outputs\" when running a layer."
+     }
+    },
+    "status": "success"
+   }
+  },
+  {
+   "type": "ai",
+   "data": {
+    "content": "",
+    "additional_kwargs": {},
+    "response_metadata": {
+     "finish_reason": "tool_callstool_calls",
+     "model_name": "deepseek/deepseek-v4.1-flash-1017deepseek/deepseek-v4.1-flash-1017",
+     "service_tier": "default",
+     "model_provider": "openai"
+    },
+    "type": "ai",
+    "name": "ParcsAgent",
+    "id": "lc_run--01a17436-bd46-70d9-9a94-5f605ad718af",
+    "tool_calls": [
+     {
+      "name": "run_layer",
+      "args": {
+       "entryPoint": "Bisect",
+       "layerKey": "step-28",
+       "parameters": {
+        "final": "false",
+        "step": "28"
+       },
+       "parallelism": 4,
+       "previousLayerIds": [
+        "a420cf84f6b2431c9018190e0940d4e3"
+       ],
+       "sessionId": "2d9096992c7b462ab3535095010439ce",
+       "waitSeconds": 200
+      },
+      "id": "chatcmpl-tool-b5a97207754b05fa",
+      "type": "tool_call"
+     }
+    ],
+    "invalid_tool_calls": [],
+    "usage_metadata": {
+     "input_tokens": 20625,
+     "output_tokens": 193,
+     "total_tokens": 20818,
+     "input_token_details": {
+      "audio": 0,
+      "cache_creation": 0,
+      "cache_read": 20224
+     },
+     "output_token_details": {
+      "audio": 0,
+      "reasoning": 0
+     }
+    }
+   }
+  },
+  {
+   "type": "tool",
+   "data": {
+    "content": [
+     {
+      "type": "text",
+      "text": "{\"ok\":true,\"status\":\"Completed\",\"sessionId\":\"2d9096992c7b462ab3535095010439ce\",\"layerId\":\"91115fd8509849a0b201aec64494e564\",\"layerKey\":\"step-28\",\"reused\":false,\"layer\":{\"entryPoint\":\"Bisect\",\"parallelism\":4,\"previousLayerIds\":[\"a420cf84f6b2431c9018190e0940d4e3\"],\"successCount\":4,\"failureCount\":0,\"queuedSeconds\":0.0231952,\"elapsedSeconds\":3.1338992,\"submittedAt\":\"2026-10-25T17:58:29.6818043+00:00\",\"startedAt\":\"2026-10-25T17:58:29.7049995+00:00\",\"completedAt\":\"2026-10-25T17:58:32.8388987+00:00\",\"jobId\":1353},\"hint\":\"4 worker outputs are not shown in the summary view: call get_layer_result(layerId: \\\"91115fd8509849a0b201aec64494e564\\\", view: \\\"outputs\\\"), or pass view: \\\"outputs\\\" when running a layer.\"}",
+      "id": "lc_3cf6b2a5-6861-4e56-bb4a-533279d559a9"
+     }
+    ],
+    "additional_kwargs": {},
+    "response_metadata": {},
+    "type": "tool",
+    "name": "run_layer",
+    "id": "eb69fa10-b474-416f-97e3-881df0e77e02",
+    "tool_call_id": "chatcmpl-tool-b5a97207754b05fa",
+    "artifact": {
+     "structured_content": {
+      "ok": true,
+      "status": "Completed",
+      "sessionId": "2d9096992c7b462ab3535095010439ce",
+      "layerId": "91115fd8509849a0b201aec64494e564",
+      "layerKey": "step-28",
+      "reused": false,
+      "layer": {
+       "entryPoint": "Bisect",
+       "parallelism": 4,
+       "previousLayerIds": [
+        "a420cf84f6b2431c9018190e0940d4e3"
+       ],
+       "successCount": 4,
+       "failureCount": 0,
+       "queuedSeconds": 0.0231952,
+       "elapsedSeconds": 3.1338992,
+       "submittedAt": "2026-10-25T17:58:29.6818043+00:00",
+       "startedAt": "2026-10-25T17:58:29.7049995+00:00",
+       "completedAt": "2026-10-25T17:58:32.8388987+00:00",
+       "jobId": 1353
+      },
+      "hint": "4 worker outputs are not shown in the summary view: call get_layer_result(layerId: \"91115fd8509849a0b201aec64494e564\", view: \"outputs\"), or pass view: \"outputs\" when running a layer."
+     }
+    },
+    "status": "success"
+   }
+  },
+  {
+   "type": "ai",
+   "data": {
+    "content": "",
+    "additional_kwargs": {},
+    "response_metadata": {
+     "finish_reason": "tool_callstool_calls",
+     "model_name": "deepseek/deepseek-v4.1-flash-1017deepseek/deepseek-v4.1-flash-1017",
+     "service_tier": "default",
+     "model_provider": "openai"
+    },
+    "type": "ai",
+    "name": "ParcsAgent",
+    "id": "lc_run--01a17436-d72f-75a4-b8e3-56badc34ec5d",
+    "tool_calls": [
+     {
+      "name": "run_layer",
+      "args": {
+       "entryPoint": "Bisect",
+       "layerKey": "step-29",
+       "parameters": {
+        "final": "false",
+        "step": "29"
+       },
+       "parallelism": 4,
+       "previousLayerIds": [
+        "91115fd8509849a0b201aec64494e564"
+       ],
+       "sessionId": "2d9096992c7b462ab3535095010439ce",
+       "waitSeconds": 200
+      },
+      "id": "chatcmpl-tool-aac2c007a61e1dcd",
+      "type": "tool_call"
+     }
+    ],
+    "invalid_tool_calls": [],
+    "usage_metadata": {
+     "input_tokens": 21102,
+     "output_tokens": 189,
+     "total_tokens": 21291,
+     "input_token_details": {
+      "audio": 0,
+      "cache_creation": 0,
+      "cache_read": 20736
+     },
+     "output_token_details": {
+      "audio": 0,
+      "reasoning": 0
+     }
+    }
+   }
+  },
+  {
+   "type": "tool",
+   "data": {
+    "content": [
+     {
+      "type": "text",
+      "text": "{\"ok\":true,\"status\":\"Completed\",\"sessionId\":\"2d9096992c7b462ab3535095010439ce\",\"layerId\":\"9ef9433c09de44dab30daddf7b37fec4\",\"layerKey\":\"step-29\",\"reused\":false,\"layer\":{\"entryPoint\":\"Bisect\",\"parallelism\":4,\"previousLayerIds\":[\"91115fd8509849a0b201aec64494e564\"],\"successCount\":4,\"failureCount\":0,\"queuedSeconds\":0.0260175,\"elapsedSeconds\":3.1403354,\"submittedAt\":\"2026-10-25T17:58:36.0954096+00:00\",\"startedAt\":\"2026-10-25T17:58:36.1214271+00:00\",\"completedAt\":\"2026-10-25T17:58:39.2617625+00:00\",\"jobId\":1354},\"hint\":\"4 worker outputs are not shown in the summary view: call get_layer_result(layerId: \\\"9ef9433c09de44dab30daddf7b37fec4\\\", view: \\\"outputs\\\"), or pass view: \\\"outputs\\\" when running a layer.\"}",
+      "id": "lc_5877c855-9ed8-488b-b57a-6dcae81eb428"
+     }
+    ],
+    "additional_kwargs": {},
+    "response_metadata": {},
+    "type": "tool",
+    "name": "run_layer",
+    "id": "60275ae1-8f9c-4412-b33b-51dba633bfe6",
+    "tool_call_id": "chatcmpl-tool-aac2c007a61e1dcd",
+    "artifact": {
+     "structured_content": {
+      "ok": true,
+      "status": "Completed",
+      "sessionId": "2d9096992c7b462ab3535095010439ce",
+      "layerId": "9ef9433c09de44dab30daddf7b37fec4",
+      "layerKey": "step-29",
+      "reused": false,
+      "layer": {
+       "entryPoint": "Bisect",
+       "parallelism": 4,
+       "previousLayerIds": [
+        "91115fd8509849a0b201aec64494e564"
+       ],
+       "successCount": 4,
+       "failureCount": 0,
+       "queuedSeconds": 0.0260175,
+       "elapsedSeconds": 3.1403354,
+       "submittedAt": "2026-10-25T17:58:36.0954096+00:00",
+       "startedAt": "2026-10-25T17:58:36.1214271+00:00",
+       "completedAt": "2026-10-25T17:58:39.2617625+00:00",
+       "jobId": 1354
+      },
+      "hint": "4 worker outputs are not shown in the summary view: call get_layer_result(layerId: \"9ef9433c09de44dab30daddf7b37fec4\", view: \"outputs\"), or pass view: \"outputs\" when running a layer."
+     }
+    },
+    "status": "success"
+   }
+  },
+  {
+   "type": "ai",
+   "data": {
+    "content": "",
+    "additional_kwargs": {},
+    "response_metadata": {
+     "finish_reason": "tool_callstool_calls",
+     "model_name": "deepseek/deepseek-v4.1-flash-1017deepseek/deepseek-v4.1-flash-1017",
+     "service_tier": "default",
+     "model_provider": "openai"
+    },
+    "type": "ai",
+    "name": "ParcsAgent",
+    "id": "lc_run--01a17436-f035-70e6-a55d-c8672f83d597",
+    "tool_calls": [
+     {
+      "name": "run_layer",
+      "args": {
+       "entryPoint": "Bisect",
+       "layerKey": "step-30",
+       "parameters": {
+        "final": "false",
+        "step": "30"
+       },
+       "parallelism": 4,
+       "previousLayerIds": [
+        "9ef9433c09de44dab30daddf7b37fec4"
+       ],
+       "sessionId": "2d9096992c7b462ab3535095010439ce",
+       "waitSeconds": 200
+      },
+      "id": "chatcmpl-tool-9ce95ea2f422d471",
+      "type": "tool_call"
+     }
+    ],
+    "invalid_tool_calls": [],
+    "usage_metadata": {
+     "input_tokens": 21579,
+     "output_tokens": 193,
+     "total_tokens": 21772,
+     "input_token_details": {
+      "audio": 0,
+      "cache_creation": 0,
+      "cache_read": 21248
+     },
+     "output_token_details": {
+      "audio": 0,
+      "reasoning": 0
+     }
+    }
+   }
+  },
+  {
+   "type": "tool",
+   "data": {
+    "content": [
+     {
+      "type": "text",
+      "text": "{\"ok\":true,\"status\":\"Completed\",\"sessionId\":\"2d9096992c7b462ab3535095010439ce\",\"layerId\":\"c662023533ba4eb99bc0a09f29c9eeaa\",\"layerKey\":\"step-30\",\"reused\":false,\"layer\":{\"entryPoint\":\"Bisect\",\"parallelism\":4,\"previousLayerIds\":[\"9ef9433c09de44dab30daddf7b37fec4\"],\"successCount\":4,\"failureCount\":0,\"queuedSeconds\":0.0220918,\"elapsedSeconds\":3.1369659,\"submittedAt\":\"2026-10-25T17:58:41.8148023+00:00\",\"startedAt\":\"2026-10-25T17:58:41.8368941+00:00\",\"completedAt\":\"2026-10-25T17:58:44.97386+00:00\",\"jobId\":1355},\"hint\":\"4 worker outputs are not shown in the summary view: call get_layer_result(layerId: \\\"c662023533ba4eb99bc0a09f29c9eeaa\\\", view: \\\"outputs\\\"), or pass view: \\\"outputs\\\" when running a layer.\"}",
+      "id": "lc_dbea94d1-6426-403a-9eef-c0bfc033efe6"
+     }
+    ],
+    "additional_kwargs": {},
+    "response_metadata": {},
+    "type": "tool",
+    "name": "run_layer",
+    "id": "f3bf306e-f676-420d-bc94-57781225000c",
+    "tool_call_id": "chatcmpl-tool-9ce95ea2f422d471",
+    "artifact": {
+     "structured_content": {
+      "ok": true,
+      "status": "Completed",
+      "sessionId": "2d9096992c7b462ab3535095010439ce",
+      "layerId": "c662023533ba4eb99bc0a09f29c9eeaa",
+      "layerKey": "step-30",
+      "reused": false,
+      "layer": {
+       "entryPoint": "Bisect",
+       "parallelism": 4,
+       "previousLayerIds": [
+        "9ef9433c09de44dab30daddf7b37fec4"
+       ],
+       "successCount": 4,
+       "failureCount": 0,
+       "queuedSeconds": 0.0220918,
+       "elapsedSeconds": 3.1369659,
+       "submittedAt": "2026-10-25T17:58:41.8148023+00:00",
+       "startedAt": "2026-10-25T17:58:41.8368941+00:00",
+       "completedAt": "2026-10-25T17:58:44.97386+00:00",
+       "jobId": 1355
+      },
+      "hint": "4 worker outputs are not shown in the summary view: call get_layer_result(layerId: \"c662023533ba4eb99bc0a09f29c9eeaa\", view: \"outputs\"), or pass view: \"outputs\" when running a layer."
+     }
+    },
+    "status": "success"
+   }
+  },
+  {
+   "type": "ai",
+   "data": {
+    "content": "",
+    "additional_kwargs": {},
+    "response_metadata": {
+     "finish_reason": "tool_callstool_calls",
+     "model_name": "deepseek/deepseek-v4.1-flash-1017deepseek/deepseek-v4.1-flash-1017",
+     "service_tier": "default",
+     "model_provider": "openai"
+    },
+    "type": "ai",
+    "name": "ParcsAgent",
+    "id": "lc_run--01a17437-0682-741b-aa9b-f9c497c6e30e",
+    "tool_calls": [
+     {
+      "name": "run_layer",
+      "args": {
+       "entryPoint": "Bisect",
+       "layerKey": "step-31",
+       "parameters": {
+        "final": "false",
+        "step": "31"
+       },
+       "parallelism": 4,
+       "previousLayerIds": [
+        "c662023533ba4eb99bc0a09f29c9eeaa"
+       ],
+       "sessionId": "2d9096992c7b462ab3535095010439ce",
+       "waitSeconds": 200
+      },
+      "id": "chatcmpl-tool-b4e5eadbe56ac770",
+      "type": "tool_call"
+     }
+    ],
+    "invalid_tool_calls": [],
+    "usage_metadata": {
+     "input_tokens": 22059,
+     "output_tokens": 191,
+     "total_tokens": 22250,
+     "input_token_details": {
+      "audio": 0,
+      "cache_creation": 0,
+      "cache_read": 21760
+     },
+     "output_token_details": {
+      "audio": 0,
+      "reasoning": 0
+     }
+    }
+   }
+  },
+  {
+   "type": "tool",
+   "data": {
+    "content": [
+     {
+      "type": "text",
+      "text": "{\"ok\":true,\"status\":\"Completed\",\"sessionId\":\"2d9096992c7b462ab3535095010439ce\",\"layerId\":\"8ae4e7a6aa024c1fa4720cdc8da194d8\",\"layerKey\":\"step-31\",\"reused\":false,\"layer\":{\"entryPoint\":\"Bisect\",\"parallelism\":4,\"previousLayerIds\":[\"c662023533ba4eb99bc0a09f29c9eeaa\"],\"successCount\":4,\"failureCount\":0,\"queuedSeconds\":0.0222023,\"elapsedSeconds\":3.1375079,\"submittedAt\":\"2026-10-25T17:58:47.3039338+00:00\",\"startedAt\":\"2026-10-25T17:58:47.3261361+00:00\",\"completedAt\":\"2026-10-25T17:58:50.463644+00:00\",\"jobId\":1356},\"hint\":\"4 worker outputs are not shown in the summary view: call get_layer_result(layerId: \\\"8ae4e7a6aa024c1fa4720cdc8da194d8\\\", view: \\\"outputs\\\"), or pass view: \\\"outputs\\\" when running a layer.\"}",
+      "id": "lc_98d80e58-c362-49f3-b77e-bfc9d657e44f"
+     }
+    ],
+    "additional_kwargs": {},
+    "response_metadata": {},
+    "type": "tool",
+    "name": "run_layer",
+    "id": "d0f99f29-9518-4e39-8545-5b859696aa26",
+    "tool_call_id": "chatcmpl-tool-b4e5eadbe56ac770",
+    "artifact": {
+     "structured_content": {
+      "ok": true,
+      "status": "Completed",
+      "sessionId": "2d9096992c7b462ab3535095010439ce",
+      "layerId": "8ae4e7a6aa024c1fa4720cdc8da194d8",
+      "layerKey": "step-31",
+      "reused": false,
+      "layer": {
+       "entryPoint": "Bisect",
+       "parallelism": 4,
+       "previousLayerIds": [
+        "c662023533ba4eb99bc0a09f29c9eeaa"
+       ],
+       "successCount": 4,
+       "failureCount": 0,
+       "queuedSeconds": 0.0222023,
+       "elapsedSeconds": 3.1375079,
+       "submittedAt": "2026-10-25T17:58:47.3039338+00:00",
+       "startedAt": "2026-10-25T17:58:47.3261361+00:00",
+       "completedAt": "2026-10-25T17:58:50.463644+00:00",
+       "jobId": 1356
+      },
+      "hint": "4 worker outputs are not shown in the summary view: call get_layer_result(layerId: \"8ae4e7a6aa024c1fa4720cdc8da194d8\", view: \"outputs\"), or pass view: \"outputs\" when running a layer."
+     }
+    },
+    "status": "success"
+   }
+  },
+  {
+   "type": "ai",
+   "data": {
+    "content": "",
+    "additional_kwargs": {},
+    "response_metadata": {
+     "finish_reason": "tool_callstool_calls",
+     "model_name": "deepseek/deepseek-v4.1-flash-1017deepseek/deepseek-v4.1-flash-1017",
+     "service_tier": "default",
+     "model_provider": "openai"
+    },
+    "type": "ai",
+    "name": "ParcsAgent",
+    "id": "lc_run--01a17437-1bf5-7673-81b8-ca82c83ed3f4",
+    "tool_calls": [
+     {
+      "name": "run_layer",
+      "args": {
+       "entryPoint": "Bisect",
+       "layerKey": "step-32",
+       "parameters": {
+        "final": "false",
+        "step": "32"
+       },
+       "parallelism": 4,
+       "previousLayerIds": [
+        "8ae4e7a6aa024c1fa4720cdc8da194d8"
+       ],
+       "sessionId": "2d9096992c7b462ab3535095010439ce",
+       "waitSeconds": 200
+      },
+      "id": "chatcmpl-tool-823db93c47ed6553",
+      "type": "tool_call"
+     }
+    ],
+    "invalid_tool_calls": [],
+    "usage_metadata": {
+     "input_tokens": 22541,
+     "output_tokens": 194,
+     "total_tokens": 22735,
+     "input_token_details": {
+      "audio": 0,
+      "cache_creation": 0,
+      "cache_read": 22144
+     },
+     "output_token_details": {
+      "audio": 0,
+      "reasoning": 0
+     }
+    }
+   }
+  },
+  {
+   "type": "tool",
+   "data": {
+    "content": [
+     {
+      "type": "text",
+      "text": "{\"ok\":true,\"status\":\"Completed\",\"sessionId\":\"2d9096992c7b462ab3535095010439ce\",\"layerId\":\"d0f57889694f4dbd8051deabcf69ca8b\",\"layerKey\":\"step-32\",\"reused\":false,\"layer\":{\"entryPoint\":\"Bisect\",\"parallelism\":4,\"previousLayerIds\":[\"8ae4e7a6aa024c1fa4720cdc8da194d8\"],\"successCount\":4,\"failureCount\":0,\"queuedSeconds\":0.0261406,\"elapsedSeconds\":3.1318261,\"submittedAt\":\"2026-10-25T17:58:53.2537243+00:00\",\"startedAt\":\"2026-10-25T17:58:53.2798649+00:00\",\"completedAt\":\"2026-10-25T17:58:56.411691+00:00\",\"jobId\":1357},\"hint\":\"4 worker outputs are not shown in the summary view: call get_layer_result(layerId: \\\"d0f57889694f4dbd8051deabcf69ca8b\\\", view: \\\"outputs\\\"), or pass view: \\\"outputs\\\" when running a layer.\"}",
+      "id": "lc_03212108-24ce-40c1-8437-9e6e7b71d603"
+     }
+    ],
+    "additional_kwargs": {},
+    "response_metadata": {},
+    "type": "tool",
+    "name": "run_layer",
+    "id": "d81002ef-5545-4d94-86ca-7d109edce81b",
+    "tool_call_id": "chatcmpl-tool-823db93c47ed6553",
+    "artifact": {
+     "structured_content": {
+      "ok": true,
+      "status": "Completed",
+      "sessionId": "2d9096992c7b462ab3535095010439ce",
+      "layerId": "d0f57889694f4dbd8051deabcf69ca8b",
+      "layerKey": "step-32",
+      "reused": false,
+      "layer": {
+       "entryPoint": "Bisect",
+       "parallelism": 4,
+       "previousLayerIds": [
+        "8ae4e7a6aa024c1fa4720cdc8da194d8"
+       ],
+       "successCount": 4,
+       "failureCount": 0,
+       "queuedSeconds": 0.0261406,
+       "elapsedSeconds": 3.1318261,
+       "submittedAt": "2026-10-25T17:58:53.2537243+00:00",
+       "startedAt": "2026-10-25T17:58:53.2798649+00:00",
+       "completedAt": "2026-10-25T17:58:56.411691+00:00",
+       "jobId": 1357
+      },
+      "hint": "4 worker outputs are not shown in the summary view: call get_layer_result(layerId: \"d0f57889694f4dbd8051deabcf69ca8b\", view: \"outputs\"), or pass view: \"outputs\" when running a layer."
+     }
+    },
+    "status": "success"
+   }
+  },
+  {
+   "type": "ai",
+   "data": {
+    "content": "Now the final layer with parallelism 1.\n\n",
+    "additional_kwargs": {},
+    "response_metadata": {
+     "finish_reason": "tool_callstool_calls",
+     "model_name": "deepseek/deepseek-v4.1-flash-1017deepseek/deepseek-v4.1-flash-1017",
+     "service_tier": "default",
+     "model_provider": "openai"
+    },
+    "type": "ai",
+    "name": "ParcsAgent",
+    "id": "lc_run--01a17437-3332-7685-8ac6-640c4d6924ae",
+    "tool_calls": [
+     {
+      "name": "run_layer",
+      "args": {
+       "entryPoint": "Bisect",
+       "layerKey": "step-33-final",
+       "parameters": {
+        "final": "true",
+        "step": "33"
+       },
+       "parallelism": 1,
+       "previousLayerIds": [
+        "d0f57889694f4dbd8051deabcf69ca8b"
+       ],
+       "sessionId": "2d9096992c7b462ab3535095010439ce",
+       "waitSeconds": 200
+      },
+      "id": "chatcmpl-tool-9590c204a7f25a36",
+      "type": "tool_call"
+     }
+    ],
+    "invalid_tool_calls": [],
+    "usage_metadata": {
+     "input_tokens": 23025,
+     "output_tokens": 201,
+     "total_tokens": 23226,
+     "input_token_details": {
+      "audio": 0,
+      "cache_creation": 0,
+      "cache_read": 22656
+     },
+     "output_token_details": {
+      "audio": 0,
+      "reasoning": 0
+     }
+    }
+   }
+  },
+  {
+   "type": "tool",
+   "data": {
+    "content": [
+     {
+      "type": "text",
+      "text": "{\"ok\":true,\"status\":\"Completed\",\"sessionId\":\"2d9096992c7b462ab3535095010439ce\",\"layerId\":\"a52183fcbd9247a9828c6a6ef94e7060\",\"layerKey\":\"step-33-final\",\"reused\":false,\"layer\":{\"entryPoint\":\"Bisect\",\"parallelism\":1,\"previousLayerIds\":[\"d0f57889694f4dbd8051deabcf69ca8b\"],\"successCount\":1,\"failureCount\":0,\"queuedSeconds\":0.0232873,\"elapsedSeconds\":3.1451739,\"submittedAt\":\"2026-10-25T17:59:04.6953698+00:00\",\"startedAt\":\"2026-10-25T17:59:04.7186571+00:00\",\"completedAt\":\"2026-10-25T17:59:07.863831+00:00\",\"jobId\":1358},\"output\":{\"step\":33,\"mid\":0.2980832072207704,\"midStr\":\"0.2980832072207704\",\"midBits\":4599041409601765376,\"lo\":0.2980832071043551,\"hi\":0.29808320733718574,\"count\":5000000}}",
+      "id": "lc_0025c0fa-ed13-4598-83cb-ce206aafcb1c"
+     }
+    ],
+    "additional_kwargs": {},
+    "response_metadata": {},
+    "type": "tool",
+    "name": "run_layer",
+    "id": "703cca5c-3499-4189-9fdc-0821ebb21f09",
+    "tool_call_id": "chatcmpl-tool-9590c204a7f25a36",
+    "artifact": {
+     "structured_content": {
+      "ok": true,
+      "status": "Completed",
+      "sessionId": "2d9096992c7b462ab3535095010439ce",
+      "layerId": "a52183fcbd9247a9828c6a6ef94e7060",
+      "layerKey": "step-33-final",
+      "reused": false,
+      "layer": {
+       "entryPoint": "Bisect",
+       "parallelism": 1,
+       "previousLayerIds": [
+        "d0f57889694f4dbd8051deabcf69ca8b"
+       ],
+       "successCount": 1,
+       "failureCount": 0,
+       "queuedSeconds": 0.0232873,
+       "elapsedSeconds": 3.1451739,
+       "submittedAt": "2026-10-25T17:59:04.6953698+00:00",
+       "startedAt": "2026-10-25T17:59:04.7186571+00:00",
+       "completedAt": "2026-10-25T17:59:07.863831+00:00",
+       "jobId": 1358
+      },
+      "output": {
+       "step": 33,
+       "mid": 0.2980832072207704,
+       "midStr": "0.2980832072207704",
+       "midBits": 4599041409601765376,
+       "lo": 0.2980832071043551,
+       "hi": 0.29808320733718574,
+       "count": 5000000
+      }
+     }
+    },
+    "status": "success"
+   }
+  }
+ ],
+ "tool_calls": [
+  {
+   "name": "get_cluster_info",
+   "args": {},
+   "t_start": 1792950927.6432686,
+   "t_end": 1792950928.534408,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "output": {
+     "scalingMode": "static",
+     "workerNodeCount": 1,
+     "currentCapacity": 4,
+     "maxParallelism": 4,
+     "daemonCpuRequestMillicores": 250,
+     "capacitySource": "dns",
+     "freeWorkers": 4,
+     "runningLayers": 0,
+     "queuedLayers": 0
+    }
+   }
+  },
+  {
+   "name": "create_session",
+   "args": {
+    "sourceCode": "using System;\nusing System.Collections.Generic;\nusing System.Globalization;\nusing System.Text.Json;\nusing System.Threading;\nusing System.Threading.Tasks;\nusing Parcs.Agent.Runtime;\n\npublic class StepOut\n{\n    public long lo { get; set; }\n    public long hi { get; set; }\n    public long cnt { get; set; }\n}\n\npublic class Bisect : IAgentComputation\n{\n    const ulong MOD = 2147483647UL;\n    const long K = 5000000L;\n    const ulong M = 16777216UL;\n\n    static long CountRange(ulong from, ulong to, double mid)\n    {\n        long cnt = 0;\n        for (ulong i = from; i <= to; i++)\n        {\n            ulong z = i * 0x9E3779B97F4A7C15UL;\n            z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9UL;\n            z = (z ^ (z >> 27)) * 0x94D049BB133111EBUL;\n            z = z ^ (z >> 31);\n            ulong r = z % MOD;\n            double v = (double)r / 2147483647.0;\n            if (v <= mid) cnt++;\n        }\n        return cnt;\n    }\n\n    public Task<AgentLayerResult> ExecuteAsync(AgentLayerInput input, CancellationToken ct)\n    {\n        string fstr;\n        bool final = input.Parameters.TryGetValue(\"final\", out fstr) && fstr == \"true\";\n        int step = int.Parse(input.Parameters[\"step\"]);\n\n        double lo = 0.0, hi = 1.0;\n        long total = 0;\n\n        if (step > 1)\n        {\n            var prev = input.GetPreviousOutputs();\n            bool first = true;\n            foreach (var s in prev)\n            {\n                if (s == null) continue;\n                var o = JsonSerializer.Deserialize<StepOut>(s);\n                if (first) { lo = BitConverter.Int64BitsToDouble(o.lo); hi = BitConverter.Int64BitsToDouble(o.hi); first = false; }\n                total += o.cnt;\n            }\n            // apply the previous step's update\n            double pmid = (lo + hi) / 2.0;\n            if (total >= K) hi = pmid; else lo = pmid;\n        }\n\n        if (final)\n        {\n            double fm = (lo + hi) / 2.0;\n            return Task.FromResult(AgentLayerResult.Ok(JsonSerializer.Serialize(new {\n                step = step,\n                mid = fm,\n                midStr = fm.ToString(\"R\", CultureInfo.InvariantCulture),\n                midBits = BitConverter.DoubleToInt64Bits(fm),\n                lo = lo,\n                hi = hi,\n                count = total\n            })));\n        }\n\n        double mid = (lo + hi) / 2.0;\n        int W = input.TotalWorkers;\n        int w = input.WorkerIndex;\n        ulong from = (ulong)w * M / (ulong)W + 1;\n        ulong to = (ulong)(w + 1) * M / (ulong)W;\n        long cnt = from <= to ? CountRange(from, to, mid) : 0;\n\n        var res = new StepOut { lo = BitConverter.DoubleToInt64Bits(lo), hi = BitConverter.DoubleToInt64Bits(hi), cnt = cnt };\n        return Task.FromResult(AgentLayerResult.Ok(JsonSerializer.Serialize(res)));\n    }\n}\n// run fb77de51b28540debdf9b697b7b3ac3f\n"
+   },
+   "t_start": 1792950927.814818,
+   "t_end": 1792950928.5354097,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Created",
+    "sessionId": "2d9096992c7b462ab3535095010439ce",
+    "output": {
+     "entryPoints": [
+      "Bisect"
+     ]
+    }
+   }
+  },
+  {
+   "name": "run_layer",
+   "args": {
+    "sessionId": "2d9096992c7b462ab3535095010439ce",
+    "parallelism": 4,
+    "layerKey": "step-1",
+    "entryPoint": "Bisect",
+    "parameters": {
+     "step": "1",
+     "final": "false"
+    },
+    "waitSeconds": 200
+   },
+   "t_start": 1792950936.240166,
+   "t_end": 1792950940.006723,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "2d9096992c7b462ab3535095010439ce",
+    "layerId": "f70515f484ae4763bbce46da00d2d8f6",
+    "layerKey": "step-1",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Bisect",
+     "parallelism": 4,
+     "previousLayerIds": [],
+     "successCount": 4,
+     "failureCount": 0,
+     "queuedSeconds": 0.0254125,
+     "elapsedSeconds": 3.1600614,
+     "submittedAt": "2026-10-25T17:55:36.1218429+00:00",
+     "startedAt": "2026-10-25T17:55:36.1472554+00:00",
+     "completedAt": "2026-10-25T17:55:39.3073168+00:00",
+     "jobId": 1326
+    }
+   }
+  },
+  {
+   "name": "run_layer",
+   "args": {
+    "entryPoint": "Bisect",
+    "layerKey": "step-2",
+    "parameters": {
+     "final": "false",
+     "step": "2"
+    },
+    "parallelism": 4,
+    "previousLayerIds": [
+     "f70515f484ae4763bbce46da00d2d8f6"
+    ],
+    "sessionId": "2d9096992c7b462ab3535095010439ce",
+    "waitSeconds": 200
+   },
+   "t_start": 1792950942.9294946,
+   "t_end": 1792950946.6952367,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "2d9096992c7b462ab3535095010439ce",
+    "layerId": "41b7497d23e44611bd2c8db73688db22",
+    "layerKey": "step-2",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Bisect",
+     "parallelism": 4,
+     "previousLayerIds": [
+      "f70515f484ae4763bbce46da00d2d8f6"
+     ],
+     "successCount": 4,
+     "failureCount": 0,
+     "queuedSeconds": 0.0277697,
+     "elapsedSeconds": 3.1481809,
+     "submittedAt": "2026-10-25T17:55:42.815991+00:00",
+     "startedAt": "2026-10-25T17:55:42.8437607+00:00",
+     "completedAt": "2026-10-25T17:55:45.9919416+00:00",
+     "jobId": 1327
+    }
+   }
+  },
+  {
+   "name": "run_layer",
+   "args": {
+    "entryPoint": "Bisect",
+    "layerKey": "step-3",
+    "parameters": {
+     "final": "false",
+     "step": "3"
+    },
+    "parallelism": 4,
+    "previousLayerIds": [
+     "41b7497d23e44611bd2c8db73688db22"
+    ],
+    "sessionId": "2d9096992c7b462ab3535095010439ce",
+    "waitSeconds": 200
+   },
+   "t_start": 1792950949.2945516,
+   "t_end": 1792950953.0534046,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "2d9096992c7b462ab3535095010439ce",
+    "layerId": "571432c5a6e241da8f0b824c2602a514",
+    "layerKey": "step-3",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Bisect",
+     "parallelism": 4,
+     "previousLayerIds": [
+      "41b7497d23e44611bd2c8db73688db22"
+     ],
+     "successCount": 4,
+     "failureCount": 0,
+     "queuedSeconds": 0.0214673,
+     "elapsedSeconds": 3.1520335,
+     "submittedAt": "2026-10-25T17:55:49.1844819+00:00",
+     "startedAt": "2026-10-25T17:55:49.2059492+00:00",
+     "completedAt": "2026-10-25T17:55:52.3579827+00:00",
+     "jobId": 1328
+    }
+   }
+  },
+  {
+   "name": "run_layer",
+   "args": {
+    "entryPoint": "Bisect",
+    "layerKey": "step-4",
+    "parameters": {
+     "final": "false",
+     "step": "4"
+    },
+    "parallelism": 4,
+    "previousLayerIds": [
+     "571432c5a6e241da8f0b824c2602a514"
+    ],
+    "sessionId": "2d9096992c7b462ab3535095010439ce",
+    "waitSeconds": 200
+   },
+   "t_start": 1792950955.2570345,
+   "t_end": 1792950959.001231,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "2d9096992c7b462ab3535095010439ce",
+    "layerId": "413871e7e25f465c86a75975e34c7e28",
+    "layerKey": "step-4",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Bisect",
+     "parallelism": 4,
+     "previousLayerIds": [
+      "571432c5a6e241da8f0b824c2602a514"
+     ],
+     "successCount": 4,
+     "failureCount": 0,
+     "queuedSeconds": 0.0233637,
+     "elapsedSeconds": 3.1322635,
+     "submittedAt": "2026-10-25T17:55:55.1380781+00:00",
+     "startedAt": "2026-10-25T17:55:55.1614418+00:00",
+     "completedAt": "2026-10-25T17:55:58.2937053+00:00",
+     "jobId": 1329
+    }
+   }
+  },
+  {
+   "name": "run_layer",
+   "args": {
+    "entryPoint": "Bisect",
+    "layerKey": "step-5",
+    "parameters": {
+     "final": "false",
+     "step": "5"
+    },
+    "parallelism": 4,
+    "previousLayerIds": [
+     "413871e7e25f465c86a75975e34c7e28"
+    ],
+    "sessionId": "2d9096992c7b462ab3535095010439ce",
+    "waitSeconds": 200
+   },
+   "t_start": 1792950960.8160012,
+   "t_end": 1792950964.556039,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "2d9096992c7b462ab3535095010439ce",
+    "layerId": "8d461600c1b044239e585434c0545d61",
+    "layerKey": "step-5",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Bisect",
+     "parallelism": 4,
+     "previousLayerIds": [
+      "413871e7e25f465c86a75975e34c7e28"
+     ],
+     "successCount": 4,
+     "failureCount": 0,
+     "queuedSeconds": 0.0222147,
+     "elapsedSeconds": 3.1356435,
+     "submittedAt": "2026-10-25T17:56:00.6935157+00:00",
+     "startedAt": "2026-10-25T17:56:00.7157304+00:00",
+     "completedAt": "2026-10-25T17:56:03.8513739+00:00",
+     "jobId": 1330
+    }
+   }
+  },
+  {
+   "name": "run_layer",
+   "args": {
+    "entryPoint": "Bisect",
+    "layerKey": "step-6",
+    "parameters": {
+     "final": "false",
+     "step": "6"
+    },
+    "parallelism": 4,
+    "previousLayerIds": [
+     "8d461600c1b044239e585434c0545d61"
+    ],
+    "sessionId": "2d9096992c7b462ab3535095010439ce",
+    "waitSeconds": 200
+   },
+   "t_start": 1792950966.6004143,
+   "t_end": 1792950970.3514025,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "2d9096992c7b462ab3535095010439ce",
+    "layerId": "9ba82768a78c406c83342c96ca83a4ce",
+    "layerKey": "step-6",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Bisect",
+     "parallelism": 4,
+     "previousLayerIds": [
+      "8d461600c1b044239e585434c0545d61"
+     ],
+     "successCount": 4,
+     "failureCount": 0,
+     "queuedSeconds": 0.022129,
+     "elapsedSeconds": 3.1402144,
+     "submittedAt": "2026-10-25T17:56:06.4909145+00:00",
+     "startedAt": "2026-10-25T17:56:06.5130435+00:00",
+     "completedAt": "2026-10-25T17:56:09.6532579+00:00",
+     "jobId": 1331
+    }
+   }
+  },
+  {
+   "name": "run_layer",
+   "args": {
+    "entryPoint": "Bisect",
+    "layerKey": "step-7",
+    "parameters": {
+     "final": "false",
+     "step": "7"
+    },
+    "parallelism": 4,
+    "previousLayerIds": [
+     "9ba82768a78c406c83342c96ca83a4ce"
+    ],
+    "sessionId": "2d9096992c7b462ab3535095010439ce",
+    "waitSeconds": 200
+   },
+   "t_start": 1792950975.8169882,
+   "t_end": 1792950979.5797672,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "2d9096992c7b462ab3535095010439ce",
+    "layerId": "292590f5b5184e3fa21b30d49fbd01df",
+    "layerKey": "step-7",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Bisect",
+     "parallelism": 4,
+     "previousLayerIds": [
+      "9ba82768a78c406c83342c96ca83a4ce"
+     ],
+     "successCount": 4,
+     "failureCount": 0,
+     "queuedSeconds": 0.0215342,
+     "elapsedSeconds": 3.1446316,
+     "submittedAt": "2026-10-25T17:56:15.707132+00:00",
+     "startedAt": "2026-10-25T17:56:15.7286662+00:00",
+     "completedAt": "2026-10-25T17:56:18.8732978+00:00",
+     "jobId": 1332
+    }
+   }
+  },
+  {
+   "name": "run_layer",
+   "args": {
+    "entryPoint": "Bisect",
+    "layerKey": "step-8",
+    "parameters": {
+     "final": "false",
+     "step": "8"
+    },
+    "parallelism": 4,
+    "previousLayerIds": [
+     "292590f5b5184e3fa21b30d49fbd01df"
+    ],
+    "sessionId": "2d9096992c7b462ab3535095010439ce",
+    "waitSeconds": 200
+   },
+   "t_start": 1792950981.450001,
+   "t_end": 1792950985.200069,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "2d9096992c7b462ab3535095010439ce",
+    "layerId": "0988f4a925e840d7ac648fe5a1ba34fa",
+    "layerKey": "step-8",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Bisect",
+     "parallelism": 4,
+     "previousLayerIds": [
+      "292590f5b5184e3fa21b30d49fbd01df"
+     ],
+     "successCount": 4,
+     "failureCount": 0,
+     "queuedSeconds": 0.0204404,
+     "elapsedSeconds": 3.1457192,
+     "submittedAt": "2026-10-25T17:56:21.3347541+00:00",
+     "startedAt": "2026-10-25T17:56:21.3551945+00:00",
+     "completedAt": "2026-10-25T17:56:24.5009137+00:00",
+     "jobId": 1333
+    }
+   }
+  },
+  {
+   "name": "run_layer",
+   "args": {
+    "entryPoint": "Bisect",
+    "layerKey": "step-9",
+    "parameters": {
+     "final": "false",
+     "step": "9"
+    },
+    "parallelism": 4,
+    "previousLayerIds": [
+     "0988f4a925e840d7ac648fe5a1ba34fa"
+    ],
+    "sessionId": "2d9096992c7b462ab3535095010439ce",
+    "waitSeconds": 200
+   },
+   "t_start": 1792950988.0169058,
+   "t_end": 1792950991.8758621,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "2d9096992c7b462ab3535095010439ce",
+    "layerId": "fbfea90a7c204b028d8db68650c6e578",
+    "layerKey": "step-9",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Bisect",
+     "parallelism": 4,
+     "previousLayerIds": [
+      "0988f4a925e840d7ac648fe5a1ba34fa"
+     ],
+     "successCount": 4,
+     "failureCount": 0,
+     "queuedSeconds": 0.0241756,
+     "elapsedSeconds": 3.1372435,
+     "submittedAt": "2026-10-25T17:56:27.9514723+00:00",
+     "startedAt": "2026-10-25T17:56:27.9756479+00:00",
+     "completedAt": "2026-10-25T17:56:31.1128914+00:00",
+     "jobId": 1334
+    }
+   }
+  },
+  {
+   "name": "run_layer",
+   "args": {
+    "entryPoint": "Bisect",
+    "layerKey": "step-10",
+    "parameters": {
+     "final": "false",
+     "step": "10"
+    },
+    "parallelism": 4,
+    "previousLayerIds": [
+     "fbfea90a7c204b028d8db68650c6e578"
+    ],
+    "sessionId": "2d9096992c7b462ab3535095010439ce",
+    "waitSeconds": 200
+   },
+   "t_start": 1792950994.837022,
+   "t_end": 1792950998.591906,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "2d9096992c7b462ab3535095010439ce",
+    "layerId": "64d8a17616814693aaf984cf5e687aa2",
+    "layerKey": "step-10",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Bisect",
+     "parallelism": 4,
+     "previousLayerIds": [
+      "fbfea90a7c204b028d8db68650c6e578"
+     ],
+     "successCount": 4,
+     "failureCount": 0,
+     "queuedSeconds": 0.0252225,
+     "elapsedSeconds": 3.1480038,
+     "submittedAt": "2026-10-25T17:56:34.7204509+00:00",
+     "startedAt": "2026-10-25T17:56:34.7456734+00:00",
+     "completedAt": "2026-10-25T17:56:37.8936772+00:00",
+     "jobId": 1335
+    }
+   }
+  },
+  {
+   "name": "run_layer",
+   "args": {
+    "entryPoint": "Bisect",
+    "layerKey": "step-11",
+    "parameters": {
+     "final": "false",
+     "step": "11"
+    },
+    "parallelism": 4,
+    "previousLayerIds": [
+     "64d8a17616814693aaf984cf5e687aa2"
+    ],
+    "sessionId": "2d9096992c7b462ab3535095010439ce",
+    "waitSeconds": 200
+   },
+   "t_start": 1792951000.7969491,
+   "t_end": 1792951004.5371275,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "2d9096992c7b462ab3535095010439ce",
+    "layerId": "85b2abd469504386bd89a43bd556cdb4",
+    "layerKey": "step-11",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Bisect",
+     "parallelism": 4,
+     "previousLayerIds": [
+      "64d8a17616814693aaf984cf5e687aa2"
+     ],
+     "successCount": 4,
+     "failureCount": 0,
+     "queuedSeconds": 0.0245526,
+     "elapsedSeconds": 3.1337736,
+     "submittedAt": "2026-10-25T17:56:40.682686+00:00",
+     "startedAt": "2026-10-25T17:56:40.7072386+00:00",
+     "completedAt": "2026-10-25T17:56:43.8410122+00:00",
+     "jobId": 1336
+    }
+   }
+  },
+  {
+   "name": "run_layer",
+   "args": {
+    "entryPoint": "Bisect",
+    "layerKey": "step-12",
+    "parameters": {
+     "final": "false",
+     "step": "12"
+    },
+    "parallelism": 4,
+    "previousLayerIds": [
+     "85b2abd469504386bd89a43bd556cdb4"
+    ],
+    "sessionId": "2d9096992c7b462ab3535095010439ce",
+    "waitSeconds": 200
+   },
+   "t_start": 1792951008.6983142,
+   "t_end": 1792951012.4622064,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "2d9096992c7b462ab3535095010439ce",
+    "layerId": "b56fcfcccf5c4ea8aaf086becf5bbd7a",
+    "layerKey": "step-12",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Bisect",
+     "parallelism": 4,
+     "previousLayerIds": [
+      "85b2abd469504386bd89a43bd556cdb4"
+     ],
+     "successCount": 4,
+     "failureCount": 0,
+     "queuedSeconds": 0.0257687,
+     "elapsedSeconds": 3.1373381,
+     "submittedAt": "2026-10-25T17:56:48.5990063+00:00",
+     "startedAt": "2026-10-25T17:56:48.624775+00:00",
+     "completedAt": "2026-10-25T17:56:51.7621131+00:00",
+     "jobId": 1337
+    }
+   }
+  },
+  {
+   "name": "run_layer",
+   "args": {
+    "entryPoint": "Bisect",
+    "layerKey": "step-13",
+    "parameters": {
+     "final": "false",
+     "step": "13"
+    },
+    "parallelism": 4,
+    "previousLayerIds": [
+     "b56fcfcccf5c4ea8aaf086becf5bbd7a"
+    ],
+    "sessionId": "2d9096992c7b462ab3535095010439ce",
+    "waitSeconds": 200
+   },
+   "t_start": 1792951014.7368674,
+   "t_end": 1792951018.4861891,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "2d9096992c7b462ab3535095010439ce",
+    "layerId": "118c038a32884c46aad2b46bb7eea78f",
+    "layerKey": "step-13",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Bisect",
+     "parallelism": 4,
+     "previousLayerIds": [
+      "b56fcfcccf5c4ea8aaf086becf5bbd7a"
+     ],
+     "successCount": 4,
+     "failureCount": 0,
+     "queuedSeconds": 0.0241581,
+     "elapsedSeconds": 3.1432369,
+     "submittedAt": "2026-10-25T17:56:54.6171408+00:00",
+     "startedAt": "2026-10-25T17:56:54.6412989+00:00",
+     "completedAt": "2026-10-25T17:56:57.7845358+00:00",
+     "jobId": 1338
+    }
+   }
+  },
+  {
+   "name": "run_layer",
+   "args": {
+    "entryPoint": "Bisect",
+    "layerKey": "step-14",
+    "parameters": {
+     "final": "false",
+     "step": "14"
+    },
+    "parallelism": 4,
+    "previousLayerIds": [
+     "118c038a32884c46aad2b46bb7eea78f"
+    ],
+    "sessionId": "2d9096992c7b462ab3535095010439ce",
+    "waitSeconds": 200
+   },
+   "t_start": 1792951020.7550952,
+   "t_end": 1792951024.4959292,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "2d9096992c7b462ab3535095010439ce",
+    "layerId": "36bc9dad1e1149da962a3b18a7e78c27",
+    "layerKey": "step-14",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Bisect",
+     "parallelism": 4,
+     "previousLayerIds": [
+      "118c038a32884c46aad2b46bb7eea78f"
+     ],
+     "successCount": 4,
+     "failureCount": 0,
+     "queuedSeconds": 0.0232836,
+     "elapsedSeconds": 3.1359987,
+     "submittedAt": "2026-10-25T17:57:00.6315858+00:00",
+     "startedAt": "2026-10-25T17:57:00.6548694+00:00",
+     "completedAt": "2026-10-25T17:57:03.7908681+00:00",
+     "jobId": 1339
+    }
+   }
+  },
+  {
+   "name": "run_layer",
+   "args": {
+    "entryPoint": "Bisect",
+    "layerKey": "step-15",
+    "parameters": {
+     "final": "false",
+     "step": "15"
+    },
+    "parallelism": 4,
+    "previousLayerIds": [
+     "36bc9dad1e1149da962a3b18a7e78c27"
+    ],
+    "sessionId": "2d9096992c7b462ab3535095010439ce",
+    "waitSeconds": 200
+   },
+   "t_start": 1792951026.6204188,
+   "t_end": 1792951030.380301,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "2d9096992c7b462ab3535095010439ce",
+    "layerId": "cb04620321e64b39924c96d9a443bf66",
+    "layerKey": "step-15",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Bisect",
+     "parallelism": 4,
+     "previousLayerIds": [
+      "36bc9dad1e1149da962a3b18a7e78c27"
+     ],
+     "successCount": 4,
+     "failureCount": 0,
+     "queuedSeconds": 0.0215817,
+     "elapsedSeconds": 3.1489247,
+     "submittedAt": "2026-10-25T17:57:06.5096339+00:00",
+     "startedAt": "2026-10-25T17:57:06.5312156+00:00",
+     "completedAt": "2026-10-25T17:57:09.6801403+00:00",
+     "jobId": 1340
+    }
+   }
+  },
+  {
+   "name": "run_layer",
+   "args": {
+    "entryPoint": "Bisect",
+    "layerKey": "step-16",
+    "parameters": {
+     "final": "false",
+     "step": "16"
+    },
+    "parallelism": 4,
+    "previousLayerIds": [
+     "cb04620321e64b39924c96d9a443bf66"
+    ],
+    "sessionId": "2d9096992c7b462ab3535095010439ce",
+    "waitSeconds": 200
+   },
+   "t_start": 1792951033.0718207,
+   "t_end": 1792951036.8250117,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "2d9096992c7b462ab3535095010439ce",
+    "layerId": "60491d4d4c374ea397ad00ce13d53d80",
+    "layerKey": "step-16",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Bisect",
+     "parallelism": 4,
+     "previousLayerIds": [
+      "cb04620321e64b39924c96d9a443bf66"
+     ],
+     "successCount": 4,
+     "failureCount": 0,
+     "queuedSeconds": 0.0220756,
+     "elapsedSeconds": 3.1498287,
+     "submittedAt": "2026-10-25T17:57:12.9573823+00:00",
+     "startedAt": "2026-10-25T17:57:12.9794579+00:00",
+     "completedAt": "2026-10-25T17:57:16.1292866+00:00",
+     "jobId": 1341
+    }
+   }
+  },
+  {
+   "name": "run_layer",
+   "args": {
+    "entryPoint": "Bisect",
+    "layerKey": "step-17",
+    "parameters": {
+     "final": "false",
+     "step": "17"
+    },
+    "parallelism": 4,
+    "previousLayerIds": [
+     "60491d4d4c374ea397ad00ce13d53d80"
+    ],
+    "sessionId": "2d9096992c7b462ab3535095010439ce",
+    "waitSeconds": 200
+   },
+   "t_start": 1792951039.5029442,
+   "t_end": 1792951043.242658,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "2d9096992c7b462ab3535095010439ce",
+    "layerId": "6203c26ce9ef4475b19f2a4e0775dd52",
+    "layerKey": "step-17",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Bisect",
+     "parallelism": 4,
+     "previousLayerIds": [
+      "60491d4d4c374ea397ad00ce13d53d80"
+     ],
+     "successCount": 4,
+     "failureCount": 0,
+     "queuedSeconds": 0.0241438,
+     "elapsedSeconds": 3.1342494,
+     "submittedAt": "2026-10-25T17:57:19.3856844+00:00",
+     "startedAt": "2026-10-25T17:57:19.4098282+00:00",
+     "completedAt": "2026-10-25T17:57:22.5440776+00:00",
+     "jobId": 1342
+    }
+   }
+  },
+  {
+   "name": "run_layer",
+   "args": {
+    "entryPoint": "Bisect",
+    "layerKey": "step-18",
+    "parameters": {
+     "final": "false",
+     "step": "18"
+    },
+    "parallelism": 4,
+    "previousLayerIds": [
+     "6203c26ce9ef4475b19f2a4e0775dd52"
+    ],
+    "sessionId": "2d9096992c7b462ab3535095010439ce",
+    "waitSeconds": 200
+   },
+   "t_start": 1792951045.3682034,
+   "t_end": 1792951049.110548,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "2d9096992c7b462ab3535095010439ce",
+    "layerId": "b04b41a4fc3940728f45c3adf2e26099",
+    "layerKey": "step-18",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Bisect",
+     "parallelism": 4,
+     "previousLayerIds": [
+      "6203c26ce9ef4475b19f2a4e0775dd52"
+     ],
+     "successCount": 4,
+     "failureCount": 0,
+     "queuedSeconds": 0.023157,
+     "elapsedSeconds": 3.1339947,
+     "submittedAt": "2026-10-25T17:57:25.2529553+00:00",
+     "startedAt": "2026-10-25T17:57:25.2761123+00:00",
+     "completedAt": "2026-10-25T17:57:28.410107+00:00",
+     "jobId": 1343
+    }
+   }
+  },
+  {
+   "name": "run_layer",
+   "args": {
+    "entryPoint": "Bisect",
+    "layerKey": "step-19",
+    "parameters": {
+     "final": "false",
+     "step": "19"
+    },
+    "parallelism": 4,
+    "previousLayerIds": [
+     "b04b41a4fc3940728f45c3adf2e26099"
+    ],
+    "sessionId": "2d9096992c7b462ab3535095010439ce",
+    "waitSeconds": 200
+   },
+   "t_start": 1792951052.32928,
+   "t_end": 1792951056.0994296,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "2d9096992c7b462ab3535095010439ce",
+    "layerId": "d967a6fc8f0749178e94065e4576040b",
+    "layerKey": "step-19",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Bisect",
+     "parallelism": 4,
+     "previousLayerIds": [
+      "b04b41a4fc3940728f45c3adf2e26099"
+     ],
+     "successCount": 4,
+     "failureCount": 0,
+     "queuedSeconds": 0.0227172,
+     "elapsedSeconds": 3.1532286,
+     "submittedAt": "2026-10-25T17:57:32.2579089+00:00",
+     "startedAt": "2026-10-25T17:57:32.2806261+00:00",
+     "completedAt": "2026-10-25T17:57:35.4338547+00:00",
+     "jobId": 1344
+    }
+   }
+  },
+  {
+   "name": "run_layer",
+   "args": {
+    "entryPoint": "Bisect",
+    "layerKey": "step-20",
+    "parameters": {
+     "final": "false",
+     "step": "20"
+    },
+    "parallelism": 4,
+    "previousLayerIds": [
+     "d967a6fc8f0749178e94065e4576040b"
+    ],
+    "sessionId": "2d9096992c7b462ab3535095010439ce",
+    "waitSeconds": 200
+   },
+   "t_start": 1792951058.7747884,
+   "t_end": 1792951062.4687421,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "2d9096992c7b462ab3535095010439ce",
+    "layerId": "a5e58728f4074270ad78ff29dd2f695c",
+    "layerKey": "step-20",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Bisect",
+     "parallelism": 4,
+     "previousLayerIds": [
+      "d967a6fc8f0749178e94065e4576040b"
+     ],
+     "successCount": 4,
+     "failureCount": 0,
+     "queuedSeconds": 0.0255198,
+     "elapsedSeconds": 3.1363701,
+     "submittedAt": "2026-10-25T17:57:38.6506979+00:00",
+     "startedAt": "2026-10-25T17:57:38.6762177+00:00",
+     "completedAt": "2026-10-25T17:57:41.8125878+00:00",
+     "jobId": 1345
+    }
+   }
+  },
+  {
+   "name": "run_layer",
+   "args": {
+    "entryPoint": "Bisect",
+    "layerKey": "step-21",
+    "parameters": {
+     "final": "false",
+     "step": "21"
+    },
+    "parallelism": 4,
+    "previousLayerIds": [
+     "a5e58728f4074270ad78ff29dd2f695c"
+    ],
+    "sessionId": "2d9096992c7b462ab3535095010439ce",
+    "waitSeconds": 200
+   },
+   "t_start": 1792951065.4475963,
+   "t_end": 1792951069.1667092,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "2d9096992c7b462ab3535095010439ce",
+    "layerId": "01a2e3654a2f4ea095ea3129cdd5a8ed",
+    "layerKey": "step-21",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Bisect",
+     "parallelism": 4,
+     "previousLayerIds": [
+      "a5e58728f4074270ad78ff29dd2f695c"
+     ],
+     "successCount": 4,
+     "failureCount": 0,
+     "queuedSeconds": 0.0238602,
+     "elapsedSeconds": 3.153181,
+     "submittedAt": "2026-10-25T17:57:45.3353177+00:00",
+     "startedAt": "2026-10-25T17:57:45.3591779+00:00",
+     "completedAt": "2026-10-25T17:57:48.5123589+00:00",
+     "jobId": 1346
+    }
+   }
+  },
+  {
+   "name": "run_layer",
+   "args": {
+    "entryPoint": "Bisect",
+    "layerKey": "step-22",
+    "parameters": {
+     "final": "false",
+     "step": "22"
+    },
+    "parallelism": 4,
+    "previousLayerIds": [
+     "01a2e3654a2f4ea095ea3129cdd5a8ed"
+    ],
+    "sessionId": "2d9096992c7b462ab3535095010439ce",
+    "waitSeconds": 200
+   },
+   "t_start": 1792951071.994635,
+   "t_end": 1792951075.6715102,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "2d9096992c7b462ab3535095010439ce",
+    "layerId": "7ab6b8dda1bc41c9b5bbd163ef78fb84",
+    "layerKey": "step-22",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Bisect",
+     "parallelism": 4,
+     "previousLayerIds": [
+      "01a2e3654a2f4ea095ea3129cdd5a8ed"
+     ],
+     "successCount": 4,
+     "failureCount": 0,
+     "queuedSeconds": 0.0218909,
+     "elapsedSeconds": 3.1298359,
+     "submittedAt": "2026-10-25T17:57:51.859848+00:00",
+     "startedAt": "2026-10-25T17:57:51.8817389+00:00",
+     "completedAt": "2026-10-25T17:57:55.0115748+00:00",
+     "jobId": 1347
+    }
+   }
+  },
+  {
+   "name": "run_layer",
+   "args": {
+    "entryPoint": "Bisect",
+    "layerKey": "step-23",
+    "parameters": {
+     "final": "false",
+     "step": "23"
+    },
+    "parallelism": 4,
+    "previousLayerIds": [
+     "7ab6b8dda1bc41c9b5bbd163ef78fb84"
+    ],
+    "sessionId": "2d9096992c7b462ab3535095010439ce",
+    "waitSeconds": 200
+   },
+   "t_start": 1792951078.6989946,
+   "t_end": 1792951082.3932538,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "2d9096992c7b462ab3535095010439ce",
+    "layerId": "97b7b89b6fa0485b9cc887a9654b84d7",
+    "layerKey": "step-23",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Bisect",
+     "parallelism": 4,
+     "previousLayerIds": [
+      "7ab6b8dda1bc41c9b5bbd163ef78fb84"
+     ],
+     "successCount": 4,
+     "failureCount": 0,
+     "queuedSeconds": 0.0221628,
+     "elapsedSeconds": 3.140051,
+     "submittedAt": "2026-10-25T17:57:58.5729604+00:00",
+     "startedAt": "2026-10-25T17:57:58.5951232+00:00",
+     "completedAt": "2026-10-25T17:58:01.7351742+00:00",
+     "jobId": 1348
+    }
+   }
+  },
+  {
+   "name": "run_layer",
+   "args": {
+    "entryPoint": "Bisect",
+    "layerKey": "step-24",
+    "parameters": {
+     "final": "false",
+     "step": "24"
+    },
+    "parallelism": 4,
+    "previousLayerIds": [
+     "97b7b89b6fa0485b9cc887a9654b84d7"
+    ],
+    "sessionId": "2d9096992c7b462ab3535095010439ce",
+    "waitSeconds": 200
+   },
+   "t_start": 1792951085.064038,
+   "t_end": 1792951088.7720006,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "2d9096992c7b462ab3535095010439ce",
+    "layerId": "a4c52649171d43af8365fe0495da8382",
+    "layerKey": "step-24",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Bisect",
+     "parallelism": 4,
+     "previousLayerIds": [
+      "97b7b89b6fa0485b9cc887a9654b84d7"
+     ],
+     "successCount": 4,
+     "failureCount": 0,
+     "queuedSeconds": 0.0225957,
+     "elapsedSeconds": 3.1413877,
+     "submittedAt": "2026-10-25T17:58:04.9491544+00:00",
+     "startedAt": "2026-10-25T17:58:04.9717501+00:00",
+     "completedAt": "2026-10-25T17:58:08.1131378+00:00",
+     "jobId": 1349
+    }
+   }
+  },
+  {
+   "name": "run_layer",
+   "args": {
+    "entryPoint": "Bisect",
+    "layerKey": "step-25",
+    "parameters": {
+     "final": "false",
+     "step": "25"
+    },
+    "parallelism": 4,
+    "previousLayerIds": [
+     "a4c52649171d43af8365fe0495da8382"
+    ],
+    "sessionId": "2d9096992c7b462ab3535095010439ce",
+    "waitSeconds": 200
+   },
+   "t_start": 1792951091.039975,
+   "t_end": 1792951094.7405093,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "2d9096992c7b462ab3535095010439ce",
+    "layerId": "670076c64706455eb787238ff021cc15",
+    "layerKey": "step-25",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Bisect",
+     "parallelism": 4,
+     "previousLayerIds": [
+      "a4c52649171d43af8365fe0495da8382"
+     ],
+     "successCount": 4,
+     "failureCount": 0,
+     "queuedSeconds": 0.0209704,
+     "elapsedSeconds": 3.1380967,
+     "submittedAt": "2026-10-25T17:58:10.9268477+00:00",
+     "startedAt": "2026-10-25T17:58:10.9478181+00:00",
+     "completedAt": "2026-10-25T17:58:14.0859148+00:00",
+     "jobId": 1350
+    }
+   }
+  },
+  {
+   "name": "run_layer",
+   "args": {
+    "entryPoint": "Bisect",
+    "layerKey": "step-26",
+    "parameters": {
+     "final": "false",
+     "step": "26"
+    },
+    "parallelism": 4,
+    "previousLayerIds": [
+     "670076c64706455eb787238ff021cc15"
+    ],
+    "sessionId": "2d9096992c7b462ab3535095010439ce",
+    "waitSeconds": 200
+   },
+   "t_start": 1792951097.024457,
+   "t_end": 1792951100.7324495,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "2d9096992c7b462ab3535095010439ce",
+    "layerId": "866345f1b346414eb46aec4a6103f589",
+    "layerKey": "step-26",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Bisect",
+     "parallelism": 4,
+     "previousLayerIds": [
+      "670076c64706455eb787238ff021cc15"
+     ],
+     "successCount": 4,
+     "failureCount": 0,
+     "queuedSeconds": 0.0227067,
+     "elapsedSeconds": 3.1485824,
+     "submittedAt": "2026-10-25T17:58:16.8997968+00:00",
+     "startedAt": "2026-10-25T17:58:16.9225035+00:00",
+     "completedAt": "2026-10-25T17:58:20.0710859+00:00",
+     "jobId": 1351
+    }
+   }
+  },
+  {
+   "name": "run_layer",
+   "args": {
+    "entryPoint": "Bisect",
+    "layerKey": "step-27",
+    "parameters": {
+     "final": "false",
+     "step": "27"
+    },
+    "parallelism": 4,
+    "previousLayerIds": [
+     "866345f1b346414eb46aec4a6103f589"
+    ],
+    "sessionId": "2d9096992c7b462ab3535095010439ce",
+    "waitSeconds": 200
+   },
+   "t_start": 1792951103.1563978,
+   "t_end": 1792951106.8786867,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "2d9096992c7b462ab3535095010439ce",
+    "layerId": "a420cf84f6b2431c9018190e0940d4e3",
+    "layerKey": "step-27",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Bisect",
+     "parallelism": 4,
+     "previousLayerIds": [
+      "866345f1b346414eb46aec4a6103f589"
+     ],
+     "successCount": 4,
+     "failureCount": 0,
+     "queuedSeconds": 0.0255889,
+     "elapsedSeconds": 3.132977,
+     "submittedAt": "2026-10-25T17:58:23.0371585+00:00",
+     "startedAt": "2026-10-25T17:58:23.0627474+00:00",
+     "completedAt": "2026-10-25T17:58:26.1957244+00:00",
+     "jobId": 1352
+    }
+   }
+  },
+  {
+   "name": "run_layer",
+   "args": {
+    "entryPoint": "Bisect",
+    "layerKey": "step-28",
+    "parameters": {
+     "final": "false",
+     "step": "28"
+    },
+    "parallelism": 4,
+    "previousLayerIds": [
+     "a420cf84f6b2431c9018190e0940d4e3"
+    ],
+    "sessionId": "2d9096992c7b462ab3535095010439ce",
+    "waitSeconds": 200
+   },
+   "t_start": 1792951109.8143964,
+   "t_end": 1792951113.5121324,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "2d9096992c7b462ab3535095010439ce",
+    "layerId": "91115fd8509849a0b201aec64494e564",
+    "layerKey": "step-28",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Bisect",
+     "parallelism": 4,
+     "previousLayerIds": [
+      "a420cf84f6b2431c9018190e0940d4e3"
+     ],
+     "successCount": 4,
+     "failureCount": 0,
+     "queuedSeconds": 0.0231952,
+     "elapsedSeconds": 3.1338992,
+     "submittedAt": "2026-10-25T17:58:29.6818043+00:00",
+     "startedAt": "2026-10-25T17:58:29.7049995+00:00",
+     "completedAt": "2026-10-25T17:58:32.8388987+00:00",
+     "jobId": 1353
+    }
+   }
+  },
+  {
+   "name": "run_layer",
+   "args": {
+    "entryPoint": "Bisect",
+    "layerKey": "step-29",
+    "parameters": {
+     "final": "false",
+     "step": "29"
+    },
+    "parallelism": 4,
+    "previousLayerIds": [
+     "91115fd8509849a0b201aec64494e564"
+    ],
+    "sessionId": "2d9096992c7b462ab3535095010439ce",
+    "waitSeconds": 200
+   },
+   "t_start": 1792951116.1667054,
+   "t_end": 1792951119.9185863,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "2d9096992c7b462ab3535095010439ce",
+    "layerId": "9ef9433c09de44dab30daddf7b37fec4",
+    "layerKey": "step-29",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Bisect",
+     "parallelism": 4,
+     "previousLayerIds": [
+      "91115fd8509849a0b201aec64494e564"
+     ],
+     "successCount": 4,
+     "failureCount": 0,
+     "queuedSeconds": 0.0260175,
+     "elapsedSeconds": 3.1403354,
+     "submittedAt": "2026-10-25T17:58:36.0954096+00:00",
+     "startedAt": "2026-10-25T17:58:36.1214271+00:00",
+     "completedAt": "2026-10-25T17:58:39.2617625+00:00",
+     "jobId": 1354
+    }
+   }
+  },
+  {
+   "name": "run_layer",
+   "args": {
+    "entryPoint": "Bisect",
+    "layerKey": "step-30",
+    "parameters": {
+     "final": "false",
+     "step": "30"
+    },
+    "parallelism": 4,
+    "previousLayerIds": [
+     "9ef9433c09de44dab30daddf7b37fec4"
+    ],
+    "sessionId": "2d9096992c7b462ab3535095010439ce",
+    "waitSeconds": 200
+   },
+   "t_start": 1792951121.9361188,
+   "t_end": 1792951125.6277547,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "2d9096992c7b462ab3535095010439ce",
+    "layerId": "c662023533ba4eb99bc0a09f29c9eeaa",
+    "layerKey": "step-30",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Bisect",
+     "parallelism": 4,
+     "previousLayerIds": [
+      "9ef9433c09de44dab30daddf7b37fec4"
+     ],
+     "successCount": 4,
+     "failureCount": 0,
+     "queuedSeconds": 0.0220918,
+     "elapsedSeconds": 3.1369659,
+     "submittedAt": "2026-10-25T17:58:41.8148023+00:00",
+     "startedAt": "2026-10-25T17:58:41.8368941+00:00",
+     "completedAt": "2026-10-25T17:58:44.97386+00:00",
+     "jobId": 1355
+    }
+   }
+  },
+  {
+   "name": "run_layer",
+   "args": {
+    "entryPoint": "Bisect",
+    "layerKey": "step-31",
+    "parameters": {
+     "final": "false",
+     "step": "31"
+    },
+    "parallelism": 4,
+    "previousLayerIds": [
+     "c662023533ba4eb99bc0a09f29c9eeaa"
+    ],
+    "sessionId": "2d9096992c7b462ab3535095010439ce",
+    "waitSeconds": 200
+   },
+   "t_start": 1792951127.4431748,
+   "t_end": 1792951131.1175563,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "2d9096992c7b462ab3535095010439ce",
+    "layerId": "8ae4e7a6aa024c1fa4720cdc8da194d8",
+    "layerKey": "step-31",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Bisect",
+     "parallelism": 4,
+     "previousLayerIds": [
+      "c662023533ba4eb99bc0a09f29c9eeaa"
+     ],
+     "successCount": 4,
+     "failureCount": 0,
+     "queuedSeconds": 0.0222023,
+     "elapsedSeconds": 3.1375079,
+     "submittedAt": "2026-10-25T17:58:47.3039338+00:00",
+     "startedAt": "2026-10-25T17:58:47.3261361+00:00",
+     "completedAt": "2026-10-25T17:58:50.463644+00:00",
+     "jobId": 1356
+    }
+   }
+  },
+  {
+   "name": "run_layer",
+   "args": {
+    "entryPoint": "Bisect",
+    "layerKey": "step-32",
+    "parameters": {
+     "final": "false",
+     "step": "32"
+    },
+    "parallelism": 4,
+    "previousLayerIds": [
+     "8ae4e7a6aa024c1fa4720cdc8da194d8"
+    ],
+    "sessionId": "2d9096992c7b462ab3535095010439ce",
+    "waitSeconds": 200
+   },
+   "t_start": 1792951133.3774228,
+   "t_end": 1792951137.0667713,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "2d9096992c7b462ab3535095010439ce",
+    "layerId": "d0f57889694f4dbd8051deabcf69ca8b",
+    "layerKey": "step-32",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Bisect",
+     "parallelism": 4,
+     "previousLayerIds": [
+      "8ae4e7a6aa024c1fa4720cdc8da194d8"
+     ],
+     "successCount": 4,
+     "failureCount": 0,
+     "queuedSeconds": 0.0261406,
+     "elapsedSeconds": 3.1318261,
+     "submittedAt": "2026-10-25T17:58:53.2537243+00:00",
+     "startedAt": "2026-10-25T17:58:53.2798649+00:00",
+     "completedAt": "2026-10-25T17:58:56.411691+00:00",
+     "jobId": 1357
+    }
+   }
+  },
+  {
+   "name": "run_layer",
+   "args": {
+    "entryPoint": "Bisect",
+    "layerKey": "step-33-final",
+    "parameters": {
+     "final": "true",
+     "step": "33"
+    },
+    "parallelism": 1,
+    "previousLayerIds": [
+     "d0f57889694f4dbd8051deabcf69ca8b"
+    ],
+    "sessionId": "2d9096992c7b462ab3535095010439ce",
+    "waitSeconds": 200
+   },
+   "t_start": 1792951144.8156323,
+   "t_end": 1792951148.5239546,
+   "is_error": false,
+   "envelope": {
+    "ok": true,
+    "status": "Completed",
+    "sessionId": "2d9096992c7b462ab3535095010439ce",
+    "layerId": "a52183fcbd9247a9828c6a6ef94e7060",
+    "layerKey": "step-33-final",
+    "reused": false,
+    "layer": {
+     "entryPoint": "Bisect",
+     "parallelism": 1,
+     "previousLayerIds": [
+      "d0f57889694f4dbd8051deabcf69ca8b"
+     ],
+     "successCount": 1,
+     "failureCount": 0,
+     "queuedSeconds": 0.0232873,
+     "elapsedSeconds": 3.1451739,
+     "submittedAt": "2026-10-25T17:59:04.6953698+00:00",
+     "startedAt": "2026-10-25T17:59:04.7186571+00:00",
+     "completedAt": "2026-10-25T17:59:07.863831+00:00",
+     "jobId": 1358
+    },
+    "output": {
+     "step": 33,
+     "mid": 0.2980832072207704,
+     "midStr": "0.2980832072207704",
+     "midBits": 4599041409601765376,
+     "lo": 0.2980832071043551,
+     "hi": 0.29808320733718574,
+     "count": 5000000
+    }
+   }
+  }
+ ],
+ "model_calls": [
+  {
+   "t_start": 1792950866.0295928,
+   "t_end": 1792950927.6402652
+  },
+  {
+   "t_start": 1792950928.5390754,
+   "t_end": 1792950936.238175
+  },
+  {
+   "t_start": 1792950940.0112226,
+   "t_end": 1792950942.9274943
+  },
+  {
+   "t_start": 1792950946.6995056,
+   "t_end": 1792950949.2920518
+  },
+  {
+   "t_start": 1792950953.057405,
+   "t_end": 1792950955.254535
+  },
+  {
+   "t_start": 1792950959.005731,
+   "t_end": 1792950960.814002
+  },
+  {
+   "t_start": 1792950964.5608563,
+   "t_end": 1792950966.5979154
+  },
+  {
+   "t_start": 1792950970.3559005,
+   "t_end": 1792950975.814487
+  },
+  {
+   "t_start": 1792950979.5845747,
+   "t_end": 1792950981.4475021
+  },
+  {
+   "t_start": 1792950985.2045655,
+   "t_end": 1792950988.0144057
+  },
+  {
+   "t_start": 1792950991.8803408,
+   "t_end": 1792950994.8345218
+  },
+  {
+   "t_start": 1792950998.5964115,
+   "t_end": 1792951000.794448
+  },
+  {
+   "t_start": 1792951004.54263,
+   "t_end": 1792951008.6958094
+  },
+  {
+   "t_start": 1792951012.4672084,
+   "t_end": 1792951014.734368
+  },
+  {
+   "t_start": 1792951018.4912746,
+   "t_end": 1792951020.7525954
+  },
+  {
+   "t_start": 1792951024.5009294,
+   "t_end": 1792951026.6177347
+  },
+  {
+   "t_start": 1792951030.385801,
+   "t_end": 1792951033.0693212
+  },
+  {
+   "t_start": 1792951036.8300111,
+   "t_end": 1792951039.5003798
+  },
+  {
+   "t_start": 1792951043.247721,
+   "t_end": 1792951045.3651898
+  },
+  {
+   "t_start": 1792951049.116048,
+   "t_end": 1792951052.3262796
+  },
+  {
+   "t_start": 1792951056.1049294,
+   "t_end": 1792951058.7722888
+  },
+  {
+   "t_start": 1792951062.4742417,
+   "t_end": 1792951065.444096
+  },
+  {
+   "t_start": 1792951069.1727087,
+   "t_end": 1792951071.9921353
+  },
+  {
+   "t_start": 1792951075.6769571,
+   "t_end": 1792951078.6954935
+  },
+  {
+   "t_start": 1792951082.399254,
+   "t_end": 1792951085.0605383
+  },
+  {
+   "t_start": 1792951088.7785,
+   "t_end": 1792951091.035975
+  },
+  {
+   "t_start": 1792951094.7470114,
+   "t_end": 1792951097.0214572
+  },
+  {
+   "t_start": 1792951100.7389517,
+   "t_end": 1792951103.1529007
+  },
+  {
+   "t_start": 1792951106.8856852,
+   "t_end": 1792951109.8118963
+  },
+  {
+   "t_start": 1792951113.5186305,
+   "t_end": 1792951116.1637056
+  },
+  {
+   "t_start": 1792951119.925088,
+   "t_end": 1792951121.9331176
+  },
+  {
+   "t_start": 1792951125.6342566,
+   "t_end": 1792951127.440167
+  },
+  {
+   "t_start": 1792951131.1250565,
+   "t_end": 1792951133.37442
+  },
+  {
+   "t_start": 1792951137.073771,
+   "t_end": 1792951144.8126323
+  },
+  {
+   "t_start": 1792951148.5309546,
+   "t_end": 1792951166.038795
+  }
+ ],
+ "layers": [
+  {
+   "sessionId": "2d9096992c7b462ab3535095010439ce",
+   "layerId": "f70515f484ae4763bbce46da00d2d8f6",
+   "layerKey": "step-1",
+   "status": "Completed",
+   "entryPoint": "Bisect",
+   "parallelism": 4,
+   "previousLayerIds": [],
+   "submittedAt": "2026-10-25T17:55:36.1218429+00:00",
+   "completedAt": "2026-10-25T17:55:39.3073168+00:00"
+  },
+  {
+   "sessionId": "2d9096992c7b462ab3535095010439ce",
+   "layerId": "41b7497d23e44611bd2c8db73688db22",
+   "layerKey": "step-2",
+   "status": "Completed",
+   "entryPoint": "Bisect",
+   "parallelism": 4,
+   "previousLayerIds": [
+    "f70515f484ae4763bbce46da00d2d8f6"
+   ],
+   "submittedAt": "2026-10-25T17:55:42.815991+00:00",
+   "completedAt": "2026-10-25T17:55:45.9919416+00:00"
+  },
+  {
+   "sessionId": "2d9096992c7b462ab3535095010439ce",
+   "layerId": "571432c5a6e241da8f0b824c2602a514",
+   "layerKey": "step-3",
+   "status": "Completed",
+   "entryPoint": "Bisect",
+   "parallelism": 4,
+   "previousLayerIds": [
+    "41b7497d23e44611bd2c8db73688db22"
+   ],
+   "submittedAt": "2026-10-25T17:55:49.1844819+00:00",
+   "completedAt": "2026-10-25T17:55:52.3579827+00:00"
+  },
+  {
+   "sessionId": "2d9096992c7b462ab3535095010439ce",
+   "layerId": "413871e7e25f465c86a75975e34c7e28",
+   "layerKey": "step-4",
+   "status": "Completed",
+   "entryPoint": "Bisect",
+   "parallelism": 4,
+   "previousLayerIds": [
+    "571432c5a6e241da8f0b824c2602a514"
+   ],
+   "submittedAt": "2026-10-25T17:55:55.1380781+00:00",
+   "completedAt": "2026-10-25T17:55:58.2937053+00:00"
+  },
+  {
+   "sessionId": "2d9096992c7b462ab3535095010439ce",
+   "layerId": "8d461600c1b044239e585434c0545d61",
+   "layerKey": "step-5",
+   "status": "Completed",
+   "entryPoint": "Bisect",
+   "parallelism": 4,
+   "previousLayerIds": [
+    "413871e7e25f465c86a75975e34c7e28"
+   ],
+   "submittedAt": "2026-10-25T17:56:00.6935157+00:00",
+   "completedAt": "2026-10-25T17:56:03.8513739+00:00"
+  },
+  {
+   "sessionId": "2d9096992c7b462ab3535095010439ce",
+   "layerId": "9ba82768a78c406c83342c96ca83a4ce",
+   "layerKey": "step-6",
+   "status": "Completed",
+   "entryPoint": "Bisect",
+   "parallelism": 4,
+   "previousLayerIds": [
+    "8d461600c1b044239e585434c0545d61"
+   ],
+   "submittedAt": "2026-10-25T17:56:06.4909145+00:00",
+   "completedAt": "2026-10-25T17:56:09.6532579+00:00"
+  },
+  {
+   "sessionId": "2d9096992c7b462ab3535095010439ce",
+   "layerId": "292590f5b5184e3fa21b30d49fbd01df",
+   "layerKey": "step-7",
+   "status": "Completed",
+   "entryPoint": "Bisect",
+   "parallelism": 4,
+   "previousLayerIds": [
+    "9ba82768a78c406c83342c96ca83a4ce"
+   ],
+   "submittedAt": "2026-10-25T17:56:15.707132+00:00",
+   "completedAt": "2026-10-25T17:56:18.8732978+00:00"
+  },
+  {
+   "sessionId": "2d9096992c7b462ab3535095010439ce",
+   "layerId": "0988f4a925e840d7ac648fe5a1ba34fa",
+   "layerKey": "step-8",
+   "status": "Completed",
+   "entryPoint": "Bisect",
+   "parallelism": 4,
+   "previousLayerIds": [
+    "292590f5b5184e3fa21b30d49fbd01df"
+   ],
+   "submittedAt": "2026-10-25T17:56:21.3347541+00:00",
+   "completedAt": "2026-10-25T17:56:24.5009137+00:00"
+  },
+  {
+   "sessionId": "2d9096992c7b462ab3535095010439ce",
+   "layerId": "fbfea90a7c204b028d8db68650c6e578",
+   "layerKey": "step-9",
+   "status": "Completed",
+   "entryPoint": "Bisect",
+   "parallelism": 4,
+   "previousLayerIds": [
+    "0988f4a925e840d7ac648fe5a1ba34fa"
+   ],
+   "submittedAt": "2026-10-25T17:56:27.9514723+00:00",
+   "completedAt": "2026-10-25T17:56:31.1128914+00:00"
+  },
+  {
+   "sessionId": "2d9096992c7b462ab3535095010439ce",
+   "layerId": "64d8a17616814693aaf984cf5e687aa2",
+   "layerKey": "step-10",
+   "status": "Completed",
+   "entryPoint": "Bisect",
+   "parallelism": 4,
+   "previousLayerIds": [
+    "fbfea90a7c204b028d8db68650c6e578"
+   ],
+   "submittedAt": "2026-10-25T17:56:34.7204509+00:00",
+   "completedAt": "2026-10-25T17:56:37.8936772+00:00"
+  },
+  {
+   "sessionId": "2d9096992c7b462ab3535095010439ce",
+   "layerId": "85b2abd469504386bd89a43bd556cdb4",
+   "layerKey": "step-11",
+   "status": "Completed",
+   "entryPoint": "Bisect",
+   "parallelism": 4,
+   "previousLayerIds": [
+    "64d8a17616814693aaf984cf5e687aa2"
+   ],
+   "submittedAt": "2026-10-25T17:56:40.682686+00:00",
+   "completedAt": "2026-10-25T17:56:43.8410122+00:00"
+  },
+  {
+   "sessionId": "2d9096992c7b462ab3535095010439ce",
+   "layerId": "b56fcfcccf5c4ea8aaf086becf5bbd7a",
+   "layerKey": "step-12",
+   "status": "Completed",
+   "entryPoint": "Bisect",
+   "parallelism": 4,
+   "previousLayerIds": [
+    "85b2abd469504386bd89a43bd556cdb4"
+   ],
+   "submittedAt": "2026-10-25T17:56:48.5990063+00:00",
+   "completedAt": "2026-10-25T17:56:51.7621131+00:00"
+  },
+  {
+   "sessionId": "2d9096992c7b462ab3535095010439ce",
+   "layerId": "118c038a32884c46aad2b46bb7eea78f",
+   "layerKey": "step-13",
+   "status": "Completed",
+   "entryPoint": "Bisect",
+   "parallelism": 4,
+   "previousLayerIds": [
+    "b56fcfcccf5c4ea8aaf086becf5bbd7a"
+   ],
+   "submittedAt": "2026-10-25T17:56:54.6171408+00:00",
+   "completedAt": "2026-10-25T17:56:57.7845358+00:00"
+  },
+  {
+   "sessionId": "2d9096992c7b462ab3535095010439ce",
+   "layerId": "36bc9dad1e1149da962a3b18a7e78c27",
+   "layerKey": "step-14",
+   "status": "Completed",
+   "entryPoint": "Bisect",
+   "parallelism": 4,
+   "previousLayerIds": [
+    "118c038a32884c46aad2b46bb7eea78f"
+   ],
+   "submittedAt": "2026-10-25T17:57:00.6315858+00:00",
+   "completedAt": "2026-10-25T17:57:03.7908681+00:00"
+  },
+  {
+   "sessionId": "2d9096992c7b462ab3535095010439ce",
+   "layerId": "cb04620321e64b39924c96d9a443bf66",
+   "layerKey": "step-15",
+   "status": "Completed",
+   "entryPoint": "Bisect",
+   "parallelism": 4,
+   "previousLayerIds": [
+    "36bc9dad1e1149da962a3b18a7e78c27"
+   ],
+   "submittedAt": "2026-10-25T17:57:06.5096339+00:00",
+   "completedAt": "2026-10-25T17:57:09.6801403+00:00"
+  },
+  {
+   "sessionId": "2d9096992c7b462ab3535095010439ce",
+   "layerId": "60491d4d4c374ea397ad00ce13d53d80",
+   "layerKey": "step-16",
+   "status": "Completed",
+   "entryPoint": "Bisect",
+   "parallelism": 4,
+   "previousLayerIds": [
+    "cb04620321e64b39924c96d9a443bf66"
+   ],
+   "submittedAt": "2026-10-25T17:57:12.9573823+00:00",
+   "completedAt": "2026-10-25T17:57:16.1292866+00:00"
+  },
+  {
+   "sessionId": "2d9096992c7b462ab3535095010439ce",
+   "layerId": "6203c26ce9ef4475b19f2a4e0775dd52",
+   "layerKey": "step-17",
+   "status": "Completed",
+   "entryPoint": "Bisect",
+   "parallelism": 4,
+   "previousLayerIds": [
+    "60491d4d4c374ea397ad00ce13d53d80"
+   ],
+   "submittedAt": "2026-10-25T17:57:19.3856844+00:00",
+   "completedAt": "2026-10-25T17:57:22.5440776+00:00"
+  },
+  {
+   "sessionId": "2d9096992c7b462ab3535095010439ce",
+   "layerId": "b04b41a4fc3940728f45c3adf2e26099",
+   "layerKey": "step-18",
+   "status": "Completed",
+   "entryPoint": "Bisect",
+   "parallelism": 4,
+   "previousLayerIds": [
+    "6203c26ce9ef4475b19f2a4e0775dd52"
+   ],
+   "submittedAt": "2026-10-25T17:57:25.2529553+00:00",
+   "completedAt": "2026-10-25T17:57:28.410107+00:00"
+  },
+  {
+   "sessionId": "2d9096992c7b462ab3535095010439ce",
+   "layerId": "d967a6fc8f0749178e94065e4576040b",
+   "layerKey": "step-19",
+   "status": "Completed",
+   "entryPoint": "Bisect",
+   "parallelism": 4,
+   "previousLayerIds": [
+    "b04b41a4fc3940728f45c3adf2e26099"
+   ],
+   "submittedAt": "2026-10-25T17:57:32.2579089+00:00",
+   "completedAt": "2026-10-25T17:57:35.4338547+00:00"
+  },
+  {
+   "sessionId": "2d9096992c7b462ab3535095010439ce",
+   "layerId": "a5e58728f4074270ad78ff29dd2f695c",
+   "layerKey": "step-20",
+   "status": "Completed",
+   "entryPoint": "Bisect",
+   "parallelism": 4,
+   "previousLayerIds": [
+    "d967a6fc8f0749178e94065e4576040b"
+   ],
+   "submittedAt": "2026-10-25T17:57:38.6506979+00:00",
+   "completedAt": "2026-10-25T17:57:41.8125878+00:00"
+  },
+  {
+   "sessionId": "2d9096992c7b462ab3535095010439ce",
+   "layerId": "01a2e3654a2f4ea095ea3129cdd5a8ed",
+   "layerKey": "step-21",
+   "status": "Completed",
+   "entryPoint": "Bisect",
+   "parallelism": 4,
+   "previousLayerIds": [
+    "a5e58728f4074270ad78ff29dd2f695c"
+   ],
+   "submittedAt": "2026-10-25T17:57:45.3353177+00:00",
+   "completedAt": "2026-10-25T17:57:48.5123589+00:00"
+  },
+  {
+   "sessionId": "2d9096992c7b462ab3535095010439ce",
+   "layerId": "7ab6b8dda1bc41c9b5bbd163ef78fb84",
+   "layerKey": "step-22",
+   "status": "Completed",
+   "entryPoint": "Bisect",
+   "parallelism": 4,
+   "previousLayerIds": [
+    "01a2e3654a2f4ea095ea3129cdd5a8ed"
+   ],
+   "submittedAt": "2026-10-25T17:57:51.859848+00:00",
+   "completedAt": "2026-10-25T17:57:55.0115748+00:00"
+  },
+  {
+   "sessionId": "2d9096992c7b462ab3535095010439ce",
+   "layerId": "97b7b89b6fa0485b9cc887a9654b84d7",
+   "layerKey": "step-23",
+   "status": "Completed",
+   "entryPoint": "Bisect",
+   "parallelism": 4,
+   "previousLayerIds": [
+    "7ab6b8dda1bc41c9b5bbd163ef78fb84"
+   ],
+   "submittedAt": "2026-10-25T17:57:58.5729604+00:00",
+   "completedAt": "2026-10-25T17:58:01.7351742+00:00"
+  },
+  {
+   "sessionId": "2d9096992c7b462ab3535095010439ce",
+   "layerId": "a4c52649171d43af8365fe0495da8382",
+   "layerKey": "step-24",
+   "status": "Completed",
+   "entryPoint": "Bisect",
+   "parallelism": 4,
+   "previousLayerIds": [
+    "97b7b89b6fa0485b9cc887a9654b84d7"
+   ],
+   "submittedAt": "2026-10-25T17:58:04.9491544+00:00",
+   "completedAt": "2026-10-25T17:58:08.1131378+00:00"
+  },
+  {
+   "sessionId": "2d9096992c7b462ab3535095010439ce",
+   "layerId": "670076c64706455eb787238ff021cc15",
+   "layerKey": "step-25",
+   "status": "Completed",
+   "entryPoint": "Bisect",
+   "parallelism": 4,
+   "previousLayerIds": [
+    "a4c52649171d43af8365fe0495da8382"
+   ],
+   "submittedAt": "2026-10-25T17:58:10.9268477+00:00",
+   "completedAt": "2026-10-25T17:58:14.0859148+00:00"
+  },
+  {
+   "sessionId": "2d9096992c7b462ab3535095010439ce",
+   "layerId": "866345f1b346414eb46aec4a6103f589",
+   "layerKey": "step-26",
+   "status": "Completed",
+   "entryPoint": "Bisect",
+   "parallelism": 4,
+   "previousLayerIds": [
+    "670076c64706455eb787238ff021cc15"
+   ],
+   "submittedAt": "2026-10-25T17:58:16.8997968+00:00",
+   "completedAt": "2026-10-25T17:58:20.0710859+00:00"
+  },
+  {
+   "sessionId": "2d9096992c7b462ab3535095010439ce",
+   "layerId": "a420cf84f6b2431c9018190e0940d4e3",
+   "layerKey": "step-27",
+   "status": "Completed",
+   "entryPoint": "Bisect",
+   "parallelism": 4,
+   "previousLayerIds": [
+    "866345f1b346414eb46aec4a6103f589"
+   ],
+   "submittedAt": "2026-10-25T17:58:23.0371585+00:00",
+   "completedAt": "2026-10-25T17:58:26.1957244+00:00"
+  },
+  {
+   "sessionId": "2d9096992c7b462ab3535095010439ce",
+   "layerId": "91115fd8509849a0b201aec64494e564",
+   "layerKey": "step-28",
+   "status": "Completed",
+   "entryPoint": "Bisect",
+   "parallelism": 4,
+   "previousLayerIds": [
+    "a420cf84f6b2431c9018190e0940d4e3"
+   ],
+   "submittedAt": "2026-10-25T17:58:29.6818043+00:00",
+   "completedAt": "2026-10-25T17:58:32.8388987+00:00"
+  },
+  {
+   "sessionId": "2d9096992c7b462ab3535095010439ce",
+   "layerId": "9ef9433c09de44dab30daddf7b37fec4",
+   "layerKey": "step-29",
+   "status": "Completed",
+   "entryPoint": "Bisect",
+   "parallelism": 4,
+   "previousLayerIds": [
+    "91115fd8509849a0b201aec64494e564"
+   ],
+   "submittedAt": "2026-10-25T17:58:36.0954096+00:00",
+   "completedAt": "2026-10-25T17:58:39.2617625+00:00"
+  },
+  {
+   "sessionId": "2d9096992c7b462ab3535095010439ce",
+   "layerId": "c662023533ba4eb99bc0a09f29c9eeaa",
+   "layerKey": "step-30",
+   "status": "Completed",
+   "entryPoint": "Bisect",
+   "parallelism": 4,
+   "previousLayerIds": [
+    "9ef9433c09de44dab30daddf7b37fec4"
+   ],
+   "submittedAt": "2026-10-25T17:58:41.8148023+00:00",
+   "completedAt": "2026-10-25T17:58:44.97386+00:00"
+  },
+  {
+   "sessionId": "2d9096992c7b462ab3535095010439ce",
+   "layerId": "8ae4e7a6aa024c1fa4720cdc8da194d8",
+   "layerKey": "step-31",
+   "status": "Completed",
+   "entryPoint": "Bisect",
+   "parallelism": 4,
+   "previousLayerIds": [
+    "c662023533ba4eb99bc0a09f29c9eeaa"
+   ],
+   "submittedAt": "2026-10-25T17:58:47.3039338+00:00",
+   "completedAt": "2026-10-25T17:58:50.463644+00:00"
+  },
+  {
+   "sessionId": "2d9096992c7b462ab3535095010439ce",
+   "layerId": "d0f57889694f4dbd8051deabcf69ca8b",
+   "layerKey": "step-32",
+   "status": "Completed",
+   "entryPoint": "Bisect",
+   "parallelism": 4,
+   "previousLayerIds": [
+    "8ae4e7a6aa024c1fa4720cdc8da194d8"
+   ],
+   "submittedAt": "2026-10-25T17:58:53.2537243+00:00",
+   "completedAt": "2026-10-25T17:58:56.411691+00:00"
+  },
+  {
+   "sessionId": "2d9096992c7b462ab3535095010439ce",
+   "layerId": "a52183fcbd9247a9828c6a6ef94e7060",
+   "layerKey": "step-33-final",
+   "status": "Completed",
+   "entryPoint": "Bisect",
+   "parallelism": 1,
+   "previousLayerIds": [
+    "d0f57889694f4dbd8051deabcf69ca8b"
+   ],
+   "submittedAt": "2026-10-25T17:59:04.6953698+00:00",
+   "completedAt": "2026-10-25T17:59:07.863831+00:00"
+  }
+ ],
+ "cancelled": [],
+ "termination": "wall_budget",
+ "error": null,
+ "grade": {
+  "answer": null,
+  "truth": 0.2980832072207704,
+  "tolerance": 1.4551915228366852e-11,
+  "abs_error": null,
+  "correct": false,
+  "protocol_ok": true,
+  "protocol_reasons": [],
+  "layers_completed": 33,
+  "layers_extra": 0,
+  "layers_other": 0,
+  "final_output": {
+   "step": 33,
+   "mid": 0.2980832072207704,
+   "midStr": "0.2980832072207704",
+   "midBits": 4599041409601765376,
+   "lo": 0.2980832071043551,
+   "hi": 0.29808320733718574,
+   "count": 5000000
+  },
+  "plan_layer_ids": [
+   "01a2e3654a2f4ea095ea3129cdd5a8ed",
+   "0988f4a925e840d7ac648fe5a1ba34fa",
+   "118c038a32884c46aad2b46bb7eea78f",
+   "292590f5b5184e3fa21b30d49fbd01df",
+   "36bc9dad1e1149da962a3b18a7e78c27",
+   "413871e7e25f465c86a75975e34c7e28",
+   "41b7497d23e44611bd2c8db73688db22",
+   "571432c5a6e241da8f0b824c2602a514",
+   "60491d4d4c374ea397ad00ce13d53d80",
+   "6203c26ce9ef4475b19f2a4e0775dd52",
+   "64d8a17616814693aaf984cf5e687aa2",
+   "670076c64706455eb787238ff021cc15",
+   "7ab6b8dda1bc41c9b5bbd163ef78fb84",
+   "85b2abd469504386bd89a43bd556cdb4",
+   "866345f1b346414eb46aec4a6103f589",
+   "8ae4e7a6aa024c1fa4720cdc8da194d8",
+   "8d461600c1b044239e585434c0545d61",
+   "91115fd8509849a0b201aec64494e564",
+   "97b7b89b6fa0485b9cc887a9654b84d7",
+   "9ba82768a78c406c83342c96ca83a4ce",
+   "9ef9433c09de44dab30daddf7b37fec4",
+   "a420cf84f6b2431c9018190e0940d4e3",
+   "a4c52649171d43af8365fe0495da8382",
+   "a52183fcbd9247a9828c6a6ef94e7060",
+   "a5e58728f4074270ad78ff29dd2f695c",
+   "b04b41a4fc3940728f45c3adf2e26099",
+   "b56fcfcccf5c4ea8aaf086becf5bbd7a",
+   "c662023533ba4eb99bc0a09f29c9eeaa",
+   "cb04620321e64b39924c96d9a443bf66",
+   "d0f57889694f4dbd8051deabcf69ca8b",
+   "d967a6fc8f0749178e94065e4576040b",
+   "f70515f484ae4763bbce46da00d2d8f6",
+   "fbfea90a7c204b028d8db68650c6e578"
+  ],
+  "success": false
+ }
+}
