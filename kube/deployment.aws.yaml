@@ -306,6 +306,8 @@ spec:
       queueURL: ${SQS_QUEUE_URL}
       awsRegion: ${AWS_REGION}
       queueLength: "1"   # one daemon pod per queued message
+      # A running daemon keeps its message in flight; counting it would start a redundant pod.
+      scaleOnInFlight: "false"
 ---
 # GPU daemons — separate ScaledJob and queue so CPU jobs never wait on GPU capacity.
 # The Host publishes to the GPU queue for jobs with RequiresGpu = true; nested points of a GPU
@@ -395,6 +397,7 @@ spec:
       queueURL: ${SQS_GPU_QUEUE_URL}
       awsRegion: ${AWS_REGION}
       queueLength: "1"
+      scaleOnInFlight: "false"
 ---
 # ─── Host API ────────────────────────────────────────────────────────────────
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -493,6 +496,9 @@ metadata:
   name: parcs-hostapi
   labels:
     app: parcs-hostapi
+  annotations:
+    # The ELB default of 60 s cuts synchronous job runs; match the Host's 15-minute Kestrel limit.
+    service.beta.kubernetes.io/aws-load-balancer-connection-idle-timeout: "900"
 spec:
   type: LoadBalancer
   ports:
@@ -863,6 +869,8 @@ metadata:
   name: parcs-agent-mcp-external
   labels:
     app: parcs-agent-mcp
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-connection-idle-timeout: "900"
 spec:
   type: LoadBalancer
   selector:
