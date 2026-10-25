@@ -26,15 +26,16 @@ public sealed class ParcsAgentTools
     private const int MaxWaitSeconds     = 200;
 
     private const string EnvelopeDoc =
-        "Every PARCS tool returns { ok, status, sessionId?, layerId?, layerKey?, layer?, output?, outputs?, workers?, error? }; " +
+        "Every PARCS tool returns { ok, status, sessionId?, layerId?, layerKey?, layer?, output?, outputs?, workers?, hint?, error? }; " +
         "ok is false exactly when error = { code, message, retryable, layerId?, failedWorkers?, diagnostics? } is set. ";
 
     private const string LayerResultDoc =
         "Layer result: status is Queued | Running (ok, call wait_layer) | Completed | CompletedWithFailures | Failed | Cancelled. " +
-        "layer = { entryPoint, parallelism, previousLayerIds, successCount, failureCount, queuedSeconds, elapsedSeconds, " +
-        "submittedAt, startedAt, completedAt, jobId }. When parallelism is 1, output is that worker's output (parsed when it " +
-        "is JSON). view 'outputs' adds outputs[] (one per worker, null for failed ones); view 'full' also adds workers[] = " +
-        "{ workerIndex, success, output, error, elapsedSeconds }. Error codes: invalid_argument, session_not_found, " +
+        "layer = { entryPoint, parallelism, previousLayerIds, inherit?, peerChannels?, maxPoints?, spawnedPoints?, successCount, failureCount, queuedSeconds, " +
+        "elapsedSeconds, submittedAt, startedAt, completedAt, jobId }. When parallelism is 1, output is that worker's output (parsed when it " +
+        "is JSON); with more workers the default summary view has no outputs (hint says so): view 'outputs' adds outputs[] " +
+        "(one per worker, null for failed ones); view 'full' also adds workers[] = " +
+        "{ workerIndex, success, output, error, elapsedSeconds, peers? (workers it had a peer channel with) }. Error codes: invalid_argument, session_not_found, " +
         "layer_not_found, layer_key_conflict, previous_layer_not_ready, previous_layer_failed, capacity_exceeded, not_ready, " +
         "worker_error, out_of_memory, daemon_timeout, no_daemons, host_unavailable, job_failed, cancelled.";
 
@@ -98,8 +99,12 @@ public sealed class ParcsAgentTools
         "AgentLayerInput: WorkerIndex, TotalWorkers, SessionId, LayerId, CustomData (same for every worker), WorkerInput " +
         "(workerInputs[WorkerIndex] of run_layer), Parameters (Dictionary<string,string>), PreviousLayerResults (one JSON " +
         "document per parent layer), PreviousLayerResultJson (= the first of them) and GetPreviousOutputs(parentIndex = 0), " +
-        "which returns the parent's per-worker outputs in worker order (null for failed workers). Return " +
-        "AgentLayerResult.Ok(outputJson) or AgentLayerResult.Error(message). Workers have no network or file access.\n" +
+        "which returns the parent's per-worker outputs in worker order (null for failed workers), InheritedOutputs (for each " +
+        "parent, the output of its worker with this WorkerIndex), and Peer(j) -> IAgentChannel, a direct channel to worker " +
+        "j opened the first time either side asks: { SendAsync(string), ReceiveAsync() } plus the extensions " +
+        "SendJsonAsync<T>, ReceiveJsonAsync<T>, ExchangeJsonAsync<T>. " + PeersDoc + " Return " +
+        "AgentLayerResult.Ok(outputJson) or AgentLayerResult.Error(message). Workers have no network or file access " +
+        "besides their peer channels. " + SpawnDoc + "\n" +
         "Returns status 'Created' or 'Reused' (the same source returns the same session), sessionId and output = " +
         "{ entryPoints: [full class names] }; pass one as run_layer's entryPoint when there are several. On compile " +
         "failure: error.code 'compile_error' with diagnostics [{ id, line, column, message }].")]
@@ -133,7 +138,10 @@ public sealed class ParcsAgentTools
         "to finish. If it is still running, returns status 'Running' with layerId: call wait_layer(layerId). Pass a " +
         "layerKey to make the call idempotent: repeating it with the same key and arguments returns the same layer " +
         "instead of starting another job, with reused: true (a key whose layer Failed or was Cancelled starts a new attempt). Chain layers " +
-        "with previousLayerIds; workers read the parents' results through input.PreviousLayerResults. " + LayerResultDoc)]
+        "with previousLayerIds; workers read the parents' results through input.PreviousLayerResults, or only their own " +
+        "share with inherit 'byIndex'. All workers of a layer run at once and can talk to each other directly through " +
+        "input.Peer(j): the code builds whatever topology it needs as it runs (a ring, a tree, a hypercube, a grid, " +
+        "partners chosen from the data) instead of a layer per exchange. " + LayerResultDoc)]
     public async Task<CallToolResult> RunLayerAsync(
         [Description("Session ID from create_session.")] string sessionId,
         [Description("Number of workers; at most maxParallelism from get_cluster_info.")] int parallelism,
@@ -145,23 +153,54 @@ public sealed class ParcsAgentTools
         [Description("Named parameters sent unchanged to every worker as input.Parameters.")] Dictionary<string, string>? parameters = null,
         [Description("One string per worker (exactly 'parallelism' entries); worker i reads workerInputs[i] as input.WorkerInput.")] string?[]? workerInputs = null,
         [Description("If true, the first failed worker fails the whole layer (status Failed) instead of CompletedWithFailures.")] bool failFast = false,
+        [Description("Seconds a peer channel receive waits before throwing TimeoutException (1–900, default 60); also bounds opening a channel.")] int? channelTimeoutSeconds = null,
+        [Description("'all' (default): every worker gets every parent's whole result. 'byIndex': worker i gets only output i of each parent, in input.InheritedOutputs (parents must have the same parallelism).")] string? inherit = null,
+        [Description(MaxPointsDoc)] int? maxPoints = null,
+        [Description("How many levels spawned points may nest below the workers (0–8; default 3 when maxPoints exceeds parallelism).")] int? maxDepth = null,
         [Description("'summary' (default), 'outputs' or 'full'.")] string? view = null,
         CancellationToken ct = default)
     {
         var request = new LayerRequest
         {
-            SessionId        = sessionId,
-            Parallelism      = parallelism,
-            LayerKey         = layerKey,
-            EntryPoint       = entryPoint,
-            PreviousLayerIds = previousLayerIds ?? [],
-            CustomData       = customData,
-            Parameters       = parameters ?? new(),
-            WorkerInputs     = workerInputs,
-            FailFast         = failFast,
+            SessionId             = sessionId,
+            Parallelism           = parallelism,
+            LayerKey              = layerKey,
+            EntryPoint            = entryPoint,
+            PreviousLayerIds      = previousLayerIds ?? [],
+            CustomData            = customData,
+            Parameters            = parameters ?? new(),
+            WorkerInputs          = workerInputs,
+            FailFast              = failFast,
+            ChannelTimeoutSeconds = channelTimeoutSeconds,
+            Inherit               = inherit,
+            MaxPoints             = maxPoints,
+            MaxDepth              = maxDepth,
         };
         return await StartAndWaitAsync(request, ClampWait(waitSeconds ?? DefaultWaitSeconds), view, ct);
     }
+
+    private const string MaxPointsDoc =
+        "Points the layer may use in all: its workers plus every point they spawn with input.SpawnAsync (default " +
+        "parallelism, which turns spawning off). The budget is split among the workers and handed down the spawn " +
+        "tree; a spawn over budget or below maxDepth fails with a message naming the limit. Elastic clusters need " +
+        "maxPoints <= maxParallelism; static clusters allow up to 4x, the extra points sharing the daemons.";
+
+    private const string SpawnDoc =
+        "Recursion: input.SpawnAsync(count, entryPoint?, inputs?) starts count new points running this session's " +
+        "code one level deeper (entryPoint: another class of the session; inputs: one string per child, read as its " +
+        "input.WorkerInput) and returns a spawn with Child(i) -> IAgentChannel and ResultsAsync() -> the children's " +
+        "outputs (it throws when a child failed). A spawned worker sees input.Depth, input.Spawner (its channel to the " +
+        "spawning worker) and its siblings as input.Peer(j); it may spawn further. input.SpawnBudget is how many more " +
+        "points this worker may spawn below itself; the run_layer arguments maxPoints and maxDepth set the limits.";
+
+    private const string PeersDoc =
+        "No topology is declared: it is whatever channels the code opens. Either end may open a channel first; " +
+        "Peers.AcceptAsync() returns the next channel another worker opened to this one unasked, and Peers.Connected " +
+        "lists the workers connected so far. channel.HasMessage and channel.TryReceive(out m) check without waiting; " +
+        "Peers.ReceiveAnyAsync(new[] { j, k }) waits for whichever of those workers sends first and returns (Peer, Message). " +
+        "Sends never block (no deadlock when both sides send first); a receive " +
+        "throws TimeoutException after channelTimeoutSeconds and IOException when the other worker failed. Pass " +
+        "failFast: true when workers wait on each other.";
 
     [McpServerTool(Name = "submit_layer", UseStructuredContent = true, OutputSchemaType = typeof(ToolEnvelope))]
     [Description(EnvelopeDoc +
@@ -177,19 +216,27 @@ public sealed class ParcsAgentTools
         [Description("Named parameters sent to every worker as input.Parameters.")] Dictionary<string, string>? parameters = null,
         [Description("One string per worker, read as input.WorkerInput.")] string?[]? workerInputs = null,
         [Description("Fail the whole layer on the first failed worker.")] bool failFast = false,
+        [Description("Receive timeout of peer channels, see run_layer.")] int? channelTimeoutSeconds = null,
+        [Description("'all' (default) or 'byIndex', see run_layer.")] string? inherit = null,
+        [Description("Points budget for spawning, see run_layer.")] int? maxPoints = null,
+        [Description("Spawn depth limit, see run_layer.")] int? maxDepth = null,
         CancellationToken ct = default)
     {
         var request = new LayerRequest
         {
-            SessionId        = sessionId,
-            Parallelism      = parallelism,
-            LayerKey         = layerKey,
-            EntryPoint       = entryPoint,
-            PreviousLayerIds = previousLayerIds ?? [],
-            CustomData       = customData,
-            Parameters       = parameters ?? new(),
-            WorkerInputs     = workerInputs,
-            FailFast         = failFast,
+            SessionId             = sessionId,
+            Parallelism           = parallelism,
+            LayerKey              = layerKey,
+            EntryPoint            = entryPoint,
+            PreviousLayerIds      = previousLayerIds ?? [],
+            CustomData            = customData,
+            Parameters            = parameters ?? new(),
+            WorkerInputs          = workerInputs,
+            FailFast              = failFast,
+            ChannelTimeoutSeconds = channelTimeoutSeconds,
+            Inherit               = inherit,
+            MaxPoints             = maxPoints,
+            MaxDepth              = maxDepth,
         };
         return await StartAndWaitAsync(request, TimeSpan.Zero, null, ct);
     }
@@ -282,6 +329,33 @@ public sealed class ParcsAgentTools
         });
     }
 
+    [McpServerTool(Name = "delete_session", Destructive = true, Idempotent = true, UseStructuredContent = true, OutputSchemaType = typeof(ToolEnvelope))]
+    [Description(EnvelopeDoc +
+        "Deletes a session and all its layers, cancelling the ones still queued or running. Sessions and finished layers " +
+        "are otherwise kept, also across server restarts. Returns status 'Deleted' with output = { deletedLayers }, or " +
+        "error.code 'session_not_found'.")]
+    public async Task<CallToolResult> DeleteSessionAsync(
+        [Description("Session ID from create_session or list_sessions.")] string sessionId,
+        CancellationToken ct = default)
+    {
+        var deleted = await _sessions.DeleteSessionAsync(sessionId, ct);
+        if (deleted is null)
+        {
+            return Respond(ToolEnvelope.Fail(new ToolError
+            {
+                Code = ErrorCodes.SessionNotFound, Message = $"Session '{sessionId}' not found.",
+            }));
+        }
+
+        return Respond(new ToolEnvelope
+        {
+            Ok        = true,
+            Status    = "Deleted",
+            SessionId = sessionId,
+            Output    = new JsonObject { ["deletedLayers"] = deleted.Value },
+        });
+    }
+
     [McpServerTool(Name = "cancel_layer", Destructive = true, Idempotent = true, UseStructuredContent = true, OutputSchemaType = typeof(ToolEnvelope))]
     [Description(EnvelopeDoc +
         "Cancels a Queued or Running layer and frees its workers; returns the layer (status Cancelled once the " +
@@ -315,7 +389,7 @@ public sealed class ParcsAgentTools
         Code = ErrorCodes.LayerNotFound, Message = $"Layer '{layerId}' not found.",
     });
 
-    private static CallToolResult Respond(ToolEnvelope envelope)
+    internal static CallToolResult Respond(ToolEnvelope envelope)
     {
         var node = JsonSerializer.SerializeToNode(envelope, JsonOptions)!;
         return new CallToolResult

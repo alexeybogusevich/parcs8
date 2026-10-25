@@ -29,4 +29,22 @@ public sealed class LayerInputDto
     public List<string?>? WorkerInputs { get; set; }
 
     public Dictionary<string, string> Parameters { get; set; } = new();
+
+    /// <summary>Default receive timeout of the peer channels, and the timeout for connecting one.</summary>
+    public int ChannelTimeoutSeconds { get; set; } = 60;
+
+    /// <summary>
+    /// When true, WorkerInputs and the parents' per-index outputs are in worker_{index}.json
+    /// instead of this file, so a worker reads only its own share.
+    /// </summary>
+    public bool PerWorkerFiles { get; set; }
+
+    /// <summary>"all" (default): every worker gets every parent's whole result. "byIndex": worker i gets output i of each parent.</summary>
+    public string Inherit { get; set; } = "all";
+
+    /// <summary>Points the layer may use in all, spawned ones included; 0 or TotalWorkers turns spawning off.</summary>
+    public int MaxPoints { get; set; }
+
+    /// <summary>How deep spawned points may nest below the workers.</summary>
+    public int MaxDepth { get; set; }
 }

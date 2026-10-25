@@ -1,3 +1,4 @@
+using Parcs.Agent.Mcp.Models;
 using Parcs.Agent.Mcp.Services;
 using Parcs.Agent.Mcp.Tools;
 
@@ -12,6 +13,10 @@ builder.Services.AddSingleton<ParcsApiClient>();
 builder.Services.AddSingleton<IParcsApiClient>(sp => sp.GetRequiredService<ParcsApiClient>());
 builder.Services.AddSingleton<RoslynCompilerService>();
 builder.Services.AddSingleton<CapacityGate>();
+// Sessions and finished layers survive restarts when Parcs:SessionStorePath is set (shared storage on Kubernetes).
+builder.Services.AddSingleton<ISessionStore>(sp => builder.Configuration["Parcs:SessionStorePath"] is { Length: > 0 } path
+    ? new FileSessionStore(path, sp.GetRequiredService<ILogger<FileSessionStore>>())
+    : NullSessionStore.Instance);
 builder.Services.AddSingleton<SessionManager>();
 builder.Services.AddSingleton<ClusterInfoService>();
 builder.Services.AddSingleton<IClusterInfoService>(sp => sp.GetRequiredService<ClusterInfoService>());
@@ -26,7 +31,13 @@ builder.Services.AddHostedService(sp => sp.GetRequiredService<AgentRunnerModuleR
 builder.Services
     .AddMcpServer()
     .WithHttpTransport(options => options.Stateless = true)
-    .WithTools<ParcsAgentTools>();
+    .WithTools<ParcsAgentTools>()
+    // Wrong or misspelt argument names get an invalid_argument envelope that names them, instead
+    // of the SDK's generic binding error.
+    .WithRequestFilters(filters => filters.AddCallToolFilter(next => async (context, cancellationToken) =>
+        ToolArguments.Check(context.Params?.Name, context.Params?.Arguments?.Keys) is { } error
+            ? ParcsAgentTools.Respond(ToolEnvelope.Fail(error))
+            : await next(context, cancellationToken)));
 
 var app = builder.Build();
 

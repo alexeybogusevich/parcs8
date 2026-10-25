@@ -7,5 +7,7 @@
         ExecuteClass = 2,
         CancelJob = 3,
         CloseConnection = 4,
+        OpenLink = 5,
+        ConnectLink = 6,
     }
 }

@@ -207,7 +207,8 @@ public class SessionManagerTests
         {
             Assert.That(root.GetProperty("EntryPoint").GetString(), Is.EqualTo("Demo.Reduce"));
             Assert.That(root.GetProperty("PreviousLayerResults").GetArrayLength(), Is.EqualTo(2));
-            Assert.That(root.GetProperty("WorkerInputs")[1].GetString(), Is.EqualTo("w1"));
+            Assert.That(root.GetProperty("PerWorkerFiles").GetBoolean(), Is.True, "worker inputs go to per-worker files");
+            Assert.That(JsonDocument.Parse(harness.Api.InputFiles[child.JobId!.Value]["worker_1.json"]).RootElement.GetProperty("WorkerInput").GetString(), Is.EqualTo("w1"));
             Assert.That(root.GetProperty("FailFast").GetBoolean(), Is.True);
             Assert.That(root.GetProperty("TotalWorkers").GetInt32(), Is.EqualTo(2));
         });

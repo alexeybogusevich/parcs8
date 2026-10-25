@@ -17,6 +17,8 @@ namespace Parcs.Daemon.Services
                 Signal.CancelJob => _serviceProvider.GetRequiredService<CancelJobSignalHandler>(),
                 Signal.InitializeJob => _serviceProvider.GetRequiredService<InitializeJobSignalHandler>(),
                 Signal.ExecuteClass => _serviceProvider.GetRequiredService<ExecuteClassSignalHandler>(),
+                Signal.OpenLink => _serviceProvider.GetRequiredService<OpenLinkSignalHandler>(),
+                Signal.ConnectLink => _serviceProvider.GetRequiredService<ConnectLinkSignalHandler>(),
                 _ => _serviceProvider.GetRequiredService<DefaultSignalHandler>(),
             };
         }

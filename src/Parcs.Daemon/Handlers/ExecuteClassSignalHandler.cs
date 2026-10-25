@@ -1,5 +1,6 @@
 ﻿using Parcs.Daemon.Extensions;
 using Parcs.Daemon.Handlers.Interfaces;
+using Parcs.Daemon.Services;
 using Parcs.Daemon.Services.Interfaces;
 using Parcs.Core.Models.Interfaces;
 using Parcs.Core.Services.Interfaces;
@@ -13,8 +14,10 @@ namespace Parcs.Daemon.Handlers
         IModuleLoader moduleLoader,
         IModuleInfoFactory moduleInfoFactory,
         IHostApiClient hostApiClient,
+        PointLinkRegistry linkRegistry,
         ILogger<ExecuteClassSignalHandler> logger) : ISignalHandler
     {
+        private readonly PointLinkRegistry _linkRegistry = linkRegistry;
         private readonly IJobContextAccessor _jobContextAccessor = jobContextAccessor;
         private readonly IModuleLoader _moduleLoader = moduleLoader;
         private readonly IModuleInfoFactory _moduleInfoFactory = moduleInfoFactory;
@@ -44,7 +47,9 @@ namespace Parcs.Daemon.Handlers
             {
                 var module = _moduleLoader.Load(moduleId, assemblyName, className);
 
-                await using var moduleInfo = _moduleInfoFactory.Create(jobMetadata, arguments, managedChannel, jobCancellationToken);
+                // The links the creator set up for this point (LinkPointsAsync), before this class started.
+                await using var moduleInfo = _moduleInfoFactory.Create(
+                    jobMetadata, arguments, managedChannel, jobCancellationToken, _linkRegistry.For(managedChannel));
                 await module.RunAsync(moduleInfo, jobCancellationToken);
 
                 _logger.LogInformation("Class execution for job {JobId} succeeded.", jobId);

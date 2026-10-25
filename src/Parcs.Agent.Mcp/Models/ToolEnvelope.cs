@@ -49,6 +49,13 @@ public sealed class ToolEnvelope
     [JsonPropertyName("workers")]
     public IReadOnlyList<WorkerDetail>? Workers { get; init; }
 
+    /// <summary>
+    /// Where the rest of the result is, when this view leaves it out: a finished multi-worker
+    /// layer in the summary view says how to get its worker outputs.
+    /// </summary>
+    [JsonPropertyName("hint")]
+    public string? Hint { get; init; }
+
     [JsonPropertyName("error")]
     public ToolError? Error { get; init; }
 
@@ -65,6 +72,22 @@ public sealed class LayerSummary
 
     [JsonPropertyName("previousLayerIds")]
     public IReadOnlyList<string> PreviousLayerIds { get; init; } = [];
+
+    /// <summary>Peer channels the workers opened between them (each pair counted once); absent when none.</summary>
+    /// <summary>The layer's points budget when it allows spawning; absent otherwise.</summary>
+    [JsonPropertyName("maxPoints")]
+    public int? MaxPoints { get; init; }
+
+    /// <summary>Points the workers spawned, at every depth; absent when none.</summary>
+    [JsonPropertyName("spawnedPoints")]
+    public int? SpawnedPoints { get; init; }
+
+    [JsonPropertyName("peerChannels")]
+    public int? PeerChannels { get; init; }
+
+    /// <summary>"byIndex" when each worker received only its own output of each parent; absent for "all".</summary>
+    [JsonPropertyName("inherit")]
+    public string? Inherit { get; init; }
 
     [JsonPropertyName("successCount")]
     public int? SuccessCount { get; init; }
@@ -109,6 +132,15 @@ public sealed class WorkerDetail
 
     [JsonPropertyName("elapsedSeconds")]
     public double ElapsedSeconds { get; init; }
+
+    /// <summary>Workers this one had a peer channel with; absent when none.</summary>
+    [JsonPropertyName("peers")]
+    public IReadOnlyList<int>? Peers { get; init; }
+
+    /// <summary>Points this worker spawned, at every depth below it; absent when none.</summary>
+    [JsonPropertyName("spawned")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public int Spawned { get; init; }
 }
 
 public sealed record ToolError

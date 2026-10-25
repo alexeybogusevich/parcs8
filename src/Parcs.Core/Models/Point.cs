@@ -10,6 +10,7 @@ namespace Parcs.Core.Models
         private readonly IArgumentsProvider _argumentsProvider = argumentsProvider;
         private IManagedChannel _managedChannel = managedChannel;
         private bool _managedChannelInitialized = false;
+        private bool _classExecuted = false;
 
         public Guid Id { get; init; } = Guid.NewGuid();
 
@@ -49,6 +50,45 @@ namespace Parcs.Core.Models
             await _managedChannel.WriteDataAsync(_jobId);
             await _managedChannel.WriteDataAsync(assemblyName);
             await _managedChannel.WriteDataAsync(className);
+            _classExecuted = true;
+        }
+
+        /// <summary>Has the point's daemon open an endpoint for the link <paramref name="name"/>; returns its address.</summary>
+        internal async Task<string> OpenLinkAsync(string name)
+        {
+            EnsureLinkable();
+            await _managedChannel.WriteSignalAsync(Signal.OpenLink);
+            await _managedChannel.WriteDataAsync(_jobId);
+            await _managedChannel.WriteDataAsync(name);
+            return await ReadLinkReplyAsync(name);
+        }
+
+        /// <summary>Has the point's daemon dial <paramref name="address"/> for the link <paramref name="name"/>.</summary>
+        internal async Task ConnectLinkAsync(string name, string address)
+        {
+            EnsureLinkable();
+            await _managedChannel.WriteSignalAsync(Signal.ConnectLink);
+            await _managedChannel.WriteDataAsync(_jobId);
+            await _managedChannel.WriteDataAsync(name);
+            await _managedChannel.WriteDataAsync(address);
+            await ReadLinkReplyAsync(name);
+        }
+
+        private void EnsureLinkable()
+        {
+            // Once the class runs, this channel belongs to the module as its parent channel.
+            if (!_managedChannelInitialized || _classExecuted)
+            {
+                throw new InvalidOperationException(
+                    "Link points after CreateChannelAsync and before ExecuteClassAsync on each of them.");
+            }
+        }
+
+        private async Task<string> ReadLinkReplyAsync(string name)
+        {
+            var succeeded = await _managedChannel.ReadBooleanAsync();
+            var value = await _managedChannel.ReadStringAsync();
+            return succeeded ? value : throw new InvalidOperationException($"Could not set up the link '{name}': {value}");
         }
 
         public async Task DeleteAsync() => await DisposeAsync();

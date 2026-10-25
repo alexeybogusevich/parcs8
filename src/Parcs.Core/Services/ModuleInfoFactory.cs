@@ -13,7 +13,8 @@ namespace Parcs.Core.Services
         IAddressResolver addressResolver,
         ILogger<ModuleInfoFactory> logger,
         IPointCreationService pointCreationService = null,
-        IDaemonAllocator daemonAllocator = null) : IModuleInfoFactory
+        IDaemonAllocator daemonAllocator = null,
+        IPeerChannelService peerChannelService = null) : IModuleInfoFactory
     {
         private readonly IDaemonResolver _daemonResolver = daemonResolver;
         private readonly IInputOutputFactory _inputOutputFactory = inputOutputFactory;
@@ -23,12 +24,14 @@ namespace Parcs.Core.Services
         private readonly ILogger<ModuleInfoFactory> _logger = logger;
         private readonly IPointCreationService _pointCreationService = pointCreationService;
         private readonly IDaemonAllocator _daemonAllocator = daemonAllocator;
+        private readonly IPeerChannelService _peerChannelService = peerChannelService;
 
         public IModuleInfo Create(
             JobMetadata jobMetadata,
             IDictionary<string, string> arguments,
             IChannel parentChannel = null,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken = default,
+            PointLinks links = null)
         {
             var argumentsProvider = _argumentsProviderFactory.Create(arguments);
 
@@ -43,7 +46,9 @@ namespace Parcs.Core.Services
                 _logger,
                 cancellationToken,
                 _pointCreationService,
-                _daemonAllocator);
+                _daemonAllocator,
+                _peerChannelService,
+                links);
         }
 
         public IModuleInfo Create(

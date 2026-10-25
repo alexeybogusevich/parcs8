@@ -27,6 +27,20 @@ public sealed class LayerRecord
 
     public bool FailFast { get; init; }
 
+    public int ChannelTimeoutSeconds { get; init; } = 60;
+
+    /// <summary>"all" or "byIndex".</summary>
+    public string Inherit { get; init; } = "all";
+
+    /// <summary>Points the layer may use in all: its workers plus every point they spawn.</summary>
+    public int MaxPoints { get; init; }
+
+    /// <summary>How deep spawned points may nest below the workers (0: no spawning).</summary>
+    public int MaxDepth { get; init; }
+
+    /// <summary>Capacity slots the layer holds while it runs.</summary>
+    public int Slots { get; init; }
+
     public DateTimeOffset SubmittedAt { get; init; } = DateTimeOffset.UtcNow;
 
     public LayerStatus Status { get; set; } = LayerStatus.Queued;

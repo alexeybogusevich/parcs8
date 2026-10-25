@@ -6,6 +6,7 @@ using Parcs.Core.Models;
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
+using System.Threading.Channels;
 
 namespace Parcs.Core.Services
 {
@@ -28,6 +29,9 @@ namespace Parcs.Core.Services
 
         // Keyed by correlationId — each pending point request registers its own TCS.
         private readonly ConcurrentDictionary<string, TaskCompletionSource<NetworkChannel>> _pendingConnections = new();
+
+        // Peer endpoints: one registration, any number of connections.
+        private readonly ConcurrentDictionary<string, ChannelWriter<NetworkChannel>> _listeners = new();
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
@@ -88,6 +92,10 @@ namespace Parcs.Core.Services
                 {
                     tcs.SetResult(networkChannel);
                 }
+                else if (_listeners.TryGetValue(correlationId, out var listener) && listener.TryWrite(networkChannel))
+                {
+                    // A listener stays registered and takes any number of connections.
+                }
                 else
                 {
                     _logger.LogWarning(
@@ -123,6 +131,31 @@ namespace Parcs.Core.Services
             return tcs.Task;
         }
 
+        /// <summary>
+        /// Registers a listener keyed by <paramref name="correlationId"/> that receives every
+        /// connection naming it, until <paramref name="cancellationToken"/> is cancelled. Connections
+        /// nobody has read by then are closed.
+        /// </summary>
+        public ChannelReader<NetworkChannel> Listen(string correlationId, CancellationToken cancellationToken)
+        {
+            var connections = Channel.CreateUnbounded<NetworkChannel>();
+            _listeners[correlationId] = connections.Writer;
+
+            cancellationToken.Register(() =>
+            {
+                if (_listeners.TryRemove(correlationId, out var writer))
+                {
+                    writer.TryComplete();
+                }
+                while (connections.Reader.TryRead(out var unread))
+                {
+                    unread.Dispose();
+                }
+            });
+
+            return connections.Reader;
+        }
+
         /// <summary>Address and port that child daemons should dial back to.</summary>
         public (string Address, int Port) GetAdvertisedEndpoint()
         {
@@ -153,6 +186,11 @@ namespace Parcs.Core.Services
                 tcs.TrySetCanceled();
             }
             _pendingConnections.Clear();
+            foreach (var listener in _listeners.Values)
+            {
+                listener.TryComplete();
+            }
+            _listeners.Clear();
 
             return Task.CompletedTask;
         }

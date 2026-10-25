@@ -793,6 +793,9 @@ spec:
           value: "http://parcs-hostapi-internal"
         - name: Parcs__AgentRunnerModuleId
           value: "0"
+        # Sessions and finished layers survive MCP restarts (on the shared storage volume).
+        - name: Parcs__SessionStorePath
+          value: "/var/lib/storage/AgentSessions"
         - name: Parcs__FallbackWorkerNodeCount
           value: "3"
         - name: Parcs__FallbackMaxParallelism

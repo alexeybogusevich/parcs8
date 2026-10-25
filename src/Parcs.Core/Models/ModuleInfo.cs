@@ -18,13 +18,17 @@ namespace Parcs.Core.Models
         ILogger logger,
         CancellationToken cancellationToken,
         IPointCreationService pointCreationService = null,
-        IDaemonAllocator daemonAllocator = null) : IModuleInfo
+        IDaemonAllocator daemonAllocator = null,
+        IPeerChannelService peerChannelService = null,
+        PointLinks links = null) : IModuleInfo
     {
         private readonly long _jobId = jobMetadata.JobId;
         private readonly long _moduleId = jobMetadata.ModuleId;
 
         private readonly List<Point> _createdPoints = [];
         private readonly List<DaemonLease> _daemonLeases = [];
+        private readonly List<IChannel> _peerChannels = [];
+        private readonly List<IPeerEndpoint> _peerEndpoints = [];
         private readonly CancellationToken _cancellationToken = cancellationToken;
 
         private readonly IDaemonResolver _daemonResolver = daemonResolver;
@@ -34,6 +38,8 @@ namespace Parcs.Core.Models
         private readonly IPointCreationService _pointCreationService = pointCreationService;
         // Without a shared allocator, points are balanced over the pool within this job only.
         private readonly IDaemonAllocator _daemonAllocator = daemonAllocator ?? new DaemonAllocator();
+        private readonly IPeerChannelService _peerChannelService = peerChannelService;
+        private readonly PointLinks _links = links;
 
         public bool IsHost => Parent is null;
 
@@ -159,10 +165,65 @@ namespace Parcs.Core.Models
             return lease.Daemon;
         }
 
+        public Task<IPeerEndpoint> OpenEndpointAsync()
+        {
+            var endpoint = PeerChannels.OpenEndpoint(_cancellationToken);
+            lock (_peerEndpoints)
+            {
+                _peerEndpoints.Add(endpoint);
+            }
+
+            return Task.FromResult(new TrackedPeerEndpoint(endpoint, TrackPeerChannel) as IPeerEndpoint);
+        }
+
+        public async Task<IChannel> ConnectAsync(string endpointAddress)
+        {
+            var channel = await PeerChannels.ConnectAsync(endpointAddress, _cancellationToken);
+            TrackPeerChannel(channel);
+            return channel;
+        }
+
+        public async Task LinkPointsAsync(IPoint first, string nameAtFirst, IPoint second, string nameAtSecond)
+        {
+            if (first is not Point listener || second is not Point dialer)
+                throw new ArgumentException("Only points created by this module can be linked.");
+            if (ReferenceEquals(first, second))
+                throw new ArgumentException("A point cannot be linked to itself.");
+            ArgumentException.ThrowIfNullOrEmpty(nameAtFirst);
+            ArgumentException.ThrowIfNullOrEmpty(nameAtSecond);
+
+            // The first point's daemon listens, the second's dials; both connect before their modules start.
+            var address = await listener.OpenLinkAsync(nameAtFirst);
+            await dialer.ConnectLinkAsync(nameAtSecond, address);
+        }
+
+        public async Task<IChannel> GetLinkAsync(string name)
+        {
+            if (_links is null)
+                throw new KeyNotFoundException($"This module has no link named '{name}': links are set up for points, not for the main module.");
+
+            var channel = await _links.GetAsync(name).WaitAsync(_cancellationToken);
+            TrackPeerChannel(channel);
+            return channel;
+        }
+
+        private IPeerChannelService PeerChannels => _peerChannelService
+            ?? throw new NotSupportedException("Peer channels are not available in this process (no callback server).");
+
+        private void TrackPeerChannel(IChannel channel)
+        {
+            lock (_peerChannels)
+            {
+                _peerChannels.Add(channel);
+            }
+        }
+
         public T BindModuleOptions<T>() where T : class, IModuleOptions, new() => _argumentsProvider.Bind<T>();
 
         public async ValueTask DisposeAsync()
         {
+            await DisposePeersAsync();
+
             if (_createdPoints.Count == 0)
             {
                 ReleaseDaemonLeases();
@@ -176,6 +237,46 @@ namespace Parcs.Core.Models
 
             ReleaseDaemonLeases();
             _createdPoints.Clear();
+        }
+
+        private async Task DisposePeersAsync()
+        {
+            IPeerEndpoint[] endpoints;
+            IChannel[] channels;
+            lock (_peerEndpoints)
+            {
+                endpoints = [.. _peerEndpoints];
+                _peerEndpoints.Clear();
+            }
+            lock (_peerChannels)
+            {
+                channels = [.. _peerChannels];
+                _peerChannels.Clear();
+            }
+
+            foreach (var endpoint in endpoints)
+            {
+                await endpoint.DisposeAsync();
+            }
+            foreach (var channel in channels)
+            {
+                channel.Dispose();
+            }
+        }
+
+        /// <summary>Hands the accepted channel to the module info, which closes it with the module.</summary>
+        private sealed class TrackedPeerEndpoint(IPeerEndpoint inner, Action<IChannel> track) : IPeerEndpoint
+        {
+            public string Address => inner.Address;
+
+            public async Task<IChannel> AcceptAsync(CancellationToken cancellationToken = default)
+            {
+                var channel = await inner.AcceptAsync(cancellationToken);
+                track(channel);
+                return channel;
+            }
+
+            public ValueTask DisposeAsync() => inner.DisposeAsync();
         }
 
         private void ReleaseDaemonLeases()

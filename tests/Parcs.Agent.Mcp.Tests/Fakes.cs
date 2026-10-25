@@ -25,6 +25,8 @@ internal sealed class FakeParcsApi : IParcsApiClient
 
     public ConcurrentDictionary<long, string> LayerInputs { get; } = new();
 
+    public ConcurrentDictionary<long, Dictionary<string, string>> InputFiles { get; } = new();
+
     public ConcurrentBag<long> CancelledJobs { get; } = new();
 
     public int JobsCreated => (int)Interlocked.Read(ref _nextJobId);
@@ -36,6 +38,7 @@ internal sealed class FakeParcsApi : IParcsApiClient
     {
         var jobId = Interlocked.Increment(ref _nextJobId);
         LayerInputs[jobId] = Encoding.UTF8.GetString(inputFiles.Single(f => f.Filename == "layer_input.json").Bytes);
+        InputFiles[jobId] = inputFiles.Where(f => f.Filename.EndsWith(".json")).ToDictionary(f => f.Filename, f => Encoding.UTF8.GetString(f.Bytes));
         return Task.FromResult(jobId);
     }
 
@@ -97,10 +100,12 @@ internal sealed class FakeClusterInfo(int maxParallelism) : IClusterInfoService
 {
     public int MaxParallelism { get; set; } = maxParallelism;
 
+    public string ScalingMode { get; set; } = ScalingModes.Static;
+
     public Task<ClusterInfoResult> GetClusterInfoAsync(CancellationToken ct = default) =>
         Task.FromResult(new ClusterInfoResult
         {
-            ScalingMode     = ScalingModes.Static,
+            ScalingMode     = ScalingMode,
             CapacitySource  = CapacitySources.Configuration,
             CurrentCapacity = MaxParallelism,
             MaxParallelism  = MaxParallelism,
@@ -115,12 +120,12 @@ internal sealed class Harness
     public CapacityGate Gate { get; } = new();
     public SessionManager Sessions { get; }
 
-    public Harness(int maxParallelism = 8)
+    public Harness(int maxParallelism = 8, ISessionStore? store = null)
     {
         Cluster = new FakeClusterInfo(maxParallelism);
         var compiler = new RoslynCompilerService(
             NullLogger<RoslynCompilerService>.Instance, new ConfigurationBuilder().Build());
-        Sessions = new SessionManager(compiler, Api, Module, Cluster, Gate, NullLogger<SessionManager>.Instance);
+        Sessions = new SessionManager(compiler, Api, Module, Cluster, Gate, NullLogger<SessionManager>.Instance, store);
     }
 
     public const string MapReduceSource = """
