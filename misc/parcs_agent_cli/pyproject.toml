@@ -1,0 +1,36 @@
+[project]
+name = "parcs-agent-cli"
+version = "0.1.0"
+description = "Command-line agent that runs a task on a PARCS cluster, traced in LangSmith"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "eval-utils[vertexai,google,anthropic]",
+    "parcs-agent",
+    "langchain>=1.2.15",
+    "langsmith>=0.7.32",
+    "python-dotenv>=1.2.2",
+    "rich>=15.0.0",
+]
+
+[tool.uv.sources]
+eval-utils = { path = "../eval_utils", editable = true }
+parcs-agent = { path = "../parcs_agent", editable = true }
+
+[dependency-groups]
+dev = [
+    "ruff>=0.17.2",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.ruff.lint.per-file-ignores]
+"main.py" = ["E501"]
+
+[tool.ruff.format]
+quote-style = "double"

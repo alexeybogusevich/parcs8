@@ -11,11 +11,11 @@
             "request": "launch",
             "module": "main",
             "console": "integratedTerminal",
-            "cwd": "${workspaceFolder}/misc/mcp_eval/",
+            "cwd": "${workspaceFolder}/misc/parcs_agent_cli/",
             "env": {
-                "PYTHONPATH": "${workspaceFolder}/misc/mcp_eval/"
+                "PYTHONPATH": "${workspaceFolder}/misc/parcs_agent_cli/"
             },
-            "envFile": "${workspaceFolder}/misc/mcp_eval/.env",
+            "envFile": "${workspaceFolder}/misc/parcs_agent_cli/.env",
             "justMyCode": false
         }
     ]
