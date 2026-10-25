@@ -17,6 +17,8 @@
     <ProjectReference Include="..\..\src\Parcs.Core\Parcs.Core.csproj" />
     <ProjectReference Include="..\..\modules\Parcs.Modules.AgentRunner\Parcs.Modules.AgentRunner.csproj" />
     <ProjectReference Include="..\..\modules\Parcs.Modules.Hypercube\Parcs.Modules.Hypercube.csproj" />
+    <ProjectReference Include="..\..\modules\Parcs.Modules.Ring\Parcs.Modules.Ring.csproj" />
+    <ProjectReference Include="..\..\modules\Parcs.Modules.Tree\Parcs.Modules.Tree.csproj" />
   </ItemGroup>
 
 </Project>
