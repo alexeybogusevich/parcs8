@@ -206,6 +206,12 @@ async def execute(
         encoding="utf-8",
     )
 
+    # Only now, with the transcript and the server's layer list saved, are the run's sessions disposable.
+    try:
+        cleanup_failures = await cluster.delete_sessions(log.session_ids())
+    except Exception as ex:  # noqa: BLE001 - a failed cleanup never fails a run that was already graded
+        cleanup_failures = [f"{type(ex).__name__}: {ex}"]
+
     return {
         **cell.as_dict(),
         "manifest": manifest_hash,
@@ -222,4 +228,5 @@ async def execute(
         "parcs_tool_calls": len(log.tool_calls),
         "transport_errors": len(log.transport_errors()),
         "transcript": transcript.relative_to(results_dir).as_posix(),
+        "cleanup_failures": cleanup_failures,
     }

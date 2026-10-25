@@ -12,7 +12,15 @@ from mcp import ClientSession
 from mcp.client.streamable_http import streamable_http_client
 
 TERMINAL = ("Completed", "CompletedWithFailures", "Failed", "Cancelled")
-POOL_FIELDS = ("scalingMode", "workerNodeCount", "currentCapacity", "maxParallelism", "daemonCpuRequestMillicores")
+# serverVersion pins the MCP server build: a redeploy during a sweep stops it like a pool change.
+POOL_FIELDS = (
+    "scalingMode",
+    "workerNodeCount",
+    "currentCapacity",
+    "maxParallelism",
+    "daemonCpuRequestMillicores",
+    "serverVersion",
+)
 
 
 def envelope(result: Any) -> dict:
@@ -68,6 +76,19 @@ class Cluster:
                 await self.call("cancel_layer", {"layerId": layer["layerId"]})
                 cancelled.append(layer["layerId"])
         return cancelled
+
+    async def delete_sessions(self, session_ids: list[str]) -> list[str]:
+        """Deletes a finished run's sessions (and their layers) from the server; returns the failures.
+
+        Every run compiles its own sessions, which the server otherwise keeps forever: they fill its
+        store, slow its restarts, and a later run with the same source would reuse them.
+        """
+        failures = []
+        for sid in session_ids:
+            env = await self.call("delete_session", {"sessionId": sid})
+            if not env.get("ok") and (env.get("error") or {}).get("code") != "session_not_found":
+                failures.append(f"{sid}: {env.get('error')}")
+        return failures
 
 
 def pool(info: dict) -> dict:
