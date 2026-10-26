@@ -65,7 +65,8 @@ writes its full transcript to `transcripts/<run_id>.json`:
 
 A rerun skips cells that already have a record, except those that ended in `infra_error`.
 `infra_error` covers transport and provider failures (rate limits and 5xx included, matched by
-exception class, so langchain-openai's wrapped errors count), a run with no model reply, and a run
+exception class, so langchain-openai's wrapped errors count), a model call cut off by the client's own
+read timeout before the budget ran out, a run with no model reply, and a run
 whose wall budget ran out while a PARCS call sat unanswered past its own `waitSeconds` plus a grace
 period. A run that runs out of budget while the model is still working ends as `wall_budget`. Each
 model call is logged when it starts, with the number of streamed chunks that arrived, so a call cut
