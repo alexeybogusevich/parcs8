@@ -8,11 +8,22 @@ sweeps the size N of the layer plan the task prescribes:
 | `tool_calling` | calls the PARCS tools itself, turn by turn (parallel tool calls allowed) |
 | `ptc` | writes JavaScript for a QuickJS `eval` tool that calls them as `tools.runLayer({...})` |
 
-Task families (`src/tool_calling_vs_ptc/tasks.py`), each exactly N + 1 layers:
+Task families (`src/tool_calling_vs_ptc/tasks.py`). Two problems, each with a plan in which the agent
+starts every step as a layer, and a plan in which the cluster's topology keeps the steps inside one layer:
 
-- **f1**, fan-out: an integral over N subintervals, one layer each, plus a reduce layer.
-- **f2**, sequential: N bisection steps for the K-th smallest of 2²⁴ hashed values. Each step is one
-  layer that reads the previous step's layer.
+| family | problem | plan | layers |
+|---|---|---|---|
+| **f1** | integral over N subintervals | one layer per subinterval, plus a reduce layer (fan-out) | N + 1 |
+| **f3** | the same integral | the N leaf layers added up in a binary tree of two-parent layers | 2N − 1 |
+| **f3s** | the same integral | one layer whose points spawn the tree themselves (`SpawnAsync`); N ≤ 8 | 1 |
+| **f2** | N bisection steps for the K-th smallest of 2²⁴ hashed values | one layer per step, each reading the previous one (sequential) | N + 1 |
+| **f2p** | the same bisection | one layer whose workers add up their counts over peer channels at every step | 1 |
+
+f3, f3s and f2p share the ground truth and tolerance of f1 and f2. The tasks for f3s and f2p carry the few
+lines of spawning or peer channel API they need, since the shared guidance prompts do not cover them.
+Grading checks their plan through the layer's `spawnedPoints` (2N − 2) and `peerChannels` (at least
+maxParallelism − 1), which the runner reads with `get_layer_result`. f3s stops at N = 8: its 2N − 1 points
+have to fit the static pool's limit of 4 × maxParallelism points per layer.
 
 ## Setup
 
@@ -86,7 +97,7 @@ layer gets the server's not-found error.
 ## Scripts
 
 - `scripts/cluster_probe.py`: capacity, per-layer fixed cost and call limits (no LLM).
-- `scripts/dry_run.py`: hand-written reference C# for both families, run through MCP (no LLM).
+- `scripts/dry_run.py`: hand-written reference C# for every family, run through MCP (no LLM).
 - `scripts/ground_truth.py`: offline ground truth.
 
 ```bash

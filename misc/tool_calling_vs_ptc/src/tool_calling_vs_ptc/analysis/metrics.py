@@ -11,6 +11,7 @@ import json
 from pathlib import Path
 
 from ..grading import grade
+from ..tasks import problem
 from .normalize import LAYER_STARTS, TERMINAL, Run
 from .pricing import call_cost
 
@@ -19,7 +20,7 @@ FAILED = ("CompletedWithFailures", "Failed", "Cancelled")
 
 
 def _truth(family: str, n: int) -> float:
-    return json.loads(TRUTH_FILE.read_text(encoding="utf-8"))[family]["per_n"][str(n)]["answer"]
+    return json.loads(TRUTH_FILE.read_text(encoding="utf-8"))[problem(family)]["per_n"][str(n)]["answer"]
 
 
 def _union(intervals: list[tuple[float, float]]) -> float:

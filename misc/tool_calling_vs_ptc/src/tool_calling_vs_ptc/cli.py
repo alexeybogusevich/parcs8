@@ -14,6 +14,7 @@ from .config import Config, load_config
 from .manifest import build, ensure
 from .plan import append_record, load_records, ordered_cells, pending
 from .runner import execute
+from .tasks import FAMILIES
 
 # A row of infrastructure failures means something is down; stop instead of churning through cells.
 MAX_CONSECUTIVE_INFRA_ERRORS = 3
@@ -24,7 +25,7 @@ def parse_args(argv=None):
     ap = argparse.ArgumentParser(prog="tcvp", description=__doc__)
     ap.add_argument("command", choices=["plan", "run", "status"])
     ap.add_argument("--results", type=Path, help="results directory (default EXPERIMENT__RESULTS_DIR)")
-    ap.add_argument("--families", nargs="+", choices=["f1", "f2"])
+    ap.add_argument("--families", nargs="+", choices=FAMILIES)
     ap.add_argument("--n", type=int, nargs="+", dest="n_grid")
     ap.add_argument("--arms", nargs="+", choices=["tool_calling", "ptc"])
     ap.add_argument("--models", nargs="+", help="model ids from EXPERIMENT__MODELS")

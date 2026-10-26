@@ -23,9 +23,43 @@ def test_render_differs_only_where_n_appears(family):
 
 def test_render_rejects_unknown_family_and_bad_n():
     with pytest.raises(ValueError):
-        tasks.render("f3", 2)
+        tasks.render("f9", 2)
     with pytest.raises(ValueError):
         tasks.render("f1", 0)
+    with pytest.raises(ValueError):
+        tasks.render("f3", 6)
+    with pytest.raises(ValueError):
+        tasks.render("f3s", 16)
+
+
+@pytest.mark.parametrize(
+    ("family", "layers"),
+    [("f3", lambda n: 2 * n - 1), ("f3s", lambda n: 1), ("f2p", lambda n: 1)],
+)
+@pytest.mark.parametrize("n", tasks.N_GRID)
+def test_render_new_families_fix_n_and_the_plan(family, layers, n):
+    if not tasks.supports(family, n):
+        return
+    task = tasks.render(family, n)
+
+    assert task.expected_layers == layers(n)
+    assert f"N = {n}" in task.text and f"exactly {layers(n)} layer" in task.text
+    assert task.text.rstrip().endswith("ANSWER: <number>")
+    assert "{" not in task.text.replace("new[] { leftInput", "")
+
+
+def test_f3s_budget_fits_the_spawn_tree():
+    for n in (2, 4, 8):
+        text = tasks.render("f3s", n).text
+        assert f"maxPoints = {2 * n - 1}" in text and f"maxDepth = {tasks.levels(n)}" in text
+        assert f"spawns {2 * n - 2} points" in text
+
+
+def test_tree_families_share_the_integral_and_f2p_the_bisection():
+    assert tasks.problem("f3") == tasks.problem("f3s") == "f1"
+    assert tasks.problem("f2p") == "f2"
+    assert tasks.tolerance("f3s", 8) == tasks.tolerance("f1", 8)
+    assert tasks.tolerance("f2p", 16) == tasks.tolerance("f2", 16)
 
 
 @pytest.mark.parametrize(

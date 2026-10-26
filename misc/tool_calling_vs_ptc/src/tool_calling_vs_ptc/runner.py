@@ -22,7 +22,7 @@ from .cluster import Cluster, pool
 from .config import ROOT, Config, ModelSpec
 from .grading import grade
 from .plan import Cell
-from .tasks import render
+from .tasks import LAYER_DETAILS, problem, render
 
 TRUTH_FILE = ROOT / "tasks" / "ground_truth.json"
 
@@ -90,7 +90,7 @@ def blame(termination: str, result: dict, log: agent_mod.RunLog, llm_calls: int)
 
 
 def truth(family: str, n: int) -> float:
-    return json.loads(TRUTH_FILE.read_text(encoding="utf-8"))[family]["per_n"][str(n)]["answer"]
+    return json.loads(TRUTH_FILE.read_text(encoding="utf-8"))[problem(family)]["per_n"][str(n)]["answer"]
 
 
 def final_text(messages: list[BaseMessage]) -> str:
@@ -171,6 +171,8 @@ async def execute(
     try:
         layers = await cluster.layers(log.session_ids())
         cancelled = await cluster.cancel_unfinished(layers)
+        if cell.family in LAYER_DETAILS:
+            await cluster.add_details(layers)
     except Exception as ex:  # noqa: BLE001 - without the server's layer list the run cannot be graded
         layers, cancelled = [], []
         termination, error = "infra_error", f"list_layers: {type(ex).__name__}: {ex}"

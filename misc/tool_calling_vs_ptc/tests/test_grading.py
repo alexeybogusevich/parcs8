@@ -1,3 +1,5 @@
+import pytest
+
 from tool_calling_vs_ptc.agent import RunLog
 from tool_calling_vs_ptc.grading import grade
 from tool_calling_vs_ptc.runner import blame
@@ -185,3 +187,131 @@ def test_broken_plan_with_a_lost_tool_call_is_blamed_on_infrastructure():
 
 def test_run_without_a_model_reply_is_blamed_on_infrastructure():
     assert blame("error", {"protocol_ok": False}, RunLog(), 0) == "infra_error"
+
+
+def f3_plan(n, total=F1_TRUTH):
+    level = [layer(f"leaf{k}") for k in range(n)]
+    layers, depth = list(level), 0
+    while len(level) > 1:
+        depth += 1
+        level = [
+            layer(f"c{depth}-{i}", prev=[level[2 * i]["layerId"], level[2 * i + 1]["layerId"]])
+            for i in range(len(level) // 2)
+        ]
+        layers += level
+    return layers, [returned(level[0]["layerId"], {"sum": total})]
+
+
+@pytest.mark.parametrize("n", [2, 4, 8, 32])
+def test_f3_balanced_tree_succeeds(n):
+    layers, calls = f3_plan(n)
+
+    g = grade("f3", n, f"ANSWER: {F1_TRUTH}", layers, calls, F1_TRUTH, 4)
+
+    assert g["success"], g["protocol_reasons"]
+    assert g["layers_completed"] == 2 * n - 1 and g["layers_extra"] == 0
+
+
+def test_f3_flat_reduce_fails():
+    layers, calls = f1_plan(4)
+
+    g = grade("f3", 4, f"ANSWER: {F1_TRUTH}", layers, calls, F1_TRUTH, 4)
+
+    assert g["correct"] and not g["protocol_ok"]
+
+
+def test_f3_unbalanced_tree_fails():
+    # ((l0 + l1) + l2) + l3: three combine layers, but the leaves sit at depths 3, 3, 2 and 1.
+    layers = [layer(f"l{k}") for k in range(4)]
+    layers += [layer("a", prev=["l0", "l1"]), layer("b", prev=["a", "l2"]), layer("root", prev=["b", "l3"])]
+    calls = [returned("root", {"sum": F1_TRUTH})]
+
+    g = grade("f3", 4, f"ANSWER: {F1_TRUTH}", layers, calls, F1_TRUTH, 4)
+
+    assert not g["protocol_ok"]
+
+
+def test_f3_leaf_shared_by_two_combines_fails():
+    layers, calls = f3_plan(4)
+    layers[5]["previousLayerIds"] = ["leaf0", "leaf1"]
+
+    g = grade("f3", 4, f"ANSWER: {F1_TRUTH}", layers, calls, F1_TRUTH, 4)
+
+    assert not g["protocol_ok"]
+
+
+def spawn_layer(n, spawned=None, parallelism=1):
+    row = layer("tree", parallelism)
+    row.update({"maxPoints": 2 * n - 1, "spawnedPoints": 2 * n - 2 if spawned is None else spawned})
+    return [row], [returned("tree", {"sum": F1_TRUTH})]
+
+
+def test_f3s_one_layer_spawning_the_whole_tree_succeeds():
+    layers, calls = spawn_layer(8)
+
+    g = grade("f3s", 8, f"ANSWER: {F1_TRUTH}", layers, calls, F1_TRUTH, 4)
+
+    assert g["success"], g["protocol_reasons"]
+
+
+@pytest.mark.parametrize("spawned", [0, 2, 13])
+def test_f3s_spawning_a_different_tree_fails(spawned):
+    layers, calls = spawn_layer(8, spawned)
+    if not spawned:
+        del layers[0]["spawnedPoints"]
+
+    g = grade("f3s", 8, f"ANSWER: {F1_TRUTH}", layers, calls, F1_TRUTH, 4)
+
+    assert g["correct"] and not g["protocol_ok"]
+
+
+def test_f3s_as_a_tree_of_layers_fails():
+    layers, calls = f3_plan(4)
+
+    g = grade("f3s", 4, f"ANSWER: {F1_TRUTH}", layers, calls, F1_TRUTH, 4)
+
+    assert not g["protocol_ok"]
+
+
+def peer_layer(workers=4, channels=3, mid=F2_TRUTH):
+    row = layer("bisect", workers)
+    if channels:
+        row["peerChannels"] = channels
+    outputs = [{"mid": mid}] + [{"worker": w} for w in range(1, workers)]
+    call = {"name": "get_layer_result", "envelope": {"layerId": "bisect", "status": "Completed", "outputs": outputs}}
+    return [row], [call]
+
+
+@pytest.mark.parametrize("channels", [3, 4, 6])
+def test_f2p_one_layer_with_a_connected_reduction_succeeds(channels):
+    layers, calls = peer_layer(channels=channels)
+
+    g = grade("f2p", 2, "ANSWER: 0.375", layers, calls, F2_TRUTH, 4)
+
+    assert g["success"], g["protocol_reasons"]
+
+
+def test_f2p_reads_answers_from_unparsed_worker_outputs():
+    layers, calls = peer_layer()
+    calls[0]["envelope"]["outputs"] = ['{"mid": 0.375}', None, None, None]
+
+    g = grade("f2p", 2, "ANSWER: 0.375", layers, calls, F2_TRUTH, 4)
+
+    assert g["success"], g["protocol_reasons"]
+
+
+@pytest.mark.parametrize(("workers", "channels"), [(4, 0), (4, 2), (1, 0)])
+def test_f2p_without_a_reduction_over_every_worker_fails(workers, channels):
+    layers, calls = peer_layer(workers, channels)
+
+    g = grade("f2p", 2, "ANSWER: 0.375", layers, calls, F2_TRUTH, 4)
+
+    assert g["correct"] and not g["protocol_ok"]
+
+
+def test_f2p_as_a_layer_per_step_fails():
+    layers, calls = f2_plan(2)
+
+    g = grade("f2p", 2, "ANSWER: 0.375", layers, calls, F2_TRUTH, 4)
+
+    assert not g["protocol_ok"]
