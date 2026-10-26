@@ -125,13 +125,17 @@ def run_config(cell: Cell, spec: ModelSpec, manifest_hash: str, recursion_limit:
 async def drive(agent: Any, text: str, config: dict, budget: float) -> tuple[list[BaseMessage], str, str | None]:
     """Run the agent; returns the last message state, the termination reason and the error text."""
     messages: list[BaseMessage] = []
+    deadline = asyncio.timeout(budget)
     try:
-        async with asyncio.timeout(budget):
+        async with deadline:
             async for state in agent.astream({"messages": [("user", text)]}, config=config, stream_mode="values"):
                 messages = state.get("messages") or messages
         return messages, "answer", None
-    except TimeoutError:
-        return messages, "wall_budget", None
+    except TimeoutError as ex:
+        if deadline.expired():
+            return messages, "wall_budget", None
+        # A client's own read timeout (a model call that streamed nothing for 120 s), not the run's budget.
+        return messages, "infra_error", f"{type(ex).__name__}: {ex}"
     except GraphRecursionError as ex:
         return messages, "recursion_limit", str(ex)
     except Exception as ex:  # noqa: BLE001 - every failure is a recorded outcome
