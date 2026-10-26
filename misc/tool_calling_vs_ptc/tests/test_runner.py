@@ -1,6 +1,7 @@
 """Both arms end to end against a fake PARCS MCP server: a scripted model, the real middleware stack,
 the interceptor log, the server's layer list and the grade."""
 
+import asyncio
 import json
 
 import httpx
@@ -12,7 +13,7 @@ from tool_calling_vs_ptc import agent as agent_mod
 from tool_calling_vs_ptc.cluster import Cluster, pool
 from tool_calling_vs_ptc.config import Config, ModelSpec
 from tool_calling_vs_ptc.plan import Cell
-from tool_calling_vs_ptc.runner import SweepAborted, classify, execute
+from tool_calling_vs_ptc.runner import SweepAborted, classify, drive, execute
 
 from .conftest import CLUSTER_INFO, ScriptModel, ai, last_envelope, scripted
 
@@ -283,6 +284,25 @@ async def test_a_budget_spent_waiting_on_a_hung_call_is_an_infra_error(config, m
 
     assert record["termination"] == "infra_error"
     assert "hung tool call: run_layer" in record["error"]
+
+
+async def test_a_read_timeout_inside_the_budget_is_an_infra_error():
+    # A provider stall once ended a run at 235 s of a 900 s budget: the client's read timeout raised
+    # TimeoutError, which was taken for the budget and charged to the model.
+    class Stalled:
+        async def astream(self, *args, **kwargs):
+            raise TimeoutError("read timed out")
+            yield
+
+    class Slow:
+        async def astream(self, *args, **kwargs):
+            await asyncio.sleep(10)
+            yield {}
+
+    _, termination, error = await drive(Stalled(), "task", {}, budget=60)
+    assert termination == "infra_error" and "read timed out" in error
+    _, termination, _ = await drive(Slow(), "task", {}, budget=0.1)
+    assert termination == "wall_budget"
 
 
 def test_a_call_within_its_own_wait_is_not_hung():

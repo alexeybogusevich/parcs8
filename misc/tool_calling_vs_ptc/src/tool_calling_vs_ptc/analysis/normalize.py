@@ -13,6 +13,8 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
 
+from ..cluster import DETAIL_FIELDS
+
 PARCS_TOOLS = frozenset({
     "get_cluster_info", "create_session", "run_layer", "submit_layer", "wait_layer", "get_layer_result",
     "list_sessions", "list_layers", "cancel_layer",
@@ -107,7 +109,9 @@ class Run:
                 continue
             layer = env.get("layer") or {}
             row = rows.setdefault(layer_id, {"layerId": layer_id})
-            row.update({k: layer[k] for k in ("entryPoint", "parallelism", "previousLayerIds") if k in layer})
+            row.update(
+                {k: layer[k] for k in ("entryPoint", "parallelism", "previousLayerIds", *DETAIL_FIELDS) if k in layer}
+            )
             if env.get("status"):
                 row["status"] = env["status"]
         return list(rows.values())

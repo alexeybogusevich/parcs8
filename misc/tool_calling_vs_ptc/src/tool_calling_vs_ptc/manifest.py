@@ -12,7 +12,7 @@ from parcs_agent import prompts
 
 from .cluster import pool
 from .config import ROOT, Config
-from .tasks import render
+from .tasks import render, supports
 
 # The runner is not tracked by git, so the git SHA alone does not pin it. Only what shapes a run is
 # hashed: grading is left out (transcripts are complete, so runs can be regraded), and so are scripts.
@@ -82,7 +82,9 @@ def build(config: Config, cluster_info: dict) -> dict:
         "recursion_limit": exp.recursion_limit,
         "wall_budget_seconds": exp.wall_budget_seconds,
         "pool": pool(cluster_info),
-        "tasks_sha256": {f"{f}-n{n}": _sha(render(f, n).text) for f in exp.families for n in exp.n_grid},
+        "tasks_sha256": {
+            f"{f}-n{n}": _sha(render(f, n).text) for f in exp.families for n in exp.n_grid if supports(f, n)
+        },
         "plan": {"families": exp.families, "n_grid": exp.n_grid, "arms": exp.arms, "reps": exp.reps, "seed": exp.seed},
     }
 
