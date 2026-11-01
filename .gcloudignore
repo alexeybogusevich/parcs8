@@ -7,5 +7,4 @@
 **/*.pdb
 articles/
 docs/
-misc/mcp_eval/.venv/
-misc/mcp_eval/results/
+misc/parcs_agent_cli/.venv/
