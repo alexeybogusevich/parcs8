@@ -38,3 +38,10 @@ def test_resume_skips_recorded_runs_but_repeats_infra_errors(tmp_path):
 
 def test_run_id_names_the_cell():
     assert Cell("f2", 16, "ptc", "small", 3).run_id == "f2-n16-ptc-small-r3"
+
+
+def test_cells_skip_n_a_family_cannot_run():
+    cells = ordered_cells(["f3s", "f2p"], [2, 4, 8, 16, 32], ["tool_calling", "ptc"], ["a"], 1, seed=1)
+
+    assert sorted({c.n for c in cells if c.family == "f3s"}) == [2, 4, 8]
+    assert sorted({c.n for c in cells if c.family == "f2p"}) == [2, 4, 8, 16, 32]

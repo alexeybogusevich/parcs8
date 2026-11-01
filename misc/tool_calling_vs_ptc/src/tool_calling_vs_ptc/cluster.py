@@ -21,6 +21,8 @@ POOL_FIELDS = (
     "daemonCpuRequestMillicores",
     "serverVersion",
 )
+# Layer summary fields that list_layers leaves out and grading needs for the peer and spawn families.
+DETAIL_FIELDS = ("peerChannels", "maxPoints", "spawnedPoints")
 
 
 def envelope(result: Any) -> dict:
@@ -68,6 +70,15 @@ class Cluster:
                 raise RuntimeError(f"list_layers({sid}) failed: {env.get('error')}")
             rows += [{"sessionId": sid, **layer} for layer in env["output"]["layers"]]
         return rows
+
+    async def add_details(self, layers: list[dict]) -> list[dict]:
+        """Adds to each completed layer the ``DETAIL_FIELDS`` of its get_layer_result summary."""
+        for layer in layers:
+            if layer.get("status") == "Completed":
+                env = await self.call("get_layer_result", {"layerId": layer["layerId"]})
+                summary = env.get("layer") or {}
+                layer.update({k: summary[k] for k in DETAIL_FIELDS if summary.get(k) is not None})
+        return layers
 
     async def cancel_unfinished(self, layers: list[dict]) -> list[str]:
         cancelled = []

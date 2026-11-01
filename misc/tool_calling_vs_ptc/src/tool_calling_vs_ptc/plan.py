@@ -7,6 +7,8 @@ import random
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
+from .tasks import supports
+
 # Termination reasons that say nothing about the model: such a run is repeated on the next pass.
 RETRYABLE = frozenset({"infra_error"})
 
@@ -31,7 +33,9 @@ def ordered_cells(families, n_grid, arms, models, reps: int, seed: int) -> list[
     """All cells. The (family, N, model, rep) blocks are shuffled; within a block the arms run back to
     back in a random order, so both arms of a block see the same cluster and provider conditions."""
     rng = random.Random(seed)
-    blocks = [(f, n, m, r) for f in families for n in n_grid for m in models for r in range(1, reps + 1)]
+    blocks = [
+        (f, n, m, r) for f in families for n in n_grid if supports(f, n) for m in models for r in range(1, reps + 1)
+    ]
     rng.shuffle(blocks)
     cells = []
     for f, n, m, r in blocks:
