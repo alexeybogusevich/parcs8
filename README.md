@@ -1,66 +1,105 @@
 # PARCS-NET-K8
 
 ## Overview
-This is a solution for deploying and managing algorithmic modules that solve recursive parallel computation problems. This repository contains the necessary files and configurations to deploy the solution onto Azure as an AKS (Azure Kubernetes Service) service. It also provides a local development environment using Docker Compose.
+
+PARCS-NET-K8 is a .NET 10 platform for running recursive parallel computations on Kubernetes. A user
+uploads a **module**, a compiled DLL that implements `Parcs.Net.IModule`. The Host API schedules it
+onto daemon workers. Each worker loads the assembly into an isolated `AssemblyLoadContext` and runs it,
+talking to the other workers over TCP channels.
+
+The platform runs on Azure (AKS), Google Cloud (GKE), AWS (EKS), a single-node Kubernetes cluster or
+Docker Compose. AI agents can drive it through an MCP server.
+
+## Architecture
+
+| Service | Role |
+|---|---|
+| `Parcs.Host` | ASP.NET Core Web API and control plane: modules, jobs, synchronous and asynchronous runs. Stores state in Postgres and requests points from daemons. |
+| `Parcs.Daemon` | Headless worker. Loads modules and runs points. Points can create nested points. |
+| `Parcs.Portal` | Blazor Server UI for managing modules and jobs. |
+| `Parcs.Agent.Mcp` | Model Context Protocol server that exposes PARCS to AI agents (see [AI agents](#ai-agents)). |
+| `Parcs.Core`, `Parcs.Data`, `Parcs.Agent.Runtime` | Shared implementation, EF Core data layer (migrations run at Host startup) and the base types for agent-written computations. |
+
+Points are scheduled in one of two ways. In **Elastic** mode, points are requested through a queue
+(Service Bus, Pub/Sub or SQS) and KEDA scales daemon Jobs on it. In **Static** mode, points go to a
+fixed pool of daemons. See [docs/scaling-modes.md](docs/scaling-modes.md).
+
+## Writing modules
+
+Modules depend only on the [`Parcs.Net`](https://www.nuget.org/packages/Parcs.Net/) NuGet package
+(version **10.1.0**), never on Host, Daemon or Core. The module-author API supports more than a star
+around the main point:
+
+- **Peer channels**: `input.Peer(j)` opens a channel to a sibling point on demand. This makes rings,
+  hypercubes and all-reduce possible without the main point relaying messages.
+- **Point links**: `LinkPointsAsync` / `GetLinkAsync` connect two points directly.
+- **Spawning**: `SpawnAsync` lets a point create its own children, so trees can grow from inside one job.
+- **Non-blocking receive**: `HasMessage`, `TryReceive` and `ReceiveAnyAsync`.
+
+Sample modules live in [`modules/`](modules). [`Parcs.Modules.Sample`](modules/Parcs.Modules.Sample/MainModule.cs)
+is the reference for the API. The topology examples are `Ring`, `Tree` and `Hypercube`. The
+computational benchmarks are `Integral`, `MonteCarloPi`, `MatrixesMultiplication`, `FloydWarshall`,
+`NBody`, `ProofOfWork` and `TravelingSalesman`.
+
+## Build and test
+
+```bash
+dotnet build Parcs7.sln
+dotnet test Parcs7.sln
+```
 
 ## Deployment
 
-To deploy the solution onto Azure as an AKS service, follow these steps:
+| Target | How |
+|---|---|
+| Docker Compose | `docker-compose -f src/docker-compose.yml up --build` |
+| Single-node Kubernetes | `kubectl apply -f kube/deployment.local.yaml` |
+| Azure AKS | `kube/deployment.azure.yaml`; infrastructure in `infra/main.bicep` |
+| Google GKE | [docs/gcp-deployment-guide.md](docs/gcp-deployment-guide.md), `kube/deployment.gcp.yaml` |
+| AWS EKS | [docs/aws-deployment-guide.md](docs/aws-deployment-guide.md), `kube/aws-karpenter.yaml` then `envsubst < kube/deployment.aws.yaml \| kubectl apply -f -`; `kube/aws-pause.sh` and `kube/aws-resume.sh` scale an idle cluster to zero and back |
 
-1. Create a Kubernetes cluster (AKS) on Azure using the Azure Portal. This will provision the necessary resources for the AKS cluster. Ensure the node pool is configured with a minimum image size of **DS2_v2** General Purpose to meet performance and resource requirements.
+Docker images are built from each project's `Dockerfile` with the repository root as the build
+context. Size CPU and memory limits and the number of daemons to the nodes you choose.
 
-2. **Adjust Resource Limits**:  
-   The resource limits for CPU and memory in the YAML configuration should be adjusted based on the chosen VM size for your AKS cluster. For example, if you select a larger VM size (e.g., **Standard_D4_v5** or **Standard_D8_v5**), increase the resource requests and limits for your pods accordingly to ensure optimal performance. 
+## AI agents
 
-3. **Adjust the Number of Daemons**:  
-   You can adjust the number of **parcs-daemon** replicas based on your cluster size and the computational load. If your workload requires more parallel processing, increase the number of daemons to scale horizontally and distribute the computation more effectively.
+`Parcs.Agent.Mcp` lets an agent compile C# `IAgentComputation` classes in a session and run them as
+**layers** across N daemons. Each layer can read the results of earlier layers, and the topology
+features above are available inside a layer. The tools are built for programmatic tool calling: every
+call is bounded by `waitSeconds`, `layerKey` makes layer calls idempotent, and every tool returns one
+`{ok, status, …, error}` envelope.
 
-4. Apply the YAML file located at `kube/deployment.azure.yaml` to configure the AKS cluster. This file specifies the desired state of the cluster and sets up the necessary configurations.
+Python packages under [`misc/`](misc):
 
-## Local Development
-For local development and debugging, you can use Docker Compose. Follow these steps:
+| Package | Purpose |
+|---|---|
+| [`parcs_agent`](misc/parcs_agent) | LangChain middleware that connects an agent to the MCP server in `tool_calling` or `ptc` mode, with guidance prompts. |
+| [`parcs_agent_cli`](misc/parcs_agent_cli) | Runs one task against a live cluster, traced in LangSmith. |
+| [`eval_utils`](misc/eval_utils) | Settings and the model factory shared by the harnesses. |
+| [`tool_calling_vs_ptc`](misc/tool_calling_vs_ptc) | Benchmark of tool calling against programmatic tool calling (PTC) across five task families and plan sizes N = 2 to 32. |
 
-1. Ensure you have Docker Compose installed on your local machine.
+The benchmark's main result is that **who orchestrates decides the gap**. When the agent starts every
+layer itself (fan-out, a tree of layers or a chain of layers), PTC's advantage in model calls, tokens
+and cost grows with N, up to about 11× in cost at N = 32. When the cluster carries the topology inside
+one layer (spawned trees, peer all-reduce), tool calling needs only about four model calls at any N,
+and PTC's extra turn to write the script makes the two arms roughly even. The method is in
+[misc/tool_calling_vs_ptc/README.md](misc/tool_calling_vs_ptc/README.md), and the full results of the
+534 sweep runs are in the [PARCS Control-Space Sweeps](https://claude.ai/artifact/BSvDtPjDYjTf6psJPL5Afd)
+report.
 
-2. Use the `src/docker-compose.yml` file to set up the local development environment. This file defines the necessary services and their configurations.
+## Logs in Kibana
 
-3. Build and run the Docker Compose setup using the following command:
-   ```
-   docker-compose up
-   ```
+Logs from `parcs-daemon` and `parcs-hostapi` go to Elasticsearch through Serilog. To browse them in
+Kibana (port 5601):
 
-   This will create the required containers and start the local development environment.
-
-## NuGet Package
-The solution depends on a NuGet package named "Parcs.Net" (version 0.7.0). You can find the package on NuGet.org at the following URL: [https://www.nuget.org/packages/Parcs.Net/](https://www.nuget.org/packages/Parcs.Net/)
-
-Make sure to include this package in your project to utilize the algorithmic modules provided by the solution.
-
-## Exploring Logs in Kibana
-PARCS logs, including logs from the **parcs-daemon** and **parcs-hostapi**, are stored in **Elasticsearch** and can be explored using **Kibana**. To view and analyze these logs, you need to set up a **data view** in Kibana that points to the appropriate Elasticsearch index.
-
-### Steps to Explore Logs in Kibana
-
-1. **Access Kibana**: 
-   - After deploying the solution, you can access the Kibana dashboard via the exposed Kibana service on port 5601. If using AKS, you can access it using the LoadBalancer IP or DNS name.
-   
-2. **Create a Data View in Kibana**:
-   - In Kibana, navigate to **"Stack Management"** > **"Data Views"**.
-   - Click on **"Create data view"**.
-   - Enter the index pattern `parcs-*` in the **Index pattern** field. This will match all indices that begin with `parcs-`, including logs related to the PARCS system.
-   - Click **"Next step"** to configure the data view.
-
-3. **Save the Data View**:
-   - Click **"Create data view"** to save the configuration.
-
-4. **Explore the Logs**:
-   - Once the data view is created, you can use Kibana’s **Discover** tab to explore the PARCS logs.
-   - You can filter logs by various fields such as log level, service (e.g., `parcs-daemon` or `parcs-hostapi`), and timestamp.
-   - Use Kibana’s search and filtering capabilities to drill down into specific logs or view trends over time.
-
+1. Open **Stack Management** > **Data Views** > **Create data view**.
+2. Enter the index pattern `parcs-*` and save it.
+3. Use **Discover** to filter by service, log level and time.
 
 ## Contributing
-Contributions to the PARCS-NET-K8 solution are welcome! If you encounter any issues or have suggestions for improvements, please open an issue or submit a pull request in this repository.
+
+Issues and pull requests are welcome.
 
 ## License
-This repository is licensed under the [MIT License](LICENSE). Feel free to use and modify the code as per the terms of the license.
+
+[MIT](LICENSE)
